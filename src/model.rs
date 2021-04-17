@@ -12,9 +12,28 @@ use std::{
 
 /// A configured split group.
 #[derive(Serialize, Deserialize, Debug)]
+pub struct Config {
+    /// Map of split groups for the game.
+    pub groups: HashMap<GroupId, Group>,
+    /// Map of categories for the game.
+    pub categories: HashMap<CategoryId, Category>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Category {
+    /// The display name of the category.
+    pub name: String,
+    /// The list of groups that make up the category.
+    #[serde(default)]
+    pub groups: Vec<GroupId>,
+}
+
+/// A configured split group.
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Group {
     /// The name of the group.
     pub name: String,
+    /// The splits inhabiting the group.
     pub splits: Vec<Split>,
 }
 
@@ -47,6 +66,9 @@ impl FromStr for Record {
         Ok(Record { time: s.parse()? })
     }
 }
+
+/// A group ID.
+pub type GroupId = String;
 
 /// A category ID.
 pub type CategoryId = String;
