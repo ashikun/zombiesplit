@@ -1,0 +1,87 @@
+[metadata]
+id = "soniccd11"
+
+[groups.pp]
+    name = "Palmtree Panic"
+    [[groups.pp.split]]
+        name = "Palmtree Panic 1"
+        records.il = "0m0.0s"
+    [[groups.pp.split]]
+        name = "Palmtree Panic 2"
+        records.il = "0m0.0s"
+    [[groups.pp.split]]
+        name = "Palmtree Panic 3"
+        records.il = "0m0.0s"
+[groups.cc]
+    name = "Collision Chaos"
+    [[groups.cc.split]]
+        name = "Collision Chaos 1"
+        records.il = "0m0.0s"
+    [[groups.cc.split]]
+        name = "Collision Chaos 2"
+        records.il = "0m0.0s"
+    [[groups.cc.split]]
+        name = "Collision Chaos 3"
+        records.il = "0m0.0s"
+[groups.tt]
+    name = "Tidal Tempest"
+    [[groups.tt.split]]
+        name = "Tidal Tempest 1"
+        records.il = "0m0.0s"
+    [[groups.tt.split]]
+        name = "Tidal Tempest 2"
+        records.il = "0m0.0s"
+    [[groups.tt.split]]
+        name = "Tidal Tempest 3"
+        records.il = "0m0.0s"
+[groups.qq]
+    name = "Quartz Quadrant"
+    [[groups.qq.split]]
+        name = "Quartz Quadrant 1"
+        records.il = "0m0.0s"
+    [[groups.qq.split]]
+        name = "Quartz Quadrant 2"
+        records.il = "0m0.0s"
+    [[groups.qq.split]]
+        name = "Quartz Quadrant 3"
+        records.il = "0m0.0s"
+[groups.ww]
+    name = "Wacky Workbench"
+    [[groups.ww.split]]
+        name = "Wacky Workbench 1"
+        records.il = "0m0.0s"
+    [[groups.ww.split]]
+        name = "Wacky Workbench 2"
+        records.il = "0m0.0s"
+    [[groups.ww.split]]
+        name = "Wacky Workbench 3"
+        records.il = "0m0.0s"
+[groups.ss]
+    name = "Stardust Speedway"
+    [[groups.ss.split]]
+        name = "Stardust Speedway 1"
+        records.il = "0m0.0s"
+    [[groups.ss.split]]
+        name = "Stardust Speedway 2"
+        records.il = "0m0.0s"
+    [[groups.ss.split]]
+        name = "Stardust Speedway 3"
+        records.il = "0m0.0s"
+[groups.mm]
+    name = "Metallic Madness"
+    [[groups.mm.split]]
+        name = "Metallic Madness 1"
+        records.il = "0m0.0s"
+    [[groups.mm.split]]
+        name = "Metallic Madness 2"
+        records.il = "0m0.0s"
+    [[groups.mm.split]]
+        name = "Metallic Madness 3"
+        records.il = "0m0.0s"
+
+[categories.btg]
+name = "Beat the Game"
+groups = ["pp", "cc", "tt", "qq", "ww", "ss", "mm"]
+
+[categories.il]
+name = "Individual Levels"
