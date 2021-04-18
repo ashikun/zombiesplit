@@ -1,5 +1,4 @@
-[metadata]
-id = "soniccd11"
+name = "Sonic CD (2011)"
 
 [groups.pp]
     name = "Palmtree Panic"
