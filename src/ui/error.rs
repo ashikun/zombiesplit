@@ -1,0 +1,29 @@
+//! User interface errors.
+use thiserror::Error;
+
+/// A user interface error.
+#[derive(Debug, Error)]
+pub enum Error {
+    /// An error occurred while initialising an SDL subsystem.
+    #[error("SDL init error: {0}")]
+    SdlInit(String),
+
+    /// An error occurred while loading the font.
+    #[error("SDL couldn't load font: {0}")]
+    SdlLoadFont(String),
+
+    /// An error occurred while blitting the font.
+    #[error("SDL couldn't blit font: {0}")]
+    SdlBlit(String),
+
+    /// An error occurred while building a window.
+    #[error("SDL windowing error")]
+    SdlWindow(#[from] sdl2::video::WindowBuildError),
+
+    /// An error occurred while building a window.
+    #[error("SDL error")]
+    SdlInteger(#[from] sdl2::IntegerOrSdlError)
+}
+
+/// Shorthand for a result using [Error].
+pub type Result<T> = std::result::Result<T, Error>;
