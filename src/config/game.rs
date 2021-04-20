@@ -31,6 +31,33 @@ impl Game {
         file.read_to_string(&mut contents)?;
         Ok(toml::from_str(&contents)?)
     }
+
+    /// Creates a new run using the game as a template.
+    ///
+    /// This is a temporary function that will likely go away once we implement
+    /// SQLite integration.
+    pub fn to_run(&self, category: &str) -> Result<crate::model::run::Run> {
+        let cat = self
+            .categories
+            .get(category)
+            .ok_or_else(|| Error::MissingCategory(category.to_owned()))?;
+
+        let mut splits = vec![];
+
+        for groupid in cat.groups.iter() {
+            let group = self
+                .groups
+                .get(groupid)
+                .ok_or_else(|| Error::MissingGroup(groupid.clone()))?;
+            splits.extend(group.splits.iter().map(|split| crate::model::run::Split {
+                name: split.name.clone(),
+                times: vec![],
+            }))
+        }
+        // TODO(@MattWindsor91): check groups are valid
+
+        Ok(crate::model::run::Run { splits })
+    }
 }
 
 /// A run category.
@@ -95,6 +122,14 @@ pub enum Error {
     Io(#[from] std::io::Error),
     #[error("Error parsing game config from TOML")]
     Toml(#[from] toml::de::Error),
+
+    /// Something referenced a missing category.
+    #[error("Missing category: {0}")]
+    MissingCategory(CategoryId),
+
+    /// Something referenced a missing group.
+    #[error("Missing group: {0}")]
+    MissingGroup(GroupId),
 }
 
 /// Shorthand for results over [Error].

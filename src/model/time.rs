@@ -8,7 +8,7 @@ use std::{
 use thiserror::Error;
 
 /// A hh:mm:ss:ms timing.
-#[derive(SerializeDisplay, DeserializeFromStr, Debug)]
+#[derive(Copy, Clone, SerializeDisplay, DeserializeFromStr, Debug)]
 pub struct Time {
     /// Number of hours.
     pub hours: u8,
@@ -18,6 +18,37 @@ pub struct Time {
     pub secs: u8,
     /// Number of milliseconds.
     pub micros: u16,
+}
+
+impl std::ops::Add for Time {
+    type Output = Time;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        let (micros, carry_secs) = add_carry(self.micros, rhs.micros, 0, 1000);
+        let (secs, carry_mins) = add_carry(self.secs, rhs.secs, carry_secs as u8, 60);
+        let (mins, carry_hours) = add_carry(self.mins, rhs.mins, carry_mins, 60);
+        let (hours, _) = add_carry(self.hours, rhs.hours, carry_hours, 255);
+
+        Time {
+            micros,
+            secs: secs as u8,
+            mins: mins as u8,
+            hours: hours as u8,
+        }
+    }
+}
+
+fn add_carry<T>(l: T, r: T, carry: T, modulo: T) -> (T, T)
+where
+    T: Copy,
+    T: std::ops::Add<Output = T>,
+    T: std::ops::Div<Output = T>,
+    T: std::ops::Rem<Output = T>,
+    T: std::ops::Sub<Output = T>,
+{
+    let raw = l + r + carry;
+    let added = raw % modulo;
+    (added, (raw - added) / modulo)
 }
 
 impl Display for Time {

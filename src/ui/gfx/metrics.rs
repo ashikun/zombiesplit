@@ -1,5 +1,5 @@
 //! Font metrics.
-use sdl2::rect::{Rect, Point};
+use sdl2::rect::{Point, Rect};
 
 /// Number of columns in the font bitmap.
 /// The number of rows is 256 divided by the number of columns.
@@ -19,12 +19,7 @@ const HPAD: i32 = (H as i32) + 1;
 /// Produces a rectangle with top-left `top_left` and the size of one font
 /// character.
 pub fn char_rect(top_left: Point) -> Rect {
-    return Rect::new(
-        top_left.x,
-        top_left.y,
-        W as u32,
-        H as u32,
-    )
+    Rect::new(top_left.x, top_left.y, W as u32, H as u32)
 }
 
 /// Produces the appropriate rectangle for looking up `char` in the font.

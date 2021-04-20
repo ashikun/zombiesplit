@@ -22,7 +22,7 @@ pub enum Error {
 
     /// An error occurred while building a window.
     #[error("SDL error")]
-    SdlInteger(#[from] sdl2::IntegerOrSdlError)
+    SdlInteger(#[from] sdl2::IntegerOrSdlError),
 }
 
 /// Shorthand for a result using [Error].

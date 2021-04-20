@@ -26,13 +26,16 @@ impl<'a> Renderer<'a> {
     fn put_byte(&mut self, byte: u8, top_left: Point) -> Result<()> {
         let src = metrics::font_rect(byte);
         let dst = metrics::char_rect(top_left);
-        self.screen.copy(&self.font, src, dst).map_err(Error::SdlBlit)
+        self.screen
+            .copy(&self.font, src, dst)
+            .map_err(Error::SdlBlit)
     }
 }
 
 /// Makes a zombiesplit window.
 pub fn make_window(video: &sdl2::VideoSubsystem) -> Result<sdl2::video::Window> {
-    let window = video.window("zombiesplit", 320, 640)
+    let window = video
+        .window("zombiesplit", 320, 640)
         .position_centered()
         .build()
         .map_err(Error::SdlWindow)?;
