@@ -31,7 +31,7 @@ pub fn run(cfg: &game::Game) -> error::Result<()> {
     let mut tl = Point::new(10, 10);
     for (_, c) in cfg.categories.iter() {
         r.put_str(&c.name, tl)?;
-        tl = tl.offset(0, gfx::FONT_HPAD.into());
+        tl = gfx::metrics::offset(tl, 0, 1);
     }
     r.screen.present();
 
