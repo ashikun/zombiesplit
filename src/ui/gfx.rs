@@ -3,12 +3,12 @@
 pub mod metrics; // for now
 
 use super::error::{Error, Result};
+use sdl2::image::LoadTexture;
 use sdl2::rect::Point;
 use sdl2::render::{Canvas, Texture};
 
 /// The graphics renderer.
 pub struct Renderer<'a> {
-    // TODO(@MattWindsor91): hide these.
     pub screen: Canvas<sdl2::video::Window>,
     pub font: Texture<'a>,
 }
@@ -30,6 +30,17 @@ impl<'a> Renderer<'a> {
             .copy(&self.font, src, dst)
             .map_err(Error::SdlBlit)
     }
+
+    /// Clears the screen.
+    pub fn clear(&mut self) {
+        self.screen.set_draw_color(sdl2::pixels::Color::BLACK);
+        self.screen.clear()
+    }
+
+    /// Refreshes the screen.
+    pub fn present(&mut self) {
+        self.screen.present()
+    }
 }
 
 /// Makes a zombiesplit window.
@@ -40,4 +51,13 @@ pub fn make_window(video: &sdl2::VideoSubsystem) -> Result<sdl2::video::Window> 
         .build()
         .map_err(Error::SdlWindow)?;
     Ok(window)
+}
+
+/// Loads a font into the given texture creator.
+pub fn load_font<P: AsRef<std::path::Path>>(
+    textures: &sdl2::render::TextureCreator<sdl2::video::WindowContext>,
+    path: P,
+) -> Result<sdl2::render::Texture> {
+    let font = textures.load_texture(path).map_err(Error::SdlLoadFont)?;
+    Ok(font)
 }

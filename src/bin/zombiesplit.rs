@@ -7,7 +7,7 @@ fn main() {
 fn run() -> anyhow::Result<()> {
     let cfg = game::Game::load("soniccd.toml")?;
     let run = cfg.to_run("btg")?;
-    zombiesplit::ui::run(&run)?;
+    zombiesplit::ui::Core::new()?.run(&run)?;
 
     Ok(())
 }
