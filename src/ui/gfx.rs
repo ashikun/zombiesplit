@@ -14,6 +14,12 @@ pub struct Renderer<'a> {
 }
 
 impl<'a> Renderer<'a> {
+    /// Sets the current font colour.
+    pub fn set_font_colour(&mut self, colour: sdl2::pixels::Color) {
+        self.font.set_color_mod(colour.r, colour.g, colour.b);
+        self.font.set_alpha_mod(colour.a);
+    }
+
     /// Puts a string [str] onto the screen at `top_left`.
     pub fn put_str(&mut self, str: &str, mut top_left: Point) -> Result<()> {
         for byte in str.as_bytes() {
