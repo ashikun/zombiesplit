@@ -100,18 +100,18 @@ impl Core {
     }
 
     fn draw_split(&self, split: &run::Split, num: usize, r: &mut Renderer) -> Result<()> {
-        let tl = Point::new(4, 4 + (16 * num as i32));
+        let tl = self.split_name_top_left(num);
 
         r.set_font_colour(self.split_font_colour(num));
         r.put_str(&split.name, tl)
     }
 
+    fn split_name_top_left(&self, num: usize) -> sdl2::rect::Point {
+        Point::new(4, 4 + (16 * num as i32))
+    }
+
     fn split_font_colour(&self, num: usize) -> sdl2::pixels::Color {
-        if self.state.cursor == num {
-            sdl2::pixels::Color::YELLOW
-        } else {
-            sdl2::pixels::Color::WHITE
-        }
+        gfx::colours::SET.fg_split_text(num, self.state.cursor)
     }
 }
 

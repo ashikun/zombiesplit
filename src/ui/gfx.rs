@@ -1,5 +1,6 @@
 //! Graphics rendering.
 
+pub mod colours;
 pub mod metrics; // for now
 
 use super::error::{Error, Result};
