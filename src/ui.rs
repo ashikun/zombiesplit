@@ -3,7 +3,7 @@ pub mod error;
 pub mod gfx;
 
 pub use error::{Error, Result};
-use sdl2::{keyboard::Keycode, rect::Point};
+use sdl2::rect::Point;
 
 use self::gfx::Renderer;
 use crate::model::run;
@@ -44,37 +44,21 @@ impl Core {
         self.redraw(&mut r)?;
 
         let mut events = self.sdl.event_pump().map_err(Error::SdlInit)?;
-        while self.state.running {
-            for event in events.poll_iter() {
-                use sdl2::event::Event;
-                match event {
-                    Event::Quit { .. } => self.state.running = false,
-                    Event::KeyDown {
-                        keycode: Some(k), ..
-                    } => self.handle_keydown(k, &mut r)?,
-                    _ => {}
-                }
-            }
+        while self.state.is_running() {
+            events
+                .poll_iter()
+                .filter_map(Event::from_sdl)
+                .try_for_each(|e| self.handle_event(e, &mut r))?;
         }
 
         Ok(())
     }
 
-    fn handle_keydown(&mut self, k: Keycode, r: &mut Renderer) -> Result<()> {
-        match k {
-            sdl2::keyboard::Keycode::J => {
-                if self.state.move_cursor_down() {
-                    self.redraw(r)?
-                }
-            }
-            sdl2::keyboard::Keycode::K => {
-                if self.state.move_cursor_up() {
-                    self.redraw(r)?
-                }
-            }
-            sdl2::keyboard::Keycode::Escape => self.state.running = false,
-            _ => {}
-        };
+    fn handle_event(&mut self, e: Event, r: &mut Renderer) -> Result<()> {
+        let need_redraw = self.state.handle_event(e);
+        if need_redraw {
+            self.redraw(r)?;
+        }
         Ok(())
     }
 
@@ -120,8 +104,8 @@ struct State {
     cursor: usize,
     /// The current run.
     run: run::Run,
-    /// Whether the UI is running.
-    running: bool,
+    /// The current action that the UI is taking.
+    action: Action,
 }
 
 impl State {
@@ -129,7 +113,27 @@ impl State {
         Self {
             cursor: 0,
             run,
-            running: true,
+            action: Action::default(),
+        }
+    }
+
+    /// Gets whether the UI should be running.
+    pub fn is_running(&self) -> bool {
+        match self.action {
+            Action::Quit => false,
+            _ => true,
+        }
+    }
+
+    /// Handles an event.  Returns true if the event changed the state.
+    pub fn handle_event(&mut self, e: Event) -> bool {
+        match e {
+            Event::CursorDown => self.move_cursor_down(),
+            Event::CursorUp => self.move_cursor_up(),
+            Event::Quit => {
+                self.action = Action::Quit;
+                false
+            }
         }
     }
 
@@ -151,5 +155,56 @@ impl State {
             self.cursor += 1;
             true
         }
+    }
+}
+
+/// High-level event, translated from a SDL event.
+enum Event {
+    /// Move the cursor up.
+    CursorUp,
+    /// Move the cursor down.
+    CursorDown,
+    /// Quit the program.
+    Quit,
+}
+
+impl Event {
+    fn from_sdl(e: sdl2::event::Event) -> Option<Self> {
+        use sdl2::event::Event;
+        match e {
+            Event::Quit { .. } => Some(Self::Quit),
+            Event::KeyDown {
+                keycode: Some(k), ..
+            } => Self::from_key(k),
+            _ => None,
+        }
+    }
+
+    fn from_key(k: sdl2::keyboard::Keycode) -> Option<Self> {
+        use sdl2::keyboard::Keycode;
+        match k {
+            Keycode::J | Keycode::Down => Some(Self::CursorDown),
+            Keycode::K | Keycode::Up => Some(Self::CursorUp),
+            sdl2::keyboard::Keycode::Escape => Some(Self::Quit),
+            _ => None,
+        }
+    }
+}
+
+enum Action {
+    /// Run is inactive.
+    Inactive,
+    /// Currently navigating the splits.
+    //Nav,
+    /// Currently entering a field in the active split.
+    //Entering{ field: time::Field, entry: String },
+    /// ZombieSplit is quitting.
+    Quit,
+}
+
+/// The default [Action] is [Action::Inactive].
+impl Default for Action {
+    fn default() -> Self {
+        Action::Inactive
     }
 }
