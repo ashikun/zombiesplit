@@ -1,2 +1,2 @@
-//! Configuring ZombieSplit.
+//! Configuring zombiesplit.
 pub mod game;

@@ -29,14 +29,41 @@ pub struct Set {
     pub fg_time_run_behind: Color,
 }
 
-impl Set {
-    /// The foreground text for split at `pos`, given cursor at `cursor`.
-    pub fn fg_split_text(&self, pos: usize, cursor: usize) -> Color {
+/// High-level colour keys.
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum Key {
+    Normal,
+    Done,
+    Cursor,
+    RunAhead,
+    SplitAhead,
+    RunBehond,
+}
+
+impl Key {
+    /// The foreground text key for split at `pos`, given cursor at `cursor`.
+    #[must_use]
+    pub fn fg_split_text(pos: usize, cursor: usize) -> Self {
         use std::cmp::Ordering;
         match pos.cmp(&cursor) {
-            Ordering::Less => self.fg_done,
-            Ordering::Equal => self.fg_cursor,
-            Ordering::Greater => self.fg_normal,
+            Ordering::Less => Self::Done,
+            Ordering::Equal => Self::Cursor,
+            Ordering::Greater => Self::Normal,
+        }
+    }
+}
+
+impl Set {
+    /// Gets a colour by its key.
+    #[must_use]
+    pub fn by_key(&self, key: Key) -> Color {
+        match key {
+            Key::Normal => self.fg_normal,
+            Key::Done => self.fg_done,
+            Key::Cursor => self.fg_cursor,
+            Key::RunAhead => self.fg_time_run_ahead,
+            Key::SplitAhead => self.fg_time_split_ahead,
+            Key::RunBehond => self.fg_time_run_behind,
         }
     }
 }

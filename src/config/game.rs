@@ -25,6 +25,11 @@ pub struct Game {
 
 impl Game {
     /// Loads a game config from TOML.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `path` does not exist, is not readable, or does
+    /// not contain valid TOML.
     pub fn load<P: AsRef<Path>>(path: P) -> Result<Self> {
         let mut file = std::fs::File::open(path)?;
         let mut contents = String::new();
@@ -35,7 +40,12 @@ impl Game {
     /// Creates a new run using the game as a template.
     ///
     /// This is a temporary function that will likely go away once we implement
-    /// SQLite integration.
+    /// sqlite integration.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the configuration references a category or group
+    /// that is not available elsewhere in the configuration.
     pub fn to_run(&self, category: &str) -> Result<crate::model::run::Run> {
         let cat = self
             .categories
@@ -44,7 +54,7 @@ impl Game {
 
         let mut splits = vec![];
 
-        for groupid in cat.groups.iter() {
+        for groupid in &cat.groups {
             let group = self
                 .groups
                 .get(groupid)

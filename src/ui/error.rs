@@ -6,19 +6,19 @@ use thiserror::Error;
 pub enum Error {
     /// An error occurred while initialising an SDL subsystem.
     #[error("SDL init error: {0}")]
-    SdlInit(String),
+    Init(String),
 
     /// An error occurred while loading the font.
     #[error("SDL couldn't load font: {0}")]
-    SdlLoadFont(String),
+    LoadFont(String),
 
     /// An error occurred while blitting the font.
     #[error("SDL couldn't blit font: {0}")]
-    SdlBlit(String),
+    Blit(String),
 
     /// An error occurred while building a window.
     #[error("SDL windowing error")]
-    SdlWindow(#[from] sdl2::video::WindowBuildError),
+    Window(#[from] sdl2::video::WindowBuildError),
 
     /// An error occurred while building a window.
     #[error("SDL error")]

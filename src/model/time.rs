@@ -1,6 +1,7 @@
-//! ZombieSplit's notion of times.
+//! zombiesplit's notion of times.
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 use std::{
+    convert::TryFrom,
     fmt::{self, Display},
     num::ParseIntError,
     str::FromStr,
@@ -25,7 +26,9 @@ impl std::ops::Add for Time {
 
     fn add(self, rhs: Self) -> Self::Output {
         let (micros, carry_secs) = add_carry(self.micros, rhs.micros, 0, 1000);
-        let (secs, carry_mins) = add_carry(self.secs, rhs.secs, carry_secs as u8, 60);
+        // carry_secs should not be over 255.
+        let carry_secs = u8::try_from(carry_secs).unwrap();
+        let (secs, carry_mins) = add_carry(self.secs, rhs.secs, carry_secs, 60);
         let (mins, carry_hours) = add_carry(self.mins, rhs.mins, carry_mins, 60);
         let (hours, _) = add_carry(self.hours, rhs.hours, carry_hours, 255);
 
@@ -40,11 +43,11 @@ impl std::ops::Add for Time {
 
 fn add_carry<T>(l: T, r: T, carry: T, modulo: T) -> (T, T)
 where
-    T: Copy,
-    T: std::ops::Add<Output = T>,
-    T: std::ops::Div<Output = T>,
-    T: std::ops::Rem<Output = T>,
-    T: std::ops::Sub<Output = T>,
+    T: Copy
+        + std::ops::Add<Output = T>
+        + std::ops::Div<Output = T>
+        + std::ops::Rem<Output = T>
+        + std::ops::Sub<Output = T>,
 {
     let raw = l + r + carry;
     let added = raw % modulo;
@@ -81,39 +84,35 @@ pub enum Field {
 }
 
 impl Field {
-    fn delimiter(&self) -> char {
-        use Field::*;
+    fn delimiter(self) -> char {
         match self {
-            Hours => 'h',
-            Minutes => 'm',
-            Seconds => 's',
-            Micros => ' ',
+            Field::Hours => 'h',
+            Field::Minutes => 'm',
+            Field::Seconds => 's',
+            Field::Micros => ' ',
         }
     }
 
     /// Retrives the maximum value of this field.
-    fn max(&self) -> u16 {
-        use Field::*;
+    fn max(self) -> u16 {
         match self {
-            Hours => u16::from(u8::MAX),
-            Minutes => 59,
-            Seconds => 59,
-            Micros => 999,
+            Field::Hours => u16::from(u8::MAX),
+            Field::Minutes | Field::Seconds => 59,
+            Field::Micros => 999,
         }
     }
 }
 
 impl Display for Field {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use Field::*;
         write!(
             f,
             "{}",
             match self {
-                Hours => "hours",
-                Minutes => "minutes",
-                Seconds => "seconds",
-                Micros => "microseconds",
+                Field::Hours => "hours",
+                Field::Minutes => "minutes",
+                Field::Seconds => "seconds",
+                Field::Micros => "microseconds",
             }
         )
     }
