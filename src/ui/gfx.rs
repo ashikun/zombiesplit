@@ -4,14 +4,12 @@ pub mod colour;
 pub mod metrics; // for now
 pub mod render;
 
-use std::convert::TryInto;
+use self::colour::Key;
 
 use super::{
     error::{Error, Result},
     state,
 };
-use sdl2::rect::Point;
-
 pub struct Core<'a> {
     pub renderer: render::Renderer<'a>,
 }
@@ -41,21 +39,25 @@ impl<'a> Core<'a> {
 
     fn draw_split(&mut self, split: state::SplitRef) -> Result<()> {
         self.draw_split_name(split)?;
+        self.draw_split_time(split)?;
         Ok(())
     }
 
     fn draw_split_name(&mut self, split: state::SplitRef) -> Result<()> {
-        let tl = split_name_top_left(split.index);
+        let tl = metrics::split_name_top_left(split.index);
         let colour = colour::Key::Name(split.position());
         self.renderer
             .put_str(&split.split.name, tl, render::FontId::Normal(colour))
     }
+
+    fn draw_split_time(&mut self, split: state::SplitRef) -> Result<()> {
+        let tl = metrics::split_time_top_left(split.index);
+        self.renderer
+            .put_str("--'--\"---", tl, render::FontId::Normal(Key::NoTime))
+
+    }
 }
 
-fn split_name_top_left(num: usize) -> sdl2::rect::Point {
-    let ns: i32 = num.try_into().unwrap_or_default();
-    Point::new(4, 4 + (16 * ns))
-}
 
 /// Makes a zombiesplit window.
 ///
@@ -64,7 +66,7 @@ fn split_name_top_left(num: usize) -> sdl2::rect::Point {
 /// Returns an error if SDL fails to make the window.
 pub fn make_window(video: &sdl2::VideoSubsystem) -> Result<sdl2::video::Window> {
     let window = video
-        .window("zombiesplit", 320, 640)
+        .window("zombiesplit", metrics::WIN_W, metrics::WIN_H)
         .position_centered()
         .build()
         .map_err(Error::Window)?;

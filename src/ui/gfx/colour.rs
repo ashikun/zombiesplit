@@ -20,6 +20,9 @@ pub struct Set {
     /// Foreground text for the split currently under the cursor.
     pub fg_cursor: Color,
 
+    /// Foreground text for a time when there is no time entered.
+    pub fg_time_none: Color,
+
     /// Foreground text for a time when the run is ahead of comparison.
     pub fg_time_run_ahead: Color,
 
@@ -35,6 +38,7 @@ pub struct Set {
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Key {
     Name(super::super::state::SplitPosition),
+    NoTime,
     RunAhead,
     SplitAhead,
     RunBehind,
@@ -46,6 +50,7 @@ impl Set {
     pub fn by_key(&self, key: Key) -> Color {
         match key {
             Key::Name(pos) => self.by_split_position(pos),
+            Key::NoTime => self.fg_time_none,
             Key::RunAhead => self.fg_time_run_ahead,
             Key::SplitAhead => self.fg_time_split_ahead,
             Key::RunBehind => self.fg_time_run_behind,
@@ -68,6 +73,7 @@ pub const SET: Set = Set {
     fg_cursor: Color::CYAN,
     fg_done: Color::GREY,
     fg_normal: Color::WHITE,
+    fg_time_none: Color::GREY,
     fg_time_run_ahead: Color::GREEN,
     fg_time_run_behind: Color::RED,
     fg_time_split_ahead: Color::YELLOW,
