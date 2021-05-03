@@ -4,7 +4,6 @@ pub mod colour;
 pub mod metrics; // for now
 pub mod render;
 
-use crate::model::run;
 use std::convert::TryInto;
 
 use super::{
@@ -34,17 +33,22 @@ impl<'a> Core<'a> {
     }
 
     fn draw_splits(&mut self, state: &state::State) -> Result<()> {
-        for (num, s) in state.run.splits.iter().enumerate() {
-            self.draw_split(state, s, num)?;
+        for split in state.splits() {
+            self.draw_split(split)?;
         }
         Ok(())
     }
 
-    fn draw_split(&mut self, state: &state::State, split: &run::Split, num: usize) -> Result<()> {
-        let tl = split_name_top_left(num);
-        let colour = colour::Key::fg_split_text(num, state.cursor);
+    fn draw_split(&mut self, split: state::SplitRef) -> Result<()> {
+        self.draw_split_name(split)?;
+        Ok(())
+    }
+
+    fn draw_split_name(&mut self, split: state::SplitRef) -> Result<()> {
+        let tl = split_name_top_left(split.index);
+        let colour = colour::Key::Name(split.position());
         self.renderer
-            .put_str(&split.name, tl, render::FontId::Normal(colour))
+            .put_str(&split.split.name, tl, render::FontId::Normal(colour))
     }
 }
 
@@ -52,7 +56,6 @@ fn split_name_top_left(num: usize) -> sdl2::rect::Point {
     let ns: i32 = num.try_into().unwrap_or_default();
     Point::new(4, 4 + (16 * ns))
 }
-
 
 /// Makes a zombiesplit window.
 ///

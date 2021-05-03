@@ -3,6 +3,7 @@
 use super::event;
 use crate::model::run;
 
+/// The state held by the user interface.
 pub struct State {
     /// The current split.
     pub cursor: usize,
@@ -15,6 +16,7 @@ pub struct State {
 }
 
 impl State {
+    /// Constructs a new initial state for a given run.
     pub fn new(run: run::Run) -> Self {
         Self {
             cursor: 0,
@@ -22,6 +24,20 @@ impl State {
             action: Action::default(),
             is_dirty: false,
         }
+    }
+
+    /// Produces a vector of split references.
+    pub fn splits(&self) -> Vec<SplitRef> {
+        self.run
+            .splits
+            .iter()
+            .enumerate()
+            .map(|(index, split)| SplitRef {
+                index,
+                split,
+                state: self,
+            })
+            .collect()
     }
 
     /// Gets whether the UI should be running.
@@ -73,5 +89,44 @@ pub enum Action {
 impl Default for Action {
     fn default() -> Self {
         Action::Inactive
+    }
+}
+
+/// A split reference, containing position information the split.
+#[derive(Copy, Clone)]
+pub struct SplitRef<'a> {
+    /// The index of the split reference.
+    pub index: usize,
+    /// A reference to the parent state.
+    pub state: &'a State,
+    /// The split data.
+    pub split: &'a crate::model::run::Split,
+}
+
+impl<'a> SplitRef<'a> {
+    /// Gets whether this split is currently active.
+    pub fn position(&self) -> SplitPosition {
+        match self.index.cmp(&self.state.cursor) {
+            std::cmp::Ordering::Less => SplitPosition::Done,
+            std::cmp::Ordering::Equal => SplitPosition::Cursor,
+            std::cmp::Ordering::Greater => SplitPosition::Coming,
+        }
+    }
+}
+
+/// Relative positions of splits to cursors.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+pub enum SplitPosition {
+    /// This split is before the cursor.
+    Done,
+    /// This split is on the cursor.
+    Cursor,
+    /// This split is after the cursor.
+    Coming,
+}
+
+impl<'a> AsRef<crate::model::run::Split> for SplitRef<'a> {
+    fn as_ref(&self) -> &crate::model::run::Split {
+        self.split
     }
 }

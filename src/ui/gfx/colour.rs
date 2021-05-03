@@ -4,6 +4,8 @@
 
 use sdl2::pixels::Color;
 
+use crate::ui::state::SplitPosition;
+
 /// A set of colours to use in the user interface.
 pub struct Set {
     /// Main background colour.
@@ -32,25 +34,10 @@ pub struct Set {
 /// High-level colour keys.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Key {
-    Normal,
-    Done,
-    Cursor,
+    Name(super::super::state::SplitPosition),
     RunAhead,
     SplitAhead,
-    RunBehond,
-}
-
-impl Key {
-    /// The foreground text key for split at `pos`, given cursor at `cursor`.
-    #[must_use]
-    pub fn fg_split_text(pos: usize, cursor: usize) -> Self {
-        use std::cmp::Ordering;
-        match pos.cmp(&cursor) {
-            Ordering::Less => Self::Done,
-            Ordering::Equal => Self::Cursor,
-            Ordering::Greater => Self::Normal,
-        }
-    }
+    RunBehind,
 }
 
 impl Set {
@@ -58,12 +45,19 @@ impl Set {
     #[must_use]
     pub fn by_key(&self, key: Key) -> Color {
         match key {
-            Key::Normal => self.fg_normal,
-            Key::Done => self.fg_done,
-            Key::Cursor => self.fg_cursor,
+            Key::Name(pos) => self.by_split_position(pos),
             Key::RunAhead => self.fg_time_run_ahead,
             Key::SplitAhead => self.fg_time_split_ahead,
-            Key::RunBehond => self.fg_time_run_behind,
+            Key::RunBehind => self.fg_time_run_behind,
+        }
+    }
+
+    #[must_use]
+    pub fn by_split_position(&self, sp: SplitPosition) -> Color {
+        match sp {
+            SplitPosition::Done => self.fg_done,
+            SplitPosition::Cursor => self.fg_cursor,
+            SplitPosition::Coming => self.fg_normal,
         }
     }
 }
