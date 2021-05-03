@@ -44,7 +44,7 @@ impl Manager {
     ///
     /// Returns an error if SDL can't spawn an event pump.
     pub fn spawn(&self, r: run::Run) -> Result<Core> {
-        let renderer = gfx::Renderer::new(self.screen.borrow_mut(), &self.textures);
+        let renderer = gfx::render::Renderer::new(self.screen.borrow_mut(), &self.textures);
         let gfx = gfx::Core { renderer };
         let state = state::State::new(r);
 
