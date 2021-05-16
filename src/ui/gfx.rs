@@ -54,10 +54,8 @@ impl<'a> Core<'a> {
         let tl = metrics::split_time_top_left(split.index);
         self.renderer
             .put_str("--'--\"---", tl, render::FontId::Normal(Key::NoTime))
-
     }
 }
-
 
 /// Makes a zombiesplit window.
 ///

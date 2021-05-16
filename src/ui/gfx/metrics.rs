@@ -8,10 +8,10 @@ use sdl2::rect::{Point, Rect};
 const COLS: u8 = 32;
 
 /// Window width.
-pub const WIN_W : u32 = 320;
+pub const WIN_W: u32 = 320;
 
 /// Window height.
-pub const WIN_H : u32 = 640;
+pub const WIN_H: u32 = 640;
 
 /// Padding used for window contents.
 const PAD: i32 = 4;

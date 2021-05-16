@@ -112,7 +112,7 @@ impl Display for Record {
 }
 
 impl FromStr for Record {
-    type Err = time::ParseError; // for now
+    type Err = time::Error; // for now
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         Ok(Record { time: s.parse()? })
