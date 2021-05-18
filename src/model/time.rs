@@ -7,6 +7,7 @@ use std::{
     str::FromStr,
 };
 
+pub mod carry;
 pub mod error;
 pub mod field;
 pub mod position;
@@ -45,15 +46,15 @@ impl TryFrom<u32> for Time {
     /// assert_eq!(u16::from(time.millis), 789);
     /// ```
     fn try_from(stamp: u32) -> Result<Self, Self::Error> {
-        let (millis, carry) = Field::<Msec>::new_with_carry(stamp);
-        let (secs, carry) = Field::new_with_carry(carry);
-        let (mins, carry) = Field::new_with_carry(carry);
-        let hours = Field::try_from(carry)?;
+        let millis = Field::<Msec>::new_with_carry(stamp);
+        let secs = Field::new_with_carry(millis.carry);
+        let mins = Field::new_with_carry(secs.carry);
+        let hours = Field::try_from(mins.carry)?;
         Ok(Self {
             hours,
-            mins,
-            secs,
-            millis,
+            mins: mins.value,
+            secs: secs.value,
+            millis: millis.value,
         })
     }
 }
@@ -76,7 +77,7 @@ impl From<Time> for u32 {
     /// use zombiesplit::model::time::Time;
     /// use std::convert::TryFrom;
     /// let msec = 1234567;
-    /// let time = Time::try_from(msec).unwrap()
+    /// let time = Time::try_from(msec).expect("should not overflow");
     /// assert_eq!(u32::from(time), msec);
     /// ```
     fn from(time: Time) -> u32 {

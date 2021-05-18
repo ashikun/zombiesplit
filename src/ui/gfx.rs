@@ -68,6 +68,7 @@ impl<'a> Core<'a> {
         time: model::time::Time,
     ) -> Result<()> {
         let colour = Key::RunAhead; // for now
+
         // TODO(@MattWindsor91): hours?
         let time_str = format!("{}'{}\"{}", time.mins, time.secs, time.millis);
         self.renderer

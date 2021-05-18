@@ -1,5 +1,6 @@
 //! Time fields and associated functions.
 use super::{
+    carry::{self, Carry},
     error::{Error, Result},
     position::Position,
 };
@@ -66,15 +67,7 @@ impl<P: Position> TryFrom<u32> for Field<P> {
     ///
     /// Returns `Error::FieldTooBig` if `val` is too large for the field.
     fn try_from(val: u32) -> Result<Self> {
-        let (field, carry) = Self::new_with_carry(val);
-        if carry == 0 {
-            Ok(field)
-        } else {
-            Err(Error::FieldTooBig {
-                pos: P::name(),
-                val,
-            })
-        }
+        Self::new_with_carry(val).try_into()
     }
 }
 
@@ -134,14 +127,13 @@ impl<P: Position> Field<P> {
     ///
     /// ```
     /// use zombiesplit::model::time::{Field, Second};
-    /// let (field, carry) = Field::<Second>::new_with_carry(64);
-    /// assert_eq!(u16::from(field), 4, "should have taken 4 seconds");
-    /// assert_eq!(carry, 1, "should have carried over 1 minute")
+    /// let result = Field::<Second>::new_with_carry(64);
+    /// assert_eq!(u16::from(result.value), 4, "should have taken 4 seconds");
+    /// assert_eq!(result.carry, 1, "should have carried over 1 minute")
     /// ```
     #[must_use]
-    pub fn new_with_carry(val: u32) -> (Self, u32) {
-        let (carry, val) = div_rem(val, P::cap());
-        (Self::new(val.try_into().unwrap_or_default()), carry)
+    pub fn new_with_carry(val: u32) -> Carry<Self> {
+        Carry::from_division(val, P::cap()).map(|x| Self::new(x.try_into().unwrap_or_default()))
     }
     /// Returns this field's value as milliseconds.
     ///
@@ -157,7 +149,17 @@ impl<P: Position> Field<P> {
     }
 }
 
-fn div_rem(x: u32, divisor: u32) -> (u32, u32) {
-    let rem = x % divisor;
-    ((x - rem) / divisor, rem)
+impl<P: Position> TryFrom<carry::Carry<Field<P>>> for Field<P> {
+    type Error = Error;
+
+    fn try_from(c: carry::Carry<Field<P>>) -> Result<Field<P>> {
+        if c.carry == 0 {
+            Ok(c.value)
+        } else {
+            Err(Error::FieldTooBig {
+                pos: P::name(),
+                val: c.original,
+            })
+        }
+    }
 }
