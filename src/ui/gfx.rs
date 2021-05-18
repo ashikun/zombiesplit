@@ -4,6 +4,8 @@ pub mod colour;
 pub mod metrics; // for now
 pub mod render;
 
+use crate::model;
+
 use self::colour::Key;
 
 use super::{
@@ -52,6 +54,27 @@ impl<'a> Core<'a> {
 
     fn draw_split_time(&mut self, split: state::SplitRef) -> Result<()> {
         let tl = metrics::split_time_top_left(split.index);
+        self.draw_split_time_placeholder(tl)?;
+        if split.split.has_times() {
+            self.draw_split_summed_time(tl, split.split.summed_time())
+        } else {
+            self.draw_split_time_placeholder(tl)
+        }
+    }
+
+    fn draw_split_summed_time(
+        &mut self,
+        tl: sdl2::rect::Point,
+        time: model::time::Time,
+    ) -> Result<()> {
+        let colour = Key::RunAhead; // for now
+        // TODO(@MattWindsor91): hours?
+        let time_str = format!("{}'{}\"{}", time.mins, time.secs, time.millis);
+        self.renderer
+            .put_str(&time_str, tl, render::FontId::Normal(colour))
+    }
+
+    fn draw_split_time_placeholder(&mut self, tl: sdl2::rect::Point) -> Result<()> {
         self.renderer
             .put_str("--'--\"---", tl, render::FontId::Normal(Key::NoTime))
     }

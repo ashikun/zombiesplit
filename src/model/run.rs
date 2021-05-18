@@ -18,4 +18,10 @@ impl Split {
     pub fn summed_time(&self) -> super::time::Time {
         self.times.iter().copied().sum()
     }
+
+    /// Gets whether this split has times registered.
+    #[must_use]
+    pub fn has_times(&self) -> bool {
+        !self.times.is_empty()
+    }
 }

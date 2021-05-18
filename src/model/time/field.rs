@@ -78,6 +78,12 @@ impl<P: Position> TryFrom<u32> for Field<P> {
     }
 }
 
+impl<P: Position> fmt::Display for Field<P> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        P::fmt_value(self.val, f)
+    }
+}
+
 impl<P: Position> FromStr for Field<P> {
     type Err = Error;
 
