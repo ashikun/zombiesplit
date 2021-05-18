@@ -1,7 +1,5 @@
 //! Models relating to an in-progress run.
 
-use std::ops::Add;
-
 /// An in-progress run.
 pub struct Run {
     pub splits: Vec<Split>,
@@ -16,7 +14,8 @@ pub struct Split {
 
 impl Split {
     /// Calculates the summed time of the split.
-    pub fn summed_time(&self) -> Option<super::time::Time> {
-        self.times.iter().copied().reduce(super::time::Time::add)
+    #[must_use]
+    pub fn summed_time(&self) -> super::time::Time {
+        self.times.iter().copied().sum()
     }
 }

@@ -31,21 +31,30 @@ pub struct Time {
 impl TryFrom<u32> for Time {
     type Error = error::Error;
 
+    /// Tries to convert a 32-bit timestamp to a time.
+    ///
+    /// ```
+    /// use zombiesplit::model::time::Time;
+    /// use std::convert::TryFrom;
+    /// let time = Time::try_from(
+    ///     789 + (56 * 1000) + (34 * 1000 * 60) + (12 * 1000 * 60 * 60)
+    /// ).expect("should not overflow");
+    /// assert_eq!(u16::from(time.hours), 12);
+    /// assert_eq!(u16::from(time.mins), 34);
+    /// assert_eq!(u16::from(time.secs), 56);
+    /// assert_eq!(u16::from(time.millis), 789);
+    /// ```
     fn try_from(stamp: u32) -> Result<Self, Self::Error> {
         let (millis, carry) = Field::<Msec>::new_with_carry(stamp);
         let (secs, carry) = Field::new_with_carry(carry);
         let (mins, carry) = Field::new_with_carry(carry);
-        let (hours, carry) = Field::new_with_carry(carry);
-        if carry == 0 {
-            Err(error::Error::MsecOverflow(stamp))
-        } else {
-            Ok(Self {
-                hours,
-                mins,
-                secs,
-                millis,
-            })
-        }
+        let hours = Field::try_from(carry)?;
+        Ok(Self {
+            hours,
+            mins,
+            secs,
+            millis,
+        })
     }
 }
 
@@ -61,6 +70,15 @@ impl Default for Time {
 }
 
 impl From<Time> for u32 {
+    /// Converts a time to a 32-bit timestamp.
+    ///
+    /// ```
+    /// use zombiesplit::model::time::Time;
+    /// use std::convert::TryFrom;
+    /// let msec = 1234567;
+    /// let time = Time::try_from(msec).unwrap()
+    /// assert_eq!(u32::from(time), msec);
+    /// ```
     fn from(time: Time) -> u32 {
         time.millis.as_msecs() + time.secs.as_msecs() + time.mins.as_msecs() + time.hours.as_msecs()
     }
