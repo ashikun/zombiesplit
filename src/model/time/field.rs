@@ -34,10 +34,7 @@ impl<P> std::fmt::Debug for Field<P> {
 
 impl<P> Default for Field<P> {
     fn default() -> Self {
-        Self {
-            val: 0,
-            phantom: PhantomData::default(),
-        }
+        Self::new(0)
     }
 }
 
@@ -74,6 +71,17 @@ impl<P: Position> FromStr for Field<P> {
     }
 }
 
+impl<P> Field<P> {
+    /// Creates a new field with the given value.
+    #[must_use]
+    pub fn new(val: u16) -> Self {
+        Self {
+            val,
+            phantom: PhantomData::default(),
+        }
+    }
+}
+
 impl<P: Position> Field<P> {
     /// Formats the value `v` with a delimiter, if nonzero.
     pub(super) fn fmt_value_delimited(self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -89,15 +97,10 @@ impl<P: Position> Field<P> {
 
     /// Fits as much of `val` as possible into a field, and returns the field
     /// and any carry.
-    pub(super) fn new_with_carry(val: u32) -> (Self, u32) {
+    #[must_use]
+    pub fn new_with_carry(val: u32) -> (Self, u32) {
         let (carry, val) = div_rem(val, P::cap());
-        (
-            Self {
-                val: val.try_into().unwrap_or_default(),
-                phantom: PhantomData::default(),
-            },
-            carry,
-        )
+        (Self::new(val.try_into().unwrap_or_default()), carry)
     }
 
     /// Returns this field's value as milliseconds.
