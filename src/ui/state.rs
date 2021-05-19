@@ -1,10 +1,12 @@
 //! Contains all of the state held by the user interface.
 
 use super::event;
-use crate::model::run;
+use crate::model::{run, time::position};
 
 /// The state held by the user interface.
 pub struct State {
+    // TODO(@MattWindsor91): this is perhaps more of a presenter.
+
     /// The current split.
     pub cursor: usize,
     /// The current run.
@@ -45,9 +47,16 @@ impl State {
         !matches!(self.action, Action::Quit)
     }
 
+    /// Gets whether the UI is tracking an active run.
+    pub fn is_on_run(&self) -> bool {
+        matches!(self.action, Action::Nav | Action::Entering{..})
+    }
+
     /// Handles an event.  Returns true if the event changed the state.
     pub fn handle_event(&mut self, e: &event::Event) {
         match e {
+            event::Event::EnterField(name) => self.enter_field(*name),
+            event::Event::NewRun => self.start_new_run(),
             event::Event::CursorDown => self.move_cursor_down(),
             event::Event::CursorUp => self.move_cursor_up(),
             event::Event::Quit => {
@@ -56,20 +65,49 @@ impl State {
         }
     }
 
-    /// Moves the state cursor up.
-    pub fn move_cursor_up(&mut self) {
-        if self.cursor != 0 {
+    /// Enters a field.
+    fn enter_field(&mut self, field: position::Name) {
+        self.action = Action::Entering{field, entry: String::with_capacity(3)};
+        self.dirty()
+    }
+
+    /// Starts a new run, abandoning any previous run.
+    fn start_new_run(&mut self) {
+        // TODO(@MattWindsor91): actually reset the run here.
+        self.action = Action::Nav;
+        self.cursor = 0;
+        self.dirty()
+    }
+
+    /// Moves the state cursor up, if possible.
+    fn move_cursor_up(&mut self) {
+        if self.can_move_cursor_up() {
             self.cursor -= 1;
-            self.is_dirty = true
+            self.dirty()
         }
     }
 
-    /// Moves the state cursor down.  Returns true if the cursor moved successfully.
-    pub fn move_cursor_down(&mut self) {
-        if self.cursor != self.run.splits.len() - 1 {
+    /// Works out whether the cursor can be moved up.
+    fn can_move_cursor_up(&self) -> bool {
+        self.is_on_run() && self.cursor != 0
+    }
+
+    /// Moves the state cursor down, if possible
+    fn move_cursor_down(&mut self) {
+        if self.can_move_cursor_down() {
             self.cursor += 1;
-            self.is_dirty = true
+            self.dirty()
         }
+    }
+
+    /// Works out whether the cursor can be moved down.
+    fn can_move_cursor_down(&self) -> bool {
+        self.is_on_run() && self.cursor != self.run.splits.len() - 1
+    }
+
+    // Marks the UI as dirty.
+    fn dirty(&mut self) {
+        self.is_dirty = true
     }
 }
 
@@ -78,9 +116,9 @@ pub enum Action {
     /// Run is inactive.
     Inactive,
     /// Currently navigating the splits.
-    //Nav,
+    Nav,
     /// Currently entering a field in the active split.
-    //Entering{ field: time::Field, entry: String },
+    Entering{ field: crate::model::time::position::Name, entry: String },
     /// ZombieSplit is quitting.
     Quit,
 }
@@ -106,10 +144,14 @@ pub struct SplitRef<'a> {
 impl<'a> SplitRef<'a> {
     /// Gets whether this split is currently active.
     pub fn position(&self) -> SplitPosition {
-        match self.index.cmp(&self.state.cursor) {
-            std::cmp::Ordering::Less => SplitPosition::Done,
-            std::cmp::Ordering::Equal => SplitPosition::Cursor,
-            std::cmp::Ordering::Greater => SplitPosition::Coming,
+        if self.state.is_on_run() {
+            match self.index.cmp(&self.state.cursor) {
+                std::cmp::Ordering::Less => SplitPosition::Done,
+                std::cmp::Ordering::Equal => SplitPosition::Cursor,
+                std::cmp::Ordering::Greater => SplitPosition::Coming,
+            }
+        } else {
+            SplitPosition::Coming
         }
     }
 }

@@ -1,7 +1,12 @@
 //! Events understood by the user interface (mapped onto SDL events).
+use crate::model::time::position;
 
 /// High-level event, translated from a SDL event.
 pub enum Event {
+    /// Start entering a field at a particular position.
+    EnterField(position::Name),
+    /// Start a new run.
+    NewRun,
     /// Move the cursor up.
     CursorUp,
     /// Move the cursor down.
@@ -26,8 +31,13 @@ impl Event {
     fn from_key(k: sdl2::keyboard::Keycode) -> Option<Self> {
         use sdl2::keyboard::Keycode;
         match k {
-            Keycode::J | Keycode::Down => Some(Self::CursorDown),
-            Keycode::K | Keycode::Up => Some(Self::CursorUp),
+            // We don't allow entering hours yet, but this may change.
+            Keycode::M => Some(Self::EnterField(position::Name::Minutes)),
+            Keycode::S => Some(Self::EnterField(position::Name::Seconds)),
+            Keycode::Period => Some(Self::EnterField(position::Name::Milliseconds)),
+            Keycode::X => Some(Self::NewRun),
+            Keycode::J | Keycode::Down | Keycode::Space => Some(Self::CursorDown),
+            Keycode::K | Keycode::Up | Keycode::Backspace => Some(Self::CursorUp),
             sdl2::keyboard::Keycode::Escape => Some(Self::Quit),
             _ => None,
         }
