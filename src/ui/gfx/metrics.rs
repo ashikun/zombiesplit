@@ -1,68 +1,126 @@
 //! Font and window metrics (most of which will be un-hardcoded later).
 use std::convert::TryFrom;
 
-use sdl2::rect::{Point, Rect};
-
-/// Number of columns in the font bitmap.
-/// The number of rows is 256 divided by the number of columns.
-const COLS: u8 = 32;
-
-/// Window width.
-pub const WIN_W: u32 = 320;
-
-/// Window height.
-pub const WIN_H: u32 = 640;
-
-/// Padding used for window contents.
-const PAD: i32 = 4;
-
 const TIME_CHARS: i32 = 9; // XX'XX"XXX
 
-/// Width of one character in the font, without padding.
-const W: u8 = 7;
-
-/// Height of one character in the font, without padding.
-const H: u8 = 9;
-
-/// Width of one character in the font, plus padding.
-const WPAD: i32 = (W as i32) + 1;
-/// Height of one character in the font, plus padding.
-const HPAD: i32 = (H as i32) + 1;
-
-/// Produces a rectangle with top-left `top_left` and the size of one font
-/// character.
-#[must_use]
-pub fn char_rect(top_left: Point) -> Rect {
-    Rect::new(top_left.x, top_left.y, u32::from(W), u32::from(H))
+/// Font metrics.
+#[derive(Copy, Clone)]
+pub struct Font {
+    /// Columns in the font texture.
+    /// The number of rows is 256 divided by the number of columns.
+    pub cols: u8,
+    /// Width of one character in the font, without padding.
+    pub char_w: u8,
+    /// Height of one character in the font, without padding.
+    pub char_h: u8,
+    /// Horizontal padding between characters in the font.
+    pub pad_w: u8,
+    /// Vertical padding between characters in the font.
+    pub pad_h: u8,
 }
 
-/// Produces the appropriate rectangle for looking up `char` in the font.
-#[must_use]
-pub fn font_rect(char: u8) -> Rect {
-    let col = i32::from(char % COLS);
-    let row = i32::from(char / COLS);
-    char_rect(Point::new(col * WPAD, row * HPAD))
+/// Hardcoded metrics for the one font in zombiesplit (for now).
+pub const FONT: Font = Font {
+    cols: 32,
+    char_w: 7,
+    char_h: 9,
+    pad_w: 1,
+    pad_h: 1,
+};
+
+impl Font {
+    /// The padded width of one character in the font.
+    #[must_use]
+    pub fn padded_w(self) -> u8 {
+        self.char_w + self.pad_w
+    }
+
+    /// The padded height of one character in the font.
+    #[must_use]
+    pub fn padded_h(self) -> u8 {
+        self.char_h + self.pad_h
+    }
+
+    /// The column of a glyph in the font.
+    #[must_use]
+    pub fn glyph_col(self, char: u8) -> u8 {
+        char % self.cols
+    }
+
+    /// The row of a glyph in the font.
+    #[must_use]
+    pub fn glyph_row(self, char: u8) -> u8 {
+        char / self.cols
+    }
+
+    /// The left position of a glyph in the font.
+    #[must_use]
+    pub fn glyph_x(self, char: u8) -> i32 {
+        i32::from(self.glyph_col(char) * self.padded_w())
+    }
+
+    /// The top position of a glyph in the font.
+    #[must_use]
+    pub fn glyph_y(self, char: u8) -> i32 {
+        i32::from(self.glyph_row(char) * self.padded_h())
+    }
+
+    /// The size of a horizontal padded character span.
+    #[must_use]
+    pub fn span_w(self, size: i32) -> i32 {
+        i32::from(self.padded_w()) * size
+    }
+
+    /// The size of a vertical padded character span.
+    #[must_use]
+    pub fn span_h(self, size: i32) -> i32 {
+        i32::from(self.padded_h()) * size
+    }
 }
 
-/// Offsets `point` by `dx` padded characters horizontally and `dy` vertically.
-#[must_use]
-pub fn offset(point: Point, dx: i32, dy: i32) -> Point {
-    point.offset(dx * WPAD, dy * HPAD)
+/// Window metrics.
+#[derive(Copy, Clone)]
+pub struct Window {
+    /// The window width.
+    pub win_w: u32,
+    /// The window height.
+    pub win_h: u32,
+    /// The horizontal padding on split names and times.
+    pub split_xpad: i32,
+    /// The vertical position where the split times start.
+    pub split_ypos: i32,
+    /// The height of a split, including any padding between it and the next split.
+    pub split_h: i32,
 }
 
-/// Gets the top-left corner for the split name.
-#[must_use]
-pub fn split_name_top_left(num: usize) -> sdl2::rect::Point {
-    Point::new(PAD, split_y(num))
+/// Hardcoded metrics for the window in zombiesplit (for now).
+pub const WINDOW: Window = Window {
+    win_w: 320,
+    win_h: 640,
+    split_xpad: 4,
+    split_h: 16,
+    split_ypos: 4,
+};
+
+impl Window {
+    /// Gets the left position for the split time, given font metrics.
+    #[must_use]
+    pub fn split_time_x(&self, font: Font) -> i32 {
+        // TODO(@MattWindsor91): take font metrics.
+        sat_i32(self.win_w) - (self.split_xpad + font.span_w(TIME_CHARS))
+    }
+
+    /// Gets the Y position of the given split.
+    #[must_use]
+    pub fn split_y(&self, num: usize) -> i32 {
+        self.split_ypos + (self.split_h * sat_i32(num))
+    }
 }
 
-/// Gets the top-left corner for the split time.
-#[must_use]
-pub fn split_time_top_left(num: usize) -> sdl2::rect::Point {
-    let w = i32::try_from(WIN_W).unwrap_or_default();
-    offset(Point::new(w - PAD, split_y(num)), -TIME_CHARS, 0)
-}
-
-fn split_y(num: usize) -> i32 {
-    PAD + (16 * i32::try_from(num).unwrap_or_default())
+/// Convert `x` to i32, saturate if overly long.
+fn sat_i32<T>(x: T) -> i32
+where
+    i32: TryFrom<T>,
+{
+    i32::try_from(x).unwrap_or(i32::MAX)
 }
