@@ -4,7 +4,7 @@ pub mod colour;
 pub mod metrics; // for now
 pub mod render;
 
-use crate::model;
+use crate::model::{self, time::position};
 
 use self::colour::Key;
 
@@ -26,6 +26,7 @@ impl<'a> Core<'a> {
         self.renderer.clear();
 
         self.draw_splits(state)?;
+        self.draw_editor(state)?;
 
         self.renderer.present();
 
@@ -78,6 +79,27 @@ impl<'a> Core<'a> {
     fn draw_split_time_placeholder(&mut self, tl: sdl2::rect::Point) -> Result<()> {
         self.renderer
             .put_str("--'--\"---", tl, render::FontId::Normal(Key::NoTime))
+    }
+
+    /// Draws any editor required by the current state.
+    fn draw_editor(&mut self, state: &state::State) -> Result<()> {
+        if let state::Action::Entering(ref editor) = state.action {
+            let tl = metrics::split_time_top_left(state.cursor);
+            let tl = metrics::offset(tl, field_char_offset(editor.position()), 0);
+            self.renderer
+                .put_str(&editor.to_string(), tl, render::FontId::Normal(Key::Editor))
+        } else {
+            Ok(())
+        }
+    }
+}
+
+fn field_char_offset(field: position::Name) -> i32 {
+    match field {
+        // Hours not supported yet.
+        position::Name::Hours | position::Name::Minutes => 0,
+        position::Name::Seconds => 3,
+        position::Name::Milliseconds => 6,
     }
 }
 

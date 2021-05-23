@@ -2,6 +2,7 @@
 pub mod error;
 pub mod gfx;
 
+mod editor;
 mod event;
 mod state;
 
@@ -78,12 +79,17 @@ impl<'a> Core<'a> {
                     self.state.handle_event(&x)
                 }
             }
-
-            if self.state.is_dirty {
-                self.gfx.redraw(&self.state)?;
-            }
+            self.redraw_if_dirty()?;
         }
 
         Ok(())
+    }
+
+    fn redraw_if_dirty(&mut self) -> error::Result<()> {
+        if self.state.is_dirty {
+            self.gfx.redraw(&self.state)
+        } else {
+            Ok(())
+        }
     }
 }

@@ -11,6 +11,9 @@ pub struct Set {
     /// Main background colour.
     pub bg: Color,
 
+    // Foreground text for the split editor.
+    pub fg_editor: Color,
+
     /// Foreground text for splits already passed.
     pub fg_done: Color,
 
@@ -37,10 +40,17 @@ pub struct Set {
 /// High-level colour keys.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Key {
+    /// Maps to the editor colour.
+    Editor,
+    /// Maps to the colour of a split name at a given position.
     Name(super::super::state::SplitPosition),
+    /// Maps to a time that hasn't been reported.
     NoTime,
-    RunAhead,
+    /// Maps to a time that is ahead for its split (a 'gold split').
     SplitAhead,
+    /// Maps to a time that is part of a run that is ahead.
+    RunAhead,
+    /// Maps to a time that is part of a run that is behind.
     RunBehind,
 }
 
@@ -54,6 +64,7 @@ impl Set {
             Key::RunAhead => self.fg_time_run_ahead,
             Key::SplitAhead => self.fg_time_split_ahead,
             Key::RunBehind => self.fg_time_run_behind,
+            Key::Editor => self.fg_editor,
         }
     }
 
@@ -70,6 +81,7 @@ impl Set {
 /// The default colour set.
 pub const SET: Set = Set {
     bg: Color::BLACK,
+    fg_editor: Color::MAGENTA,
     fg_cursor: Color::CYAN,
     fg_done: Color::GREY,
     fg_normal: Color::WHITE,
