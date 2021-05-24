@@ -2,9 +2,8 @@
 
 // TODO(@MattWindsor91): consider making these configurable.
 
+use crate::presenter::SplitPosition;
 use sdl2::pixels::Color;
-
-use crate::ui::state::SplitPosition;
 
 /// A set of colours to use in the user interface.
 pub struct Set {
@@ -43,7 +42,7 @@ pub enum Key {
     /// Maps to the editor colour.
     Editor,
     /// Maps to the colour of a split name at a given position.
-    Name(super::super::state::SplitPosition),
+    Name(SplitPosition),
     /// Maps to a time that hasn't been reported.
     NoTime,
     /// Maps to a time that is ahead for its split (a 'gold split').

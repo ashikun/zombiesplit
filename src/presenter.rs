@@ -1,10 +1,13 @@
 //! Contains all of the state held by the user interface.
 
-use super::event;
+mod editor;
+pub mod event;
+
 use crate::model::{run, time::position};
 
-/// The state held by the user interface.
-pub struct State {
+/// The part of zombiesplit that displays and manipulates a model, exposing it
+/// to the view.
+pub struct Presenter {
     // TODO(@MattWindsor91): this is perhaps more of a presenter.
     /// The current split.
     pub cursor: usize,
@@ -16,7 +19,7 @@ pub struct State {
     pub is_dirty: bool,
 }
 
-impl State {
+impl Presenter {
     /// Constructs a new initial state for a given run.
     pub fn new(run: run::Run) -> Self {
         Self {
@@ -105,7 +108,7 @@ impl State {
 
     /// Enters a field.
     fn enter_field(&mut self, field: position::Name) {
-        self.action = Action::Entering(super::editor::Editor::new(field));
+        self.action = Action::Entering(editor::Editor::new(field));
         self.dirty()
     }
 
@@ -130,7 +133,7 @@ pub enum Action {
     /// Currently navigating the splits.
     Nav,
     /// Currently entering a field in the active split.
-    Entering(super::editor::Editor),
+    Entering(editor::Editor),
     /// ZombieSplit is quitting.
     Quit,
 }
@@ -148,7 +151,7 @@ pub struct SplitRef<'a> {
     /// The index of the split reference.
     pub index: usize,
     /// A reference to the parent state.
-    pub state: &'a State,
+    pub state: &'a Presenter,
     /// The split data.
     pub split: &'a crate::model::run::Split,
 }

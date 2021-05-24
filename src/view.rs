@@ -1,11 +1,9 @@
 //! The zombiesplit user interface.
+mod event;
 pub mod error;
 pub mod gfx;
 
-mod editor;
-mod event;
-mod state;
-
+use crate::presenter;
 use std::cell::RefCell;
 
 pub use error::{Error, Result};
@@ -47,7 +45,7 @@ impl Manager {
     pub fn spawn(&self, r: run::Run) -> Result<Core> {
         let renderer = gfx::render::Renderer::new(self.screen.borrow_mut(), &self.textures);
         let gfx = gfx::Core { renderer };
-        let state = state::State::new(r);
+        let state = presenter::Presenter::new(r);
 
         let events = self.sdl.event_pump().map_err(Error::Init)?;
 
@@ -59,7 +57,7 @@ impl Manager {
 pub struct Core<'a> {
     events: sdl2::EventPump,
     gfx: gfx::Core<'a>,
-    state: state::State,
+    state: presenter::Presenter,
 }
 
 impl<'a> Core<'a> {
@@ -75,7 +73,7 @@ impl<'a> Core<'a> {
 
         while self.state.is_running() {
             for e in self.events.poll_iter() {
-                if let Some(x) = event::Event::from_sdl(&e) {
+                if let Some(x) = event::from_sdl(&e) {
                     self.state.handle_event(&x)
                 }
             }

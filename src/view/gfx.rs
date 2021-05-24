@@ -4,14 +4,15 @@ pub mod colour;
 pub mod metrics; // for now
 pub mod render;
 
-use crate::model::{self, time::position};
+use crate::{
+    model::{self, time::position},
+    presenter
+};
 
 use self::colour::Key;
 
-use super::{
-    error::{Error, Result},
-    state,
-};
+use super::error::{Error, Result};
+
 pub struct Core<'a> {
     pub renderer: render::Renderer<'a>,
 }
@@ -22,7 +23,7 @@ impl<'a> Core<'a> {
     /// # Errors
     ///
     /// Returns an error if SDL fails to redraw the screen.
-    pub fn redraw(&mut self, state: &state::State) -> Result<()> {
+    pub fn redraw(&mut self, state: &presenter::Presenter) -> Result<()> {
         self.renderer.clear();
 
         self.draw_splits(state)?;
@@ -33,7 +34,7 @@ impl<'a> Core<'a> {
         Ok(())
     }
 
-    fn draw_splits(&mut self, state: &state::State) -> Result<()> {
+    fn draw_splits(&mut self, state: &presenter::Presenter) -> Result<()> {
         for split in state.splits() {
             self.renderer.set_pos(
                 metrics::WINDOW.split_xpad,
@@ -44,13 +45,13 @@ impl<'a> Core<'a> {
         Ok(())
     }
 
-    fn draw_split(&mut self, split: state::SplitRef) -> Result<()> {
+    fn draw_split(&mut self, split: presenter::SplitRef) -> Result<()> {
         self.draw_split_name(split)?;
         self.draw_split_time(split)?;
         Ok(())
     }
 
-    fn draw_split_name(&mut self, split: state::SplitRef) -> Result<()> {
+    fn draw_split_name(&mut self, split: presenter::SplitRef) -> Result<()> {
         let colour = colour::Key::Name(split.position());
         self.renderer
             .set_font(render::FontId::Normal(colour))
@@ -58,7 +59,7 @@ impl<'a> Core<'a> {
         Ok(())
     }
 
-    fn draw_split_time(&mut self, split: state::SplitRef) -> Result<()> {
+    fn draw_split_time(&mut self, split: presenter::SplitRef) -> Result<()> {
         self.renderer
             .set_x(metrics::WINDOW.split_time_x(metrics::FONT));
         if split.split.has_times() {
@@ -87,8 +88,8 @@ impl<'a> Core<'a> {
     }
 
     /// Draws any editor required by the current state.
-    fn draw_editor(&mut self, state: &state::State) -> Result<()> {
-        if let state::Action::Entering(ref editor) = state.action {
+    fn draw_editor(&mut self, state: &presenter::Presenter) -> Result<()> {
+        if let presenter::Action::Entering(ref editor) = state.action {
             self.renderer
                 .set_pos(
                     metrics::WINDOW.split_time_x(metrics::FONT),

@@ -1,0 +1,43 @@
+//! Events understood by the user interface (mapped onto SDL events).
+use crate::model::time::position;
+
+/// High-level event, translated from a SDL event.
+pub enum Event {
+    /// Start editing a field at a particular position.
+    EnterField(position::Name),
+    /// Perform an event on the currently open editor.
+    Edit(Edit),
+    /// Start a new run.
+    NewRun,
+    /// Move the cursor.
+    Cursor(Cursor),
+    /// Quit the program.
+    Quit,
+}
+
+impl Event {
+    // Mappings from UI events to presenter events are in the `view` crate.
+
+    /// Shorthand for producing a field event.
+    #[must_use]
+    pub fn digit(digit: u8) -> Self {
+        Self::Edit(Edit::Add(digit))
+    }
+}
+
+/// An edit event.
+pub enum Edit {
+    /// Add the given digit to the current editor.
+    Add(u8),
+    /// Remove the last digit from the current editor.
+    Remove,
+}
+
+/// A cursor movement event.
+#[derive(Copy, Clone)]
+pub enum Cursor {
+    /// Move the cursor up.
+    Up,
+    /// Move the cursor down.
+    Down,
+}

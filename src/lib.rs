@@ -2,5 +2,6 @@
 #![warn(clippy::all, clippy::pedantic)]
 
 pub mod config;
+pub mod presenter;
 pub mod model;
-pub mod ui;
+pub mod view;

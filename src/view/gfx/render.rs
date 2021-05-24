@@ -3,7 +3,7 @@
 use std::{cell::RefMut, collections::HashMap, rc::Rc};
 
 use super::{colour, metrics};
-use crate::ui::error::{Error, Result};
+use super::super::error::{Error, Result};
 use sdl2::{
     image::LoadTexture,
     rect::{Point, Rect},
