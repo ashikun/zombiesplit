@@ -6,7 +6,7 @@ pub mod render;
 
 use crate::{
     model::{self, time::position},
-    presenter
+    presenter::{split, Action, Presenter},
 };
 
 use self::colour::Key;
@@ -23,7 +23,7 @@ impl<'a> Core<'a> {
     /// # Errors
     ///
     /// Returns an error if SDL fails to redraw the screen.
-    pub fn redraw(&mut self, state: &presenter::Presenter) -> Result<()> {
+    pub fn redraw(&mut self, state: &Presenter) -> Result<()> {
         self.renderer.clear();
 
         self.draw_splits(state)?;
@@ -34,7 +34,7 @@ impl<'a> Core<'a> {
         Ok(())
     }
 
-    fn draw_splits(&mut self, state: &presenter::Presenter) -> Result<()> {
+    fn draw_splits(&mut self, state: &Presenter) -> Result<()> {
         for split in state.splits() {
             self.renderer.set_pos(
                 metrics::WINDOW.split_xpad,
@@ -45,13 +45,13 @@ impl<'a> Core<'a> {
         Ok(())
     }
 
-    fn draw_split(&mut self, split: presenter::SplitRef) -> Result<()> {
+    fn draw_split(&mut self, split: split::Ref) -> Result<()> {
         self.draw_split_name(split)?;
         self.draw_split_time(split)?;
         Ok(())
     }
 
-    fn draw_split_name(&mut self, split: presenter::SplitRef) -> Result<()> {
+    fn draw_split_name(&mut self, split: split::Ref) -> Result<()> {
         let colour = colour::Key::Name(split.position());
         self.renderer
             .set_font(render::FontId::Normal(colour))
@@ -59,7 +59,7 @@ impl<'a> Core<'a> {
         Ok(())
     }
 
-    fn draw_split_time(&mut self, split: presenter::SplitRef) -> Result<()> {
+    fn draw_split_time(&mut self, split: split::Ref) -> Result<()> {
         self.renderer
             .set_x(metrics::WINDOW.split_time_x(metrics::FONT));
         if split.split.has_times() {
@@ -88,8 +88,8 @@ impl<'a> Core<'a> {
     }
 
     /// Draws any editor required by the current state.
-    fn draw_editor(&mut self, state: &presenter::Presenter) -> Result<()> {
-        if let presenter::Action::Entering(ref editor) = state.action {
+    fn draw_editor(&mut self, state: &Presenter) -> Result<()> {
+        if let Action::Entering(ref editor) = state.action {
             self.renderer
                 .set_pos(
                     metrics::WINDOW.split_time_x(metrics::FONT),

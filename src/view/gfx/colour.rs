@@ -2,7 +2,7 @@
 
 // TODO(@MattWindsor91): consider making these configurable.
 
-use crate::presenter::SplitPosition;
+use crate::presenter::split;
 use sdl2::pixels::Color;
 
 /// A set of colours to use in the user interface.
@@ -42,7 +42,7 @@ pub enum Key {
     /// Maps to the editor colour.
     Editor,
     /// Maps to the colour of a split name at a given position.
-    Name(SplitPosition),
+    Name(split::Position),
     /// Maps to a time that hasn't been reported.
     NoTime,
     /// Maps to a time that is ahead for its split (a 'gold split').
@@ -68,11 +68,11 @@ impl Set {
     }
 
     #[must_use]
-    pub fn by_split_position(&self, sp: SplitPosition) -> Color {
+    pub fn by_split_position(&self, sp: split::Position) -> Color {
         match sp {
-            SplitPosition::Done => self.fg_done,
-            SplitPosition::Cursor => self.fg_cursor,
-            SplitPosition::Coming => self.fg_normal,
+            split::Position::Done => self.fg_done,
+            split::Position::Cursor => self.fg_cursor,
+            split::Position::Coming => self.fg_normal,
         }
     }
 }

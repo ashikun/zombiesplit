@@ -1,7 +1,7 @@
 //! Mapping from SDL to presenter events.
 use crate::{
     model::time::position,
-    presenter::event::{Cursor, Event}
+    presenter::event::{Cursor, Event},
 };
 
 /// Maps an event from SDL into [Event].

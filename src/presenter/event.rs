@@ -1,4 +1,4 @@
-//! Events understood by the user interface (mapped onto SDL events).
+//! Events understood by the user interface.
 use crate::model::time::position;
 
 /// High-level event, translated from a SDL event.

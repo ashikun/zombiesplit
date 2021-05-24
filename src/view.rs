@@ -1,6 +1,6 @@
 //! The zombiesplit user interface.
-mod event;
 pub mod error;
+mod event;
 pub mod gfx;
 
 use crate::presenter;

@@ -2,8 +2,8 @@
 
 use std::{cell::RefMut, collections::HashMap, rc::Rc};
 
-use super::{colour, metrics};
 use super::super::error::{Error, Result};
+use super::{colour, metrics};
 use sdl2::{
     image::LoadTexture,
     rect::{Point, Rect},
