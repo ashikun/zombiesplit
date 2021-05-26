@@ -1,21 +1,20 @@
 //! Contains all of the state held by the user interface.
 
-mod editor;
+pub mod editor;
 pub mod event;
+pub mod mode;
 pub mod split;
 
-use crate::model::{run, time::position};
+use crate::model::run;
+pub use editor::Editor;
 
 /// The part of zombiesplit that displays and manipulates a model, exposing it
 /// to the view.
 pub struct Presenter {
-    // TODO(@MattWindsor91): this is perhaps more of a presenter.
-    /// The current split.
-    pub cursor: usize,
+    /// The current mode.
+    pub mode: Box<dyn mode::Mode>,
     /// The current run.
     pub run: run::Run,
-    /// The current action that the UI is taking.
-    pub action: Action,
     /// Whether the state is dirty.
     pub is_dirty: bool,
 }
@@ -25,9 +24,8 @@ impl Presenter {
     #[must_use]
     pub fn new(run: run::Run) -> Self {
         Self {
-            cursor: 0,
+            mode: Box::new(mode::Inactive),
             run,
-            action: Action::default(),
             is_dirty: false,
         }
     }
@@ -50,102 +48,53 @@ impl Presenter {
     /// Gets whether the UI should be running.
     #[must_use]
     pub fn is_running(&self) -> bool {
-        !matches!(self.action, Action::Quit)
+        self.mode.is_running()
     }
 
-    /// Gets whether the UI is tracking an active run.
+    /// Borrows the current editor (immutably), if one exists.
     #[must_use]
-    pub fn is_on_run(&self) -> bool {
-        matches!(self.action, Action::Nav | Action::Entering { .. })
+    pub fn editor(&self) -> Option<&Editor> {
+        self.mode.editor()
     }
 
     /// Handles an event.  Returns true if the event changed the state.
     pub fn handle_event(&mut self, e: &event::Event) {
         use event::Event;
         match e {
-            Event::Cursor(c) => self.move_cursor(*c),
-            Event::Edit(e) => self.edit(e),
-            Event::EnterField(name) => self.enter_field(*name),
             Event::NewRun => self.start_new_run(),
-            Event::Quit => {
-                self.action = Action::Quit;
-            }
+            Event::Quit => self.quit(),
+            _ => self.delegate_event(e),
         }
     }
 
-    /// Moves the state cursor according to `c`, if possible.
-    fn move_cursor(&mut self, c: event::Cursor) {
-        if self.is_on_run() {
-            match c {
-                event::Cursor::Up => self.move_cursor_up(),
-                event::Cursor::Down => self.move_cursor_down(),
-            }
+    /// Delegates
+    fn delegate_event(&mut self, e: &event::Event) {
+        match self.mode.handle_event(e) {
+            mode::EventResult::Transition(new_mode) => self.transition(new_mode),
+            mode::EventResult::Handled => self.dirty(),
+            mode::EventResult::NotHandled => (),
         }
     }
 
-    /// Try to move the cursor up.
-    fn move_cursor_up(&mut self) {
-        if self.cursor != 0 {
-            self.cursor -= 1;
-            self.dirty()
-        }
-    }
-
-    /// Try to move the cursor down.
-    fn move_cursor_down(&mut self) {
-        if self.cursor != self.run.splits.len() - 1 {
-            self.cursor += 1;
-            self.dirty()
-        }
-    }
-
-    fn edit(&mut self, e: &event::Edit) {
-        if let Action::Entering(ref mut editor) = self.action {
-            let dirty = match e {
-                event::Edit::Add(x) => editor.add(*x),
-                event::Edit::Remove => editor.remove(),
-            };
-            if dirty {
-                self.dirty()
-            }
-        }
-    }
-
-    /// Enters a field.
-    fn enter_field(&mut self, field: position::Name) {
-        self.action = Action::Entering(editor::Editor::new(field));
+    fn transition(&mut self, new_mode: Box<dyn mode::Mode>) {
+        self.mode.commit(&mut self.run);
+        self.mode = new_mode;
         self.dirty()
     }
 
     /// Starts a new run, abandoning any previous run.
     fn start_new_run(&mut self) {
         // TODO(@MattWindsor91): actually reset the run here.
-        self.action = Action::Nav;
-        self.cursor = 0;
-        self.dirty()
+        self.transition(Box::new(mode::Nav::new(self.run.splits.len() - 1)))
+    }
+
+    /// Start the process of quitting.
+    fn quit(&mut self) {
+        self.transition(Box::new(mode::Quitting))
     }
 
     // Marks the UI as dirty.
     fn dirty(&mut self) {
         self.is_dirty = true
-    }
-}
-
-/// The current action the user interface is performing.
-pub enum Action {
-    /// Run is inactive.
-    Inactive,
-    /// Currently navigating the splits.
-    Nav,
-    /// Currently entering a field in the active split.
-    Entering(editor::Editor),
-    /// ZombieSplit is quitting.
-    Quit,
-}
-
-/// The default [Action] is `Inactive`.
-impl Default for Action {
-    fn default() -> Self {
-        Action::Inactive
     }
 }

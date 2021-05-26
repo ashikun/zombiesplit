@@ -2,6 +2,7 @@
 use crate::model::time::position;
 
 /// High-level event, translated from a SDL event.
+#[non_exhaustive]
 pub enum Event {
     /// Start editing a field at a particular position.
     EnterField(position::Name),
@@ -26,6 +27,7 @@ impl Event {
 }
 
 /// An edit event.
+#[non_exhaustive]
 pub enum Edit {
     /// Add the given digit to the current editor.
     Add(u8),

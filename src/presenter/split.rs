@@ -18,15 +18,14 @@ impl<'a> Ref<'a> {
     /// Gets whether this split is currently active.
     #[must_use]
     pub fn position(&self) -> Position {
-        if self.presenter.is_on_run() {
-            match self.index.cmp(&self.presenter.cursor) {
+        self.presenter
+            .mode
+            .cursor_pos()
+            .map_or(Position::Coming, |c| match self.index.cmp(&c) {
                 Ordering::Less => Position::Done,
                 Ordering::Equal => Position::Cursor,
                 Ordering::Greater => Position::Coming,
-            }
-        } else {
-            Position::Coming
-        }
+            })
     }
 }
 

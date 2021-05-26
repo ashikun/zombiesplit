@@ -6,7 +6,10 @@ pub mod render;
 
 use crate::{
     model::{self, time::position},
-    presenter::{split, Action, Presenter},
+    presenter::{
+        editor::{self, Editor},
+        split, Presenter,
+    },
 };
 
 use self::colour::Key;
@@ -27,7 +30,10 @@ impl<'a> Core<'a> {
         self.renderer.clear();
 
         self.draw_splits(state)?;
-        self.draw_editor(state)?;
+
+        if let Some(ref editor) = state.editor() {
+            self.draw_editor(editor)?;
+        }
 
         self.renderer.present();
 
@@ -73,10 +79,9 @@ impl<'a> Core<'a> {
         let colour = Key::RunAhead; // for now
 
         // TODO(@MattWindsor91): hours?
-        let time_str = format!("{}'{}\"{}", time.mins, time.secs, time.millis);
         self.renderer
             .set_font(render::FontId::Normal(colour))
-            .put_str(&time_str)?;
+            .put_str(&time_str(time))?;
         Ok(())
     }
 
@@ -88,19 +93,36 @@ impl<'a> Core<'a> {
     }
 
     /// Draws any editor required by the current state.
-    fn draw_editor(&mut self, state: &Presenter) -> Result<()> {
-        if let Action::Entering(ref editor) = state.action {
-            self.renderer
-                .set_pos(
-                    metrics::WINDOW.split_time_x(metrics::FONT),
-                    metrics::WINDOW.split_y(state.cursor),
-                )
-                .move_chars(field_char_offset(editor.position()), 0)
-                .set_font(render::FontId::Normal(Key::Editor))
-                .put_str(&editor.to_string())?;
-        }
+    fn draw_editor(&mut self, editor: &Editor) -> Result<()> {
+        self.draw_editor_time(editor)?;
+        if let Some(ref f) = editor.field {
+            self.draw_editor_field(f)?;
+        };
         Ok(())
     }
+
+    fn draw_editor_time(&mut self, editor: &Editor) -> Result<()> {
+        self.renderer
+            .set_pos(
+                metrics::WINDOW.split_time_x(metrics::FONT),
+                metrics::WINDOW.split_y(editor.cursor),
+            )
+            .set_font(render::FontId::Normal(Key::Editor))
+            .put_str(&time_str(editor.time))?;
+        Ok(())
+    }
+
+    fn draw_editor_field(&mut self, field: &editor::Field) -> Result<()> {
+        self.renderer
+            .move_chars(field_char_offset(field.position()), 0)
+            .set_font(render::FontId::Normal(Key::FieldEditor))
+            .put_str(&field.to_string())?;
+        Ok(())
+    }
+}
+
+fn time_str(time: model::time::Time) -> String {
+    format!("{}'{}\"{}", time.mins, time.secs, time.millis)
 }
 
 fn field_char_offset(field: position::Name) -> i32 {

@@ -29,6 +29,24 @@ pub struct Time {
     pub millis: Field<Msec>,
 }
 
+impl Time {
+    /// Tries to set the field at `position` from string `str`.
+    ///
+    /// # Errors
+    ///
+    /// Fails if the string does not parse properly for the particular position.
+    pub fn set_field_str(&mut self, position: position::Name, str: &str) -> error::Result<()> {
+        // TODO(@MattWindsor91): do this more elegantly.
+        match position {
+            position::Name::Hours => self.hours = str.parse()?,
+            position::Name::Minutes => self.mins = str.parse()?,
+            position::Name::Seconds => self.secs = str.parse()?,
+            position::Name::Milliseconds => self.millis = str.parse()?,
+        };
+        Ok(())
+    }
+}
+
 impl TryFrom<u32> for Time {
     type Error = error::Error;
 
