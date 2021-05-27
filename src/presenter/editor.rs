@@ -3,8 +3,9 @@
 use std::fmt::{Display, Formatter};
 
 use super::{
+    cursor::{self, Cursor},
     event::{Edit, Event},
-    mode::{EventResult, Mode},
+    mode::{EventResult, Mode, Nav},
 };
 use crate::model::{
     run::Run,
@@ -13,7 +14,8 @@ use crate::model::{
 
 /// A split editor.
 pub struct Editor {
-    pub cursor: usize,
+    /// The cursor, used to track the current position for later navigation.
+    pub cur: Cursor,
 
     /// The time being edited.
     pub time: time::Time,
@@ -27,19 +29,20 @@ impl Mode for Editor {
         match e {
             Event::Edit(d) => self.edit(d),
             Event::EnterField(f) => self.enter_field(*f),
+            Event::Cursor(c) => self.move_cursor(*c),
             _ => EventResult::NotHandled,
         }
     }
 
     fn commit(&mut self, run: &mut Run) {
         self.commit_field();
-        if let Some(ref mut s) = run.splits.get_mut(self.cursor) {
+        if let Some(ref mut s) = run.splits.get_mut(self.cur.position()) {
             s.times.push(self.time)
         }
     }
 
-    fn cursor_pos(&self) -> Option<usize> {
-        Some(self.cursor)
+    fn cursor(&self) -> Option<&Cursor> {
+        Some(&self.cur)
     }
 
     fn editor(&self) -> Option<&Editor> {
@@ -50,9 +53,9 @@ impl Mode for Editor {
 impl Editor {
     /// Constructs a new editor at the given cursor, on the given field if any.
     #[must_use]
-    pub fn new(cursor: usize, field: Option<position::Name>) -> Self {
+    pub fn new(cur: Cursor, field: Option<position::Name>) -> Self {
         Self {
-            cursor,
+            cur,
             time: time::Time::default(),
             field: field.map(Field::new),
         }
@@ -74,11 +77,22 @@ impl Editor {
         }
     }
 
+    /// Commits the field
     pub fn commit_field(&mut self) {
         if let Some(ref f) = self.field {
             // TODO(@MattWindsor91): handle error properly.
             let _ = f.commit(&mut self.time);
         }
+    }
+
+    pub fn move_cursor(&mut self, motion: cursor::Motion) -> EventResult {
+        // TODO(@MattWindsor91): scrub time if moving up?
+        // TODO(@MattWindsor91): 
+        let mut cur = self.cur;
+        cur.move_by(motion, 1);
+        // TODO(@MattWindsor91): if we were already on the last split, we should
+        // end the run.
+        EventResult::Transition(Box::new(Nav::new(cur)))
     }
 }
 

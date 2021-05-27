@@ -20,8 +20,8 @@ impl<'a> Ref<'a> {
     pub fn position(&self) -> Position {
         self.presenter
             .mode
-            .cursor_pos()
-            .map_or(Position::Coming, |c| match self.index.cmp(&c) {
+            .cursor()
+            .map_or(Position::Coming, |c| match self.index.cmp(&c.position()) {
                 Ordering::Less => Position::Done,
                 Ordering::Equal => Position::Cursor,
                 Ordering::Greater => Position::Coming,

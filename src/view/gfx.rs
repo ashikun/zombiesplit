@@ -105,7 +105,7 @@ impl<'a> Core<'a> {
         self.renderer
             .set_pos(
                 metrics::WINDOW.split_time_x(metrics::FONT),
-                metrics::WINDOW.split_y(editor.cursor),
+                metrics::WINDOW.split_y(editor.cur.position()),
             )
             .set_font(render::FontId::Normal(Key::Editor))
             .put_str(&time_str(editor.time))?;

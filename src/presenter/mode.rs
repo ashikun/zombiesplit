@@ -3,8 +3,9 @@
 use crate::model::time::position;
 
 use super::{
+    cursor::{self, Cursor},
     editor::Editor,
-    event::{Cursor, Event},
+    event::Event,
 };
 
 /// Trait for presenter modes.
@@ -23,8 +24,8 @@ pub trait Mode {
     /// Commits this mode's changes to the model.
     fn commit(&mut self, _run: &mut crate::model::run::Run) {}
 
-    /// If this mode has a cursor, retrieves its current position.
-    fn cursor_pos(&self) -> Option<usize> {
+    /// If this mode has a cursor, retrieves it.
+    fn cursor(&self) -> Option<&Cursor> {
         None
     }
 
@@ -46,9 +47,8 @@ impl Mode for Inactive {}
 
 /// Mode for when we are navigating splits.
 pub struct Nav {
-    cursor: usize,
-    /// The maximum for the navigation.
-    max: usize,
+    /// The cursor.
+    cur: Cursor,
 }
 
 impl Mode for Nav {
@@ -60,49 +60,28 @@ impl Mode for Nav {
         }
     }
 
-    fn cursor_pos(&self) -> Option<usize> {
-        Some(self.cursor)
+    fn cursor(&self) -> Option<&Cursor> {
+        Some(&self.cur)
     }
 }
 
 impl Nav {
-    /// Creates a new nav mode.
+    /// Creates a new nav mode using a given cursor.
     #[must_use]
-    pub fn new(max: usize) -> Self {
-        Self { cursor: 0, max }
+    pub fn new(cur: Cursor) -> Self {
+        Self { cur }
     }
 
     /// Moves the state cursor according to `c`, if possible.
-    fn move_cursor(&mut self, c: Cursor) -> EventResult {
-        match c {
-            Cursor::Up => self.move_cursor_up(),
-            Cursor::Down => self.move_cursor_down(),
-        }
+    fn move_cursor(&mut self, motion: cursor::Motion) -> EventResult {
+        // TODO(@MattWindsor91): cursor multiplier
+        EventResult::from_handled(self.cur.move_by(motion, 1))
     }
 
-    /// Try to move the cursor up.
-    fn move_cursor_up(&mut self) -> EventResult {
-        if self.cursor == 0 {
-            EventResult::NotHandled
-        } else {
-            self.cursor -= 1;
-            EventResult::Handled
-        }
-    }
-
-    /// Try to move the cursor down.
-    fn move_cursor_down(&mut self) -> EventResult {
-        if self.cursor == self.max {
-            EventResult::NotHandled
-        } else {
-            self.cursor += 1;
-            EventResult::Handled
-        }
-    }
 
     /// Constructs an editor entering the given field.
     fn enter_field(&self, field: position::Name) -> EventResult {
-        let editor = Box::new(Editor::new(self.cursor, Some(field)));
+        let editor = Box::new(Editor::new(self.cur, Some(field)));
         EventResult::Transition(editor)
     }
 }
@@ -124,4 +103,15 @@ pub enum EventResult {
     Handled,
     /// The event caused a transition to another mode.
     Transition(Box<dyn Mode>),
+}
+
+impl EventResult {
+    /// Creates an event result from a 'was handled' boolean `handled`.
+    pub fn from_handled(handled: bool) -> Self {
+        if handled {
+            Self::Handled
+        } else {
+            Self::NotHandled
+        }
+    }
 }

@@ -4,6 +4,7 @@ pub mod editor;
 pub mod event;
 pub mod mode;
 pub mod split;
+pub mod cursor;
 
 use crate::model::run;
 pub use editor::Editor;
@@ -85,7 +86,8 @@ impl Presenter {
     /// Starts a new run, abandoning any previous run.
     fn start_new_run(&mut self) {
         // TODO(@MattWindsor91): actually reset the run here.
-        self.transition(Box::new(mode::Nav::new(self.run.splits.len() - 1)))
+        let cur = cursor::Cursor::new(self.run.splits.len() - 1);
+        self.transition(Box::new(mode::Nav::new(cur)))
     }
 
     /// Start the process of quitting.

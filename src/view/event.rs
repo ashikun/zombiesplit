@@ -1,7 +1,7 @@
 //! Mapping from SDL to presenter events.
 use crate::{
     model::time::position,
-    presenter::event::{Cursor, Event},
+    presenter::{cursor, event::Event},
 };
 
 /// Maps an event from SDL into [Event].
@@ -33,8 +33,8 @@ fn from_key(k: sdl2::keyboard::Keycode) -> Option<Event> {
         Keycode::S => Some(Event::EnterField(position::Name::Seconds)),
         Keycode::Period => Some(Event::EnterField(position::Name::Milliseconds)),
         Keycode::X => Some(Event::NewRun),
-        Keycode::J | Keycode::Down | Keycode::Space => Some(Event::Cursor(Cursor::Down)),
-        Keycode::K | Keycode::Up | Keycode::Backspace => Some(Event::Cursor(Cursor::Up)),
+        Keycode::J | Keycode::Down | Keycode::Space => Some(Event::Cursor(cursor::Motion::Down)),
+        Keycode::K | Keycode::Up | Keycode::Backspace => Some(Event::Cursor(cursor::Motion::Up)),
         Keycode::Escape => Some(Event::Quit),
         _ => None,
     }

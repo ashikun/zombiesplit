@@ -11,7 +11,7 @@ pub enum Event {
     /// Start a new run.
     NewRun,
     /// Move the cursor.
-    Cursor(Cursor),
+    Cursor(super::cursor::Motion),
     /// Quit the program.
     Quit,
 }
@@ -33,13 +33,4 @@ pub enum Edit {
     Add(u8),
     /// Remove the last digit from the current editor.
     Remove,
-}
-
-/// A cursor movement event.
-#[derive(Copy, Clone)]
-pub enum Cursor {
-    /// Move the cursor up.
-    Up,
-    /// Move the cursor down.
-    Down,
 }
