@@ -45,12 +45,29 @@ impl Time {
         };
         Ok(())
     }
+
+    /// Gets whether this time is zero.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use zombiesplit::model::time::Time;
+    /// use std::convert::TryFrom;
+    /// assert!(Time::try_from(0).expect("shouldn't overflow").is_zero());
+    /// assert!(!Time::try_from(1).expect("shouldn't overflow").is_zero());
+    /// ```
+    #[must_use]
+    pub fn is_zero(self) -> bool {
+        u32::from(self) == 0
+    }
 }
 
 impl TryFrom<u32> for Time {
     type Error = error::Error;
 
     /// Tries to convert a 32-bit timestamp to a time.
+    ///
+    /// # Example
     ///
     /// ```
     /// use zombiesplit::model::time::Time;
@@ -90,6 +107,8 @@ impl Default for Time {
 
 impl From<Time> for u32 {
     /// Converts a time to a 32-bit timestamp.
+    ///
+    /// # Example
     ///
     /// ```
     /// use zombiesplit::model::time::Time;

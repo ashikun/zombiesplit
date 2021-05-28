@@ -5,7 +5,7 @@ use std::fmt::{Display, Formatter};
 use super::{
     cursor::{self, Cursor},
     event::{Edit, Event},
-    mode::{EventResult, Mode, Nav},
+    mode::{EventResult, Inactive, Mode, Nav},
 };
 use crate::model::{
     run::Run,
@@ -27,6 +27,8 @@ pub struct Editor {
 impl Mode for Editor {
     fn handle_event(&mut self, e: &Event) -> EventResult {
         match e {
+            Event::Undo => self.undo(),
+            Event::Delete => self.delete(),
             Event::Edit(d) => self.edit(d),
             Event::EnterField(f) => self.enter_field(*f),
             Event::Cursor(c) => self.move_cursor(*c),
@@ -70,14 +72,29 @@ impl Editor {
     }
 
     fn edit(&mut self, e: &Edit) -> EventResult {
-        if self.field.as_mut().map_or(false, |f| f.edit(e)) {
+        EventResult::from_handled(self.field.as_mut().map_or(false, |f| f.edit(e)))
+    }
+
+    fn undo(&mut self) -> EventResult {
+        if self.field.take().is_some() {
+            // Erased field
             EventResult::Handled
-        } else {
+        } else if self.time.is_zero() {
+            // Nothing to erase
             EventResult::NotHandled
+        } else {
+            self.time = time::Time::default();
+            EventResult::Handled
         }
     }
 
-    /// Commits the field
+    fn delete(&mut self) -> EventResult {
+        self.field = None;
+        self.time = time::Time::default();
+        Nav::transition(self.cur)
+    }
+
+    /// Commits the field currently being edited.
     pub fn commit_field(&mut self) {
         if let Some(ref f) = self.field {
             // TODO(@MattWindsor91): handle error properly.
@@ -85,14 +102,19 @@ impl Editor {
         }
     }
 
+    /// Performs the given cursor motion.
+    #[must_use]
     pub fn move_cursor(&mut self, motion: cursor::Motion) -> EventResult {
-        // TODO(@MattWindsor91): scrub time if moving up?
-        // TODO(@MattWindsor91): 
+        // Need to copy the cursor, so that the editor commits to the
+        // right location.
         let mut cur = self.cur;
-        cur.move_by(motion, 1);
-        // TODO(@MattWindsor91): if we were already on the last split, we should
-        // end the run.
-        EventResult::Transition(Box::new(Nav::new(cur)))
+        let amt = cur.move_by(motion, 1);
+        if amt != 1 && matches!(motion, cursor::Motion::Down) {
+            // End of run
+            EventResult::Transition(Box::new(Inactive))
+        } else {
+            Nav::transition(cur)
+        }
     }
 }
 

@@ -1,7 +1,10 @@
 //! Mapping from SDL to presenter events.
 use crate::{
     model::time::position,
-    presenter::{cursor, event::Event},
+    presenter::{
+        cursor,
+        event::{Edit, Event},
+    },
 };
 
 /// Maps an event from SDL into [Event].
@@ -18,6 +21,7 @@ pub fn from_sdl(e: &sdl2::event::Event) -> Option<Event> {
 fn from_key(k: sdl2::keyboard::Keycode) -> Option<Event> {
     use sdl2::keyboard::Keycode;
     match k {
+        // Editing
         Keycode::Num0 => Some(Event::digit(0)),
         Keycode::Num1 => Some(Event::digit(1)),
         Keycode::Num2 => Some(Event::digit(2)),
@@ -28,13 +32,19 @@ fn from_key(k: sdl2::keyboard::Keycode) -> Option<Event> {
         Keycode::Num7 => Some(Event::digit(7)),
         Keycode::Num8 => Some(Event::digit(8)),
         Keycode::Num9 => Some(Event::digit(9)),
+        Keycode::Backspace => Some(Event::Edit(Edit::Remove)),
+        // Time fields
         // We don't allow entering hours yet, but this may change.
         Keycode::M => Some(Event::EnterField(position::Name::Minutes)),
         Keycode::S => Some(Event::EnterField(position::Name::Seconds)),
         Keycode::Period => Some(Event::EnterField(position::Name::Milliseconds)),
-        Keycode::X => Some(Event::NewRun),
+        // Cursor motions
         Keycode::J | Keycode::Down | Keycode::Space => Some(Event::Cursor(cursor::Motion::Down)),
-        Keycode::K | Keycode::Up | Keycode::Backspace => Some(Event::Cursor(cursor::Motion::Up)),
+        Keycode::K | Keycode::Up => Some(Event::Cursor(cursor::Motion::Up)),
+        // Top-level commands
+        Keycode::H | Keycode::Left => Some(Event::Undo),
+        Keycode::X | Keycode::Delete => Some(Event::Delete),
+        Keycode::Return | Keycode::Z => Some(Event::NewRun),
         Keycode::Escape => Some(Event::Quit),
         _ => None,
     }

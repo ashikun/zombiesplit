@@ -72,12 +72,17 @@ impl Nav {
         Self { cur }
     }
 
+    /// Creates a transition to a navigation from the given cursor.
+    #[must_use]
+    pub fn transition(cur: Cursor) -> EventResult {
+        EventResult::Transition(Box::new(Self::new(cur)))
+    }
+
     /// Moves the state cursor according to `c`, if possible.
     fn move_cursor(&mut self, motion: cursor::Motion) -> EventResult {
         // TODO(@MattWindsor91): cursor multiplier
-        EventResult::from_handled(self.cur.move_by(motion, 1))
+        EventResult::from_handled(self.cur.move_by(motion, 1) != 0)
     }
-
 
     /// Constructs an editor entering the given field.
     fn enter_field(&self, field: position::Name) -> EventResult {
@@ -107,6 +112,7 @@ pub enum EventResult {
 
 impl EventResult {
     /// Creates an event result from a 'was handled' boolean `handled`.
+    #[must_use]
     pub fn from_handled(handled: bool) -> Self {
         if handled {
             Self::Handled

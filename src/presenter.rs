@@ -1,10 +1,10 @@
 //! Contains all of the state held by the user interface.
 
+pub mod cursor;
 pub mod editor;
 pub mod event;
 pub mod mode;
 pub mod split;
-pub mod cursor;
 
 use crate::model::run;
 pub use editor::Editor;
@@ -68,7 +68,7 @@ impl Presenter {
         }
     }
 
-    /// Delegates
+    /// Delegates an event to the mode.
     fn delegate_event(&mut self, e: &event::Event) {
         match self.mode.handle_event(e) {
             mode::EventResult::Transition(new_mode) => self.transition(new_mode),

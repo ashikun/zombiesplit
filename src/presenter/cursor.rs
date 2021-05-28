@@ -6,49 +6,47 @@ pub struct Cursor {
     /// The current position.
     pos: usize,
     /// The maximum position.
-    max: usize
+    max: usize,
 }
 
 impl Cursor {
     /// Creates a new cursor at the top, with the given maximum index.
+    #[must_use]
     pub fn new(max: usize) -> Self {
-        Self{pos: 0, max}
+        Self { pos: 0, max }
     }
 
     /// Gets the current cursor position.
+    #[must_use]
     pub fn position(&self) -> usize {
         self.pos
     }
 
-    /// Moves the cursor up by `n`, returning whether the position changed.
-    pub fn move_up(&mut self, n: usize) -> bool {
-        if self.pos == 0 {
-            false
-        } else if self.pos <= n {
-            self.pos = 0;
-            true
-        } else {
+    /// Moves the cursor up by `n`, returning the amount by which the position moved.
+    pub fn move_up(&mut self, n: usize) -> usize {
+        if n <= self.pos {
             self.pos -= n;
-            true
+            n
+        } else {
+            std::mem::replace(&mut self.pos, 0)
         }
     }
 
-    /// Moves the cursor down by `n`, returning whether the position changed.
-    pub fn move_down(&mut self, n: usize) -> bool {
-        if self.pos == self.max {
-            false
-        } else if self.max <= self.pos + n {
-            // TODO(@MattWindsor91): rewrite this to avoid overflow potential?
-            self.pos = self.max;
-            true
-        } else {
+    /// Moves the cursor down by `n`, returning the amount by which the position moved.
+    pub fn move_down(&mut self, n: usize) -> usize {
+        let cap = self.max - self.pos;
+        if n <= cap {
             self.pos += n;
-            true
+            n
+        } else {
+            self.pos = self.max;
+            cap
         }
     }
 
     /// Moves the cursor in the direction of `m` `multiplier` times.
-    pub fn move_by(&mut self, m: Motion, multiplier: usize) -> bool {
+    /// Returns the absolute amount by which the cursor moved.
+    pub fn move_by(&mut self, m: Motion, multiplier: usize) -> usize {
         // TODO(@MattWindsor91): multipliers
         match m {
             Motion::Up => self.move_up(multiplier),
