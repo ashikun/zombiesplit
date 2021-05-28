@@ -59,10 +59,12 @@ impl Game {
                 .groups
                 .get(groupid)
                 .ok_or_else(|| Error::MissingGroup(groupid.clone()))?;
-            splits.extend(group.splits.iter().map(|split| crate::model::run::Split {
-                name: split.name.clone(),
-                times: vec![],
-            }))
+            splits.extend(
+                group
+                    .splits
+                    .iter()
+                    .map(|split| crate::model::run::Split::new(&split.name)),
+            )
         }
         // TODO(@MattWindsor91): check groups are valid
 

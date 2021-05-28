@@ -86,8 +86,10 @@ impl Presenter {
     /// Starts a new run, abandoning any previous run.
     fn start_new_run(&mut self) {
         // TODO(@MattWindsor91): actually reset the run here.
+        self.run.reset();
         let cur = cursor::Cursor::new(self.run.splits.len() - 1);
-        self.transition(Box::new(mode::Nav::new(cur)))
+        // Don't commit the previous mode.
+        self.mode = Box::new(mode::Nav::new(cur))
     }
 
     /// Start the process of quitting.

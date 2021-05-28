@@ -38,9 +38,7 @@ impl Mode for Editor {
 
     fn commit(&mut self, run: &mut Run) {
         self.commit_field();
-        if let Some(ref mut s) = run.splits.get_mut(self.cur.position()) {
-            s.times.push(self.time)
-        }
+        run.push_to(self.cur.position(), self.time)
     }
 
     fn cursor(&self) -> Option<&Cursor> {
