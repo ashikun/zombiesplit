@@ -61,7 +61,7 @@ fn draw_name(r: &mut Region, split: split::Ref) -> Result<()> {
 }
 
 fn draw_time(r: &mut Region, split: split::Ref) -> Result<()> {
-    jump_to_time(r);
+    r.set_pos(Position::x(X::Right(0)));
     if split.split.has_times() {
         draw_summed_time(r, split.split.summed_time())
     } else {
@@ -69,22 +69,17 @@ fn draw_time(r: &mut Region, split: split::Ref) -> Result<()> {
     }
 }
 
-fn jump_to_time(r: &mut Region) {
-    r.set_pos(Position::x(X::Right(0)));
-    r.move_chars(-metrics::TIME_CHARS, 0);
-}
-
 fn draw_summed_time(r: &mut Region, time: model::time::Time) -> Result<()> {
     let colour = colour::Key::RunAhead; // for now
 
     // TODO(@MattWindsor91): hours?
     r.set_font(FontId::Normal(colour));
-    r.put_str(&time_str(time))
+    r.put_str_r(&time_str(time))
 }
 
 fn draw_time_placeholder(r: &mut Region) -> Result<()> {
     r.set_font(FontId::Normal(colour::Key::NoTime));
-    r.put_str("--'--\"---")
+    r.put_str_r("--'--\"---")
 }
 
 #[must_use]

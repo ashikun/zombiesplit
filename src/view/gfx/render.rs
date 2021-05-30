@@ -29,6 +29,21 @@ pub trait Renderer {
     /// Returns an error if SDL fails to load the font (if it has not been
     /// loaded already), or fails to blit the font onto the screen.
     fn put_str(&mut self, str: &str) -> Result<()>;
+
+    /// Puts a string `str` onto the screen with the right side positioned at
+    /// the current coordinate.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if SDL fails to load the font (if it has not been
+    /// loaded already), or fails to blit the font onto the screen.
+    fn put_str_r(&mut self, str: &str) -> Result<()> {
+        let len = metrics::sat_i32(str.len());
+        self.move_chars(-len, 0);
+        self.put_str(str)?;
+        self.move_chars(len, 0);
+        Ok(())
+    }
 }
 
 /// The low-level window graphics renderer.

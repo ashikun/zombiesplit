@@ -5,12 +5,15 @@ use super::time::Time;
 /// An in-progress run.
 pub struct Run {
     pub metadata: Metadata,
+    /// The attempt number of this run.
+    pub attempt: usize,
     pub splits: Vec<Split>,
 }
 
 impl Run {
     /// Wipes all times for this run.
     pub fn reset(&mut self) {
+        self.attempt += 1;
         self.splits.iter_mut().for_each(Split::clear)
     }
 

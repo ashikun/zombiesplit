@@ -2,7 +2,7 @@
 
 use super::{
     colour, metrics,
-    position::Position,
+    position::{Position, X},
     render::{FontId, Region, Renderer},
     widget,
 };
@@ -23,6 +23,13 @@ impl widget::Widget for Widget {
         r.put_str(&p.run.metadata.game)?;
         r.move_chars(0, 1);
         r.put_str(&p.run.metadata.category)?;
+
+        render_attempt(&mut r, p.run.attempt)?;
         Ok(())
     }
+}
+
+fn render_attempt(r: &mut dyn Renderer, attempt: usize) -> Result<()> {
+    r.set_pos(Position::x(X::Right(0)));
+    r.put_str_r(&format!("#{}", attempt))
 }

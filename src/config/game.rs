@@ -54,6 +54,7 @@ impl Game {
         // TODO(@MattWindsor91): check groups are valid
 
         Ok(run::Run {
+            attempt: 0,
             metadata: self.to_metadata(&cat),
             splits: self.to_splits(&cat)?,
         })
