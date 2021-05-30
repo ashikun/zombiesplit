@@ -115,7 +115,7 @@ impl Window {
         Rect {
             x: sat_i32(self.header_xpad),
             y: sat_i32(self.header_ypad),
-            w: self.win_w - (2 * self.header_xpad),
+            w: self.padded_win_w(self.header_xpad),
             h: self.split_ypos - (2 * self.header_ypad),
         }
     }
@@ -126,9 +126,21 @@ impl Window {
         Rect {
             x: sat_i32(self.split_xpad),
             y: sat_i32(self.split_ypos),
-            w: self.win_w - (2 * self.split_xpad),
+            w: self.padded_win_w(self.split_xpad),
             h: self.win_h - self.split_ypos,
         }
+    }
+
+    /// Gets the unshifted bounding box of the editor part of the window.
+    #[must_use]
+    pub fn editor_rect(&self) -> Rect {
+        let mut r = self.splits_rect();
+        r.h = self.split_h;
+        r
+    }
+
+    fn padded_win_w(&self, padding: u32) -> u32 {
+        self.win_w - (2 * padding)
     }
 }
 
