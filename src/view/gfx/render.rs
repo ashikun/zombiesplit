@@ -8,13 +8,39 @@ use sdl2::{
     image::LoadTexture,
     rect::{Point, Rect},
     render::{Canvas, Texture, TextureCreator},
-    video::{Window, WindowContext},
+    video,
 };
 
-/// The low-level graphics renderer.
-pub struct Renderer<'a> {
-    screen: RefMut<'a, Canvas<sdl2::video::Window>>,
-    texture_creator: &'a TextureCreator<sdl2::video::WindowContext>,
+/// Trait of things that provide rendering facilities.
+pub trait Renderer {
+    /// Sets the plotter to the given position.
+    fn set_pos(&mut self, x: i32, y: i32);
+
+    /// Moves the plotter by the given pixel deltas.
+    fn move_pos(&mut self, dx: i32, dy: i32);
+
+    /// Sets the plotter to the given horizontal position.
+    fn set_x(&mut self, x: i32);
+
+    /// Moves the plotter by the given number of characters in the current font.
+    fn move_chars(&mut self, dx: i32, dy: i32);
+
+    /// Sets the current font.
+    fn set_font(&mut self, font: FontId);
+
+    /// Puts a string `str` onto the screen at the current coordinate.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if SDL fails to load the font (if it has not been
+    /// loaded already), or fails to blit the font onto the screen.
+    fn put_str(&mut self, str: &str) -> Result<()>;
+}
+
+/// The low-level window graphics renderer.
+pub struct Window<'a> {
+    screen: RefMut<'a, Canvas<video::Window>>,
+    texture_creator: &'a TextureCreator<video::WindowContext>,
     textures: HashMap<FontId, Rc<Texture<'a>>>,
 
     /// The current font.
@@ -32,12 +58,58 @@ pub enum FontId {
     Normal(colour::Key),
 }
 
-impl<'a> Renderer<'a> {
+impl<'a> Renderer for Window<'a> {
+    /// Sets the plotter to the given position.
+    fn set_pos(&mut self, x: i32, y: i32) {
+        self.pos = Point::new(x, y)
+    }
+
+    /// Moves the plotter by the given pixel deltas.
+    fn move_pos(&mut self, dx: i32, dy: i32) {
+        self.pos = self.pos.offset(dx, dy)
+    }
+
+    /// Sets the plotter to the given horizontal position.
+    fn set_x(&mut self, x: i32) {
+        self.set_pos(x, self.pos.y)
+    }
+
+    /// Moves the plotter by the given number of characters in the current font.
+    fn move_chars(&mut self, dx: i32, dy: i32) {
+        self.move_pos(self.fmetrics.span_w(dx), self.fmetrics.span_h(dy))
+    }
+
+    /// Sets the current font.
+    fn set_font(&mut self, font: FontId) {
+        self.font = font
+    }
+
+    /// Puts a string `str` onto the screen at the current coordinate.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if SDL fails to load the font (if it has not been
+    /// loaded already), or fails to blit the font onto the screen.
+    fn put_str(&mut self, str: &str) -> Result<()> {
+        let old_pos = self.pos;
+        let texture = self.font_texture()?;
+
+        for byte in str.as_bytes() {
+            self.put_byte(&texture, *byte, self.pos)?;
+            self.move_chars(1, 0);
+        }
+
+        self.pos = old_pos;
+        Ok(())
+    }
+}
+
+impl<'a> Window<'a> {
     /// Constructs a [Renderer] using the given screen and texture creator.
     #[must_use]
     pub fn new(
-        screen: RefMut<'a, Canvas<Window>>,
-        texture_creator: &'a TextureCreator<WindowContext>,
+        screen: RefMut<'a, Canvas<video::Window>>,
+        texture_creator: &'a TextureCreator<video::WindowContext>,
     ) -> Self {
         Self {
             screen,
@@ -49,64 +121,15 @@ impl<'a> Renderer<'a> {
         }
     }
 
-    /// Sets the plotter to the given position.
-    pub fn set_pos(&mut self, x: i32, y: i32) -> &mut Self {
-        self.pos = Point::new(x, y);
-        self
-    }
-
-    /// Moves the plotter by the given pixel deltas.
-    pub fn move_pos(&mut self, dx: i32, dy: i32) -> &mut Self {
-        self.pos = self.pos.offset(dx, dy);
-        self
-    }
-
-    /// Sets the plotter to the given horizontal position.
-    pub fn set_x(&mut self, x: i32) -> &mut Self {
-        self.set_pos(x, self.pos.y)
-    }
-
-    /// Moves the plotter by the given number of characters in the current font.
-    pub fn move_chars(&mut self, dx: i32, dy: i32) -> &mut Self {
-        self.move_pos(self.fmetrics.span_w(dx), self.fmetrics.span_h(dy))
-    }
-
-    /// Sets the current font.
-    pub fn set_font(&mut self, font: FontId) -> &mut Self {
-        self.font = font;
-        self
-    }
-
     /// Clears the screen.
-    pub fn clear(&mut self) -> &mut Self {
+    pub fn clear(&mut self) {
         self.screen.set_draw_color(colour::SET.bg);
-        self.screen.clear();
-        self
+        self.screen.clear()
     }
 
     /// Refreshes the screen.
-    pub fn present(&mut self) -> &mut Self {
-        self.screen.present();
-        self
-    }
-
-    /// Puts a string `str` onto the screen at the current coordinate.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if SDL fails to load the font (if it has not been
-    /// loaded already), or fails to blit the font onto the screen.
-    pub fn put_str(&mut self, str: &str) -> Result<&mut Self> {
-        let old_pos = self.pos;
-        let texture = self.font_texture()?;
-
-        for byte in str.as_bytes() {
-            self.put_byte(&texture, *byte, self.pos)?;
-            self.move_chars(1, 0);
-        }
-
-        self.pos = old_pos;
-        Ok(self)
+    pub fn present(&mut self) {
+        self.screen.present()
     }
 
     fn put_byte<'b>(
@@ -173,5 +196,39 @@ impl<'a> Renderer<'a> {
             self.fmetrics.glyph_x(char),
             self.fmetrics.glyph_y(char),
         ))
+    }
+}
+
+/// A renderer that delegates to an underlying renderer, but maps coordinates
+/// into a fenced region.
+pub struct Region<'a>{
+    /// The underlying renderer.
+    pub renderer: &'a mut dyn Renderer,
+
+    /// The x-offset of this region within the renderer.
+    pub x: i32,
+    /// The y-offset of this region within the renderer.
+    pub y: i32
+    // TODO(@MattWindsor91): w and h.
+}
+
+impl<'a> Renderer for Region<'a> {
+    fn set_pos(&mut self, x: i32, y: i32) {
+        self.renderer.set_pos(x + self.x, y + self.y)
+    }
+    fn move_pos(&mut self, dx: i32, dy: i32) {
+        self.renderer.move_pos(dx, dy) 
+    }
+    fn set_x(&mut self, x: i32) {
+        self.renderer.set_x(x + self.x)
+    }
+    fn move_chars(&mut self, dx: i32, dy: i32) {
+        self.renderer.move_chars(dx, dy)
+    }
+    fn set_font(&mut self, font: FontId) {
+        self.renderer.set_font(font)
+    }
+    fn put_str(&mut self, str: &str) -> Result<()> {
+        self.renderer.put_str(str)
     }
 }
