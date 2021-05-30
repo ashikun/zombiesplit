@@ -5,7 +5,7 @@ use std::convert::TryFrom;
 use super::{
     colour, metrics,
     position::{Position, X},
-    render,
+    render::{FontId, Region, Renderer},
 };
 use crate::{
     model,
@@ -13,27 +13,30 @@ use crate::{
     view::error::Result,
 };
 
-/// Views splits by drawing them using the given renderer.
-pub struct View<'a> {
-    /// The renderer used to draw primitives.
-    renderer: &'a mut dyn render::Renderer,
+/// The split viewer widget.
+pub struct Widget {
+    /// The bounding box used for the widget.
+    rect: metrics::Rect,
     /// The height of one split.
     split_h: i32,
 }
 
-impl<'a> View<'a> {
-    /// Creates a new view using the given renderer and split height.
-    pub fn new(renderer: &'a mut dyn render::Renderer, split_h: i32) -> Self {
-        View { renderer, split_h }
-    }
+impl super::widget::Widget for Widget {
+    fn render(&mut self, r: &mut dyn Renderer, p: &Presenter) -> Result<()> {
+        let mut r = Region::new(r, self.rect);
 
-    /// Draws the splits of `state`.
-    pub fn draw(&mut self, state: &Presenter) -> Result<()> {
-        for split in state.splits() {
-            self.renderer.set_pos(self.split_pos(split));
-            self.draw_split(split)?;
+        for split in p.splits() {
+            r.set_pos(self.split_pos(split));
+            draw_split(&mut r, split)?;
         }
         Ok(())
+    }
+}
+
+impl Widget {
+    /// Creates a new view using the given bounding box and split height.
+    pub fn new(rect: metrics::Rect, split_h: i32) -> Self {
+        Self { rect, split_h }
     }
 
     fn split_pos(&self, split: split::Ref) -> Position {
@@ -42,47 +45,46 @@ impl<'a> View<'a> {
             i32::try_from(split.index).unwrap_or_default() * self.split_h,
         )
     }
+}
 
-    fn draw_split(&mut self, split: split::Ref) -> Result<()> {
-        self.draw_name(split)?;
-        self.draw_time(split)?;
-        Ok(())
+fn draw_split(r: &mut Region, split: split::Ref) -> Result<()> {
+    draw_name(r, split)?;
+    draw_time(r, split)?;
+    Ok(())
+}
+
+fn draw_name(r: &mut Region, split: split::Ref) -> Result<()> {
+    let colour = colour::Key::Name(split.position());
+    r.set_font(FontId::Normal(colour));
+    r.put_str(&split.split.name)?;
+    Ok(())
+}
+
+fn draw_time(r: &mut Region, split: split::Ref) -> Result<()> {
+    jump_to_time(r);
+    if split.split.has_times() {
+        draw_summed_time(r, split.split.summed_time())
+    } else {
+        draw_time_placeholder(r)
     }
+}
 
-    fn draw_name(&mut self, split: split::Ref) -> Result<()> {
-        let colour = colour::Key::Name(split.position());
-        self.renderer.set_font(render::FontId::Normal(colour));
-        self.renderer.put_str(&split.split.name)?;
-        Ok(())
-    }
+fn jump_to_time(r: &mut Region) {
+    r.set_pos(Position::x(X::Right(0)));
+    r.move_chars(-metrics::TIME_CHARS, 0);
+}
 
-    fn draw_time(&mut self, split: split::Ref) -> Result<()> {
-        self.jump_to_time();
-        if split.split.has_times() {
-            self.draw_summed_time(split.split.summed_time())
-        } else {
-            self.draw_time_placeholder()
-        }
-    }
+fn draw_summed_time(r: &mut Region, time: model::time::Time) -> Result<()> {
+    let colour = colour::Key::RunAhead; // for now
 
-    fn jump_to_time(&mut self) {
-        self.renderer.set_pos(Position::x(X::Right(0)));
-        self.renderer.move_chars(-metrics::TIME_CHARS, 0);
-    }
+    // TODO(@MattWindsor91): hours?
+    r.set_font(FontId::Normal(colour));
+    r.put_str(&time_str(time))
+}
 
-    fn draw_summed_time(&mut self, time: model::time::Time) -> Result<()> {
-        let colour = colour::Key::RunAhead; // for now
-
-        // TODO(@MattWindsor91): hours?
-        self.renderer.set_font(render::FontId::Normal(colour));
-        self.renderer.put_str(&time_str(time))
-    }
-
-    fn draw_time_placeholder(&mut self) -> Result<()> {
-        self.renderer
-            .set_font(render::FontId::Normal(colour::Key::NoTime));
-        self.renderer.put_str("--'--\"---")
-    }
+fn draw_time_placeholder(r: &mut Region) -> Result<()> {
+    r.set_font(FontId::Normal(colour::Key::NoTime));
+    r.put_str("--'--\"---")
 }
 
 #[must_use]

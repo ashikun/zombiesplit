@@ -85,6 +85,10 @@ pub struct Window {
     pub win_w: u32,
     /// The window height.
     pub win_h: u32,
+    /// The horizontal padding on header contents.
+    pub header_xpad: u32,
+    /// The vertical padding on header contents.
+    pub header_ypad: u32,
     /// The horizontal padding on split names and times.
     pub split_xpad: u32,
     /// The vertical position where the split times start.
@@ -97,12 +101,25 @@ pub struct Window {
 pub const WINDOW: Window = Window {
     win_w: 320,
     win_h: 640,
+    header_xpad: 8,
+    header_ypad: 8,
     split_xpad: 4,
     split_h: 16,
     split_ypos: 48,
 };
 
 impl Window {
+    /// Gets the bounding box of the header part of the window.
+    #[must_use]
+    pub fn header_rect(&self) -> Rect {
+        Rect {
+            x: sat_i32(self.header_xpad),
+            y: sat_i32(self.header_ypad),
+            w: self.win_w - (2 * self.header_xpad),
+            h: self.split_ypos - (2 * self.header_ypad),
+        }
+    }
+
     /// Gets the bounding box of the splits part of the window.
     #[must_use]
     pub fn splits_rect(&self) -> Rect {

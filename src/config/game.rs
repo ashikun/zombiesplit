@@ -1,5 +1,8 @@
 //! Configuration structs for games, split groups, splits, records, and categories.
-use crate::model::time;
+use crate::model::{
+    run::{self, Metadata},
+    time,
+};
 
 use serde::{Deserialize, Serialize};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
@@ -46,15 +49,32 @@ impl Game {
     ///
     /// Returns an error if the configuration references a category or group
     /// that is not available elsewhere in the configuration.
-    pub fn to_run(&self, category: &str) -> Result<crate::model::run::Run> {
-        let cat = self
-            .categories
+    pub fn to_run(&self, category: &str) -> Result<run::Run> {
+        let cat = self.expand_category(category)?;
+        // TODO(@MattWindsor91): check groups are valid
+
+        Ok(run::Run {
+            metadata: self.to_metadata(&cat),
+            splits: self.to_splits(&cat)?,
+        })
+    }
+
+    fn expand_category(&self, category: &str) -> Result<&Category> {
+        self.categories
             .get(category)
-            .ok_or_else(|| Error::MissingCategory(category.to_owned()))?;
+            .ok_or_else(|| Error::MissingCategory(category.to_owned()))
+    }
 
+    fn to_metadata(&self, category: &Category) -> run::Metadata {
+        Metadata {
+            game: self.name.clone(),
+            category: category.name.clone(),
+        }
+    }
+
+    fn to_splits(&self, category: &Category) -> Result<Vec<run::Split>> {
         let mut splits = vec![];
-
-        for groupid in &cat.groups {
+        for groupid in &category.groups {
             let group = self
                 .groups
                 .get(groupid)
@@ -63,12 +83,10 @@ impl Game {
                 group
                     .splits
                     .iter()
-                    .map(|split| crate::model::run::Split::new(&split.name)),
+                    .map(|split| run::Split::new(&split.name)),
             )
         }
-        // TODO(@MattWindsor91): check groups are valid
-
-        Ok(crate::model::run::Run { splits })
+        Ok(splits)
     }
 }
 

@@ -193,9 +193,16 @@ impl<'a> Window<'a> {
 /// into a fenced region.
 pub struct Region<'a> {
     /// The underlying renderer.
-    pub renderer: &'a mut dyn Renderer,
+    renderer: &'a mut dyn Renderer,
     /// The bounding box, relative to the parent renderer.
-    pub rect: metrics::Rect,
+    rect: metrics::Rect,
+}
+
+impl<'a> Region<'a> {
+    /// Constructs a new [Region] using the given renderer and bounding box.    
+    pub fn new(renderer: &'a mut dyn Renderer, rect: metrics::Rect) -> Self {
+        Self { renderer, rect }
+    }
 }
 
 impl<'a> Renderer for Region<'a> {

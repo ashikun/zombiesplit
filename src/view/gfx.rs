@@ -1,10 +1,12 @@
 //! Graphics rendering.
 
 pub mod colour;
+mod header;
 pub mod metrics; // for now
 mod position;
 pub mod render;
 mod split;
+mod widget;
 
 use crate::{
     model::time,
@@ -19,13 +21,24 @@ use self::colour::Key;
 use super::error::{Error, Result};
 
 use position::{Position, X, Y};
-use render::{Region, Renderer};
+use render::Renderer;
+use widget::Widget;
 
 pub struct Core<'a> {
-    pub renderer: render::Window<'a>,
+    renderer: render::Window<'a>,
+    widgets: Vec<Box<dyn widget::Widget>>,
 }
 
 impl<'a> Core<'a> {
+    /// Creates a new graphics core.
+    #[must_use]
+    pub fn new(renderer: render::Window<'a>) -> Self {
+        Self {
+            renderer,
+            widgets: make_widgets(metrics::WINDOW),
+        }
+    }
+
     /// Redraws the user interface.
     ///
     /// # Errors
@@ -34,7 +47,9 @@ impl<'a> Core<'a> {
     pub fn redraw(&mut self, state: &Presenter) -> Result<()> {
         self.renderer.clear();
 
-        self.draw_splits(state)?;
+        for w in &mut self.widgets {
+            w.render(&mut self.renderer, state)?;
+        }
 
         if let Some(ref editor) = state.editor() {
             self.draw_editor(editor)?;
@@ -43,14 +58,6 @@ impl<'a> Core<'a> {
         self.renderer.present();
 
         Ok(())
-    }
-
-    fn draw_splits(&mut self, state: &Presenter) -> Result<()> {
-        let mut region = Region {
-            renderer: &mut self.renderer,
-            rect: metrics::WINDOW.splits_rect(),
-        };
-        split::View::new(&mut region, metrics::sat_i32(metrics::WINDOW.split_h)).draw(state)
     }
 
     /// Draws any editor required by the current state.
@@ -93,6 +100,23 @@ fn field_char_offset(field: time::position::Name) -> i32 {
         time::position::Name::Seconds => 3,
         time::position::Name::Milliseconds => 6,
     }
+}
+
+fn make_widgets(wmetrics: metrics::Window) -> Vec<Box<dyn Widget>> {
+    vec![make_splits(wmetrics), make_header(wmetrics)]
+}
+
+fn make_splits(wmetrics: metrics::Window) -> Box<dyn Widget> {
+    Box::new(split::Widget::new(
+        wmetrics.splits_rect(),
+        metrics::sat_i32(wmetrics.split_h),
+    ))
+}
+
+fn make_header(wmetrics: metrics::Window) -> Box<dyn Widget> {
+    Box::new(header::Widget {
+        rect: wmetrics.header_rect(),
+    })
 }
 
 /// Makes a zombiesplit window.

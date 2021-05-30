@@ -4,6 +4,7 @@ use super::time::Time;
 
 /// An in-progress run.
 pub struct Run {
+    pub metadata: Metadata,
     pub splits: Vec<Split>,
 }
 
@@ -24,6 +25,14 @@ impl Run {
     pub fn pop_from(&mut self, split: usize) -> Option<Time> {
         self.splits.get_mut(split).and_then(Split::pop)
     }
+}
+
+/// Metadata in a run.
+pub struct Metadata {
+    /// The name of the game.
+    pub game: String,
+    /// The name of the category.
+    pub category: String,
 }
 
 /// A split in a run.

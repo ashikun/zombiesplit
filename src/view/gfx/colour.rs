@@ -16,6 +16,9 @@ pub struct Set {
     // Foreground text for the split editor's current field.
     pub fg_editor_field: Color,
 
+    // Foreground text for headers.
+    pub fg_header: Color,
+
     /// Foreground text for splits already passed.
     pub fg_done: Color,
 
@@ -46,6 +49,8 @@ pub enum Key {
     Editor,
     /// Maps to the field editor colour.
     FieldEditor,
+    /// Maps to the header colour.
+    Header,
     /// Maps to the colour of a split name at a given position.
     Name(split::Position),
     /// Maps to a time that hasn't been reported.
@@ -63,6 +68,7 @@ impl Set {
     #[must_use]
     pub fn by_key(&self, key: Key) -> Color {
         match key {
+            Key::Header => self.fg_header,
             Key::Name(pos) => self.by_split_position(pos),
             Key::NoTime => self.fg_time_none,
             Key::RunAhead => self.fg_time_run_ahead,
@@ -91,6 +97,7 @@ pub const SET: Set = Set {
     fg_cursor: Color::CYAN,
     fg_done: Color::GREY,
     fg_normal: Color::WHITE,
+    fg_header: Color::WHITE,
     fg_time_none: Color::GREY,
     fg_time_run_ahead: Color::GREEN,
     fg_time_run_behind: Color::RED,
