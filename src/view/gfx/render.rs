@@ -3,7 +3,7 @@
 use std::{cell::RefMut, collections::HashMap, rc::Rc};
 
 use super::super::error::{Error, Result};
-use super::{colour, metrics};
+use super::{colour, metrics, position::Position};
 use sdl2::{
     image::LoadTexture,
     rect::{Point, Rect},
@@ -14,13 +14,7 @@ use sdl2::{
 /// Trait of things that provide rendering facilities.
 pub trait Renderer {
     /// Sets the plotter to the given position.
-    fn set_pos(&mut self, x: i32, y: i32);
-
-    /// Moves the plotter by the given pixel deltas.
-    fn move_pos(&mut self, dx: i32, dy: i32);
-
-    /// Sets the plotter to the given horizontal position.
-    fn set_x(&mut self, x: i32);
+    fn set_pos(&mut self, pos: Position);
 
     /// Moves the plotter by the given number of characters in the current font.
     fn move_chars(&mut self, dx: i32, dy: i32);
@@ -60,23 +54,19 @@ pub enum FontId {
 
 impl<'a> Renderer for Window<'a> {
     /// Sets the plotter to the given position.
-    fn set_pos(&mut self, x: i32, y: i32) {
-        self.pos = Point::new(x, y)
-    }
-
-    /// Moves the plotter by the given pixel deltas.
-    fn move_pos(&mut self, dx: i32, dy: i32) {
-        self.pos = self.pos.offset(dx, dy)
-    }
-
-    /// Sets the plotter to the given horizontal position.
-    fn set_x(&mut self, x: i32) {
-        self.set_pos(x, self.pos.y)
+    fn set_pos(&mut self, pos: Position) {
+        self.pos = Point::new(
+            pos.x.to_left(self.pos.x, metrics::WINDOW.win_w),
+            pos.y.to_top(self.pos.y, metrics::WINDOW.win_h),
+        )
     }
 
     /// Moves the plotter by the given number of characters in the current font.
     fn move_chars(&mut self, dx: i32, dy: i32) {
-        self.move_pos(self.fmetrics.span_w(dx), self.fmetrics.span_h(dy))
+        self.set_pos(Position::rel(
+            self.fmetrics.span_w(dx),
+            self.fmetrics.span_h(dy),
+        ))
     }
 
     /// Sets the current font.
@@ -201,26 +191,16 @@ impl<'a> Window<'a> {
 
 /// A renderer that delegates to an underlying renderer, but maps coordinates
 /// into a fenced region.
-pub struct Region<'a>{
+pub struct Region<'a> {
     /// The underlying renderer.
     pub renderer: &'a mut dyn Renderer,
-
-    /// The x-offset of this region within the renderer.
-    pub x: i32,
-    /// The y-offset of this region within the renderer.
-    pub y: i32
-    // TODO(@MattWindsor91): w and h.
+    /// The bounding box, relative to the parent renderer.
+    pub rect: metrics::Rect,
 }
 
 impl<'a> Renderer for Region<'a> {
-    fn set_pos(&mut self, x: i32, y: i32) {
-        self.renderer.set_pos(x + self.x, y + self.y)
-    }
-    fn move_pos(&mut self, dx: i32, dy: i32) {
-        self.renderer.move_pos(dx, dy) 
-    }
-    fn set_x(&mut self, x: i32) {
-        self.renderer.set_x(x + self.x)
+    fn set_pos(&mut self, pos: Position) {
+        self.renderer.set_pos(pos.normalise_to_rect(self.rect))
     }
     fn move_chars(&mut self, dx: i32, dy: i32) {
         self.renderer.move_chars(dx, dy)

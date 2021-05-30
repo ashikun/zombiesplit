@@ -1,7 +1,7 @@
 //! Font and window metrics (most of which will be un-hardcoded later).
 use std::convert::TryFrom;
 
-const TIME_CHARS: i32 = 9; // XX'XX"XXX
+pub(super) const TIME_CHARS: i32 = 9; // XX'XX"XXX
 
 /// Font metrics.
 #[derive(Copy, Clone)]
@@ -86,11 +86,11 @@ pub struct Window {
     /// The window height.
     pub win_h: u32,
     /// The horizontal padding on split names and times.
-    pub split_xpad: i32,
+    pub split_xpad: u32,
     /// The vertical position where the split times start.
-    pub split_ypos: i32,
+    pub split_ypos: u32,
     /// The height of a split, including any padding between it and the next split.
-    pub split_h: i32,
+    pub split_h: u32,
 }
 
 /// Hardcoded metrics for the window in zombiesplit (for now).
@@ -99,28 +99,53 @@ pub const WINDOW: Window = Window {
     win_h: 640,
     split_xpad: 4,
     split_h: 16,
-    split_ypos: 4,
+    split_ypos: 48,
 };
 
 impl Window {
-    /// Gets the left position for the split time, given font metrics.
+    /// Gets the bounding box of the splits part of the window.
     #[must_use]
-    pub fn split_time_x(&self, font: Font) -> i32 {
-        // TODO(@MattWindsor91): take font metrics.
-        sat_i32(self.win_w) - (self.split_xpad + font.span_w(TIME_CHARS))
-    }
-
-    /// Gets the Y position of the given split.
-    #[must_use]
-    pub fn split_y(&self, num: usize) -> i32 {
-        self.split_ypos + (self.split_h * sat_i32(num))
+    pub fn splits_rect(&self) -> Rect {
+        Rect {
+            x: sat_i32(self.split_xpad),
+            y: sat_i32(self.split_ypos),
+            w: self.win_w - (2 * self.split_xpad),
+            h: self.win_h - self.split_ypos,
+        }
     }
 }
 
 /// Convert `x` to i32, saturate if overly long.
-fn sat_i32<T>(x: T) -> i32
+pub(crate) fn sat_i32<T>(x: T) -> i32
 where
     i32: TryFrom<T>,
 {
     i32::try_from(x).unwrap_or(i32::MAX)
+}
+
+/// Output-independent rectangle.
+#[derive(Clone, Copy, Debug)]
+pub struct Rect {
+    /// X position of left.
+    pub x: i32,
+    /// Y position of top.
+    pub y: i32,
+    /// Width in pixels.
+    pub w: u32,
+    /// Height in pixels.
+    pub h: u32,
+}
+
+impl Rect {
+    /// Gets the right X co-ordinate.
+    #[must_use]
+    pub fn x2(self) -> i32 {
+        self.x + sat_i32(self.w)
+    }
+
+    /// Gets the bottom Y co-ordinate.
+    #[must_use]
+    pub fn y2(self) -> i32 {
+        self.y + sat_i32(self.h)
+    }
 }

@@ -2,11 +2,16 @@
 
 use std::convert::TryFrom;
 
-use crate::{model,
-    presenter::{split, Presenter},
-    view::error::Result
+use super::{
+    colour, metrics,
+    position::{Position, X},
+    render,
 };
-use super::{colour, render, metrics};
+use crate::{
+    model,
+    presenter::{split, Presenter},
+    view::error::Result,
+};
 
 /// Views splits by drawing them using the given renderer.
 pub struct View<'a> {
@@ -19,20 +24,23 @@ pub struct View<'a> {
 impl<'a> View<'a> {
     /// Creates a new view using the given renderer and split height.
     pub fn new(renderer: &'a mut dyn render::Renderer, split_h: i32) -> Self {
-        View{renderer, split_h}
+        View { renderer, split_h }
     }
 
-    /// Draws the splits of `state`
+    /// Draws the splits of `state`.
     pub fn draw(&mut self, state: &Presenter) -> Result<()> {
         for split in state.splits() {
-            self.renderer.set_pos(0, self.split_y(split));
+            self.renderer.set_pos(self.split_pos(split));
             self.draw_split(split)?;
         }
         Ok(())
     }
 
-    fn split_y(&self, split: split::Ref) -> i32 {
-        i32::try_from(split.index).unwrap_or_default() * self.split_h
+    fn split_pos(&self, split: split::Ref) -> Position {
+        Position::top_left(
+            0,
+            i32::try_from(split.index).unwrap_or_default() * self.split_h,
+        )
     }
 
     fn draw_split(&mut self, split: split::Ref) -> Result<()> {
@@ -49,14 +57,17 @@ impl<'a> View<'a> {
     }
 
     fn draw_time(&mut self, split: split::Ref) -> Result<()> {
-        // TODO(@MattWindsor91): decouple this.
-        self.renderer
-            .set_x(metrics::WINDOW.split_time_x(metrics::FONT));
+        self.jump_to_time();
         if split.split.has_times() {
             self.draw_summed_time(split.split.summed_time())
         } else {
             self.draw_time_placeholder()
         }
+    }
+
+    fn jump_to_time(&mut self) {
+        self.renderer.set_pos(Position::x(X::Right(0)));
+        self.renderer.move_chars(-metrics::TIME_CHARS, 0);
     }
 
     fn draw_summed_time(&mut self, time: model::time::Time) -> Result<()> {
@@ -68,7 +79,8 @@ impl<'a> View<'a> {
     }
 
     fn draw_time_placeholder(&mut self) -> Result<()> {
-        self.renderer.set_font(render::FontId::Normal(colour::Key::NoTime));
+        self.renderer
+            .set_font(render::FontId::Normal(colour::Key::NoTime));
         self.renderer.put_str("--'--\"---")
     }
 }
