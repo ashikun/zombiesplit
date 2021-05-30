@@ -16,8 +16,6 @@ pub struct Presenter {
     pub mode: Box<dyn mode::Mode>,
     /// The current run.
     pub run: run::Run,
-    /// Whether the state is dirty.
-    pub is_dirty: bool,
 }
 
 impl Presenter {
@@ -27,7 +25,6 @@ impl Presenter {
         Self {
             mode: Box::new(mode::Inactive),
             run,
-            is_dirty: false,
         }
     }
 
@@ -60,27 +57,25 @@ impl Presenter {
 
     /// Handles an event.  Returns true if the event changed the state.
     pub fn handle_event(&mut self, e: &event::Event) {
+        match self.mode.handle_event(e) {
+            mode::EventResult::Transition(new_mode) => self.transition(new_mode),
+            mode::EventResult::NotHandled => self.handle_event_globally(e),
+            mode::EventResult::Handled => (),
+        }
+    }
+
+    fn handle_event_globally(&mut self, e: &event::Event) {
         use event::Event;
         match e {
             Event::NewRun => self.start_new_run(),
             Event::Quit => self.quit(),
-            _ => self.delegate_event(e),
-        }
-    }
-
-    /// Delegates an event to the mode.
-    fn delegate_event(&mut self, e: &event::Event) {
-        match self.mode.handle_event(e) {
-            mode::EventResult::Transition(new_mode) => self.transition(new_mode),
-            mode::EventResult::Handled => self.dirty(),
-            mode::EventResult::NotHandled => (),
+            _ => (),
         }
     }
 
     fn transition(&mut self, new_mode: Box<dyn mode::Mode>) {
         self.mode.commit(&mut self.run);
-        self.mode = new_mode;
-        self.dirty()
+        self.mode = new_mode
     }
 
     /// Starts a new run, abandoning any previous run.
@@ -95,10 +90,5 @@ impl Presenter {
     /// Start the process of quitting.
     fn quit(&mut self) {
         self.transition(Box::new(mode::Quitting))
-    }
-
-    // Marks the UI as dirty.
-    fn dirty(&mut self) {
-        self.is_dirty = true
     }
 }

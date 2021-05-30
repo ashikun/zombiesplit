@@ -77,17 +77,9 @@ impl<'a> Core<'a> {
                     self.state.handle_event(&x)
                 }
             }
-            self.redraw_if_dirty()?;
+            self.gfx.redraw(&self.state)?;
         }
 
         Ok(())
-    }
-
-    fn redraw_if_dirty(&mut self) -> error::Result<()> {
-        if self.state.is_dirty {
-            self.gfx.redraw(&self.state)
-        } else {
-            Ok(())
-        }
     }
 }
