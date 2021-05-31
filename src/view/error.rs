@@ -8,9 +8,9 @@ pub enum Error {
     #[error("SDL init error: {0}")]
     Init(String),
 
-    /// An error occurred while loading the font.
-    #[error("SDL couldn't load font: {0}")]
-    LoadFont(String),
+    /// An error occurred while handling a font.
+    #[error("font error: {0}")]
+    LoadFont(#[from] super::gfx::font::Error),
 
     /// An error occurred while blitting the font.
     #[error("SDL couldn't blit font: {0}")]

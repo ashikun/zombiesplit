@@ -18,7 +18,7 @@ impl widget::Widget for Widget {
     fn render(&mut self, r: &mut dyn Renderer, p: &Presenter) -> Result<()> {
         let mut r = Region::new(r, self.rect);
 
-        r.set_font(font::Id::Normal);
+        r.set_font(font::Id::Normal)?;
         r.set_fg_colour(colour::Key::Header);
 
         render_meta(&mut r, &p.run.metadata)?;

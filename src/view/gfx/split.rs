@@ -54,7 +54,7 @@ fn draw_split(r: &mut Region, split: split::Ref) -> Result<()> {
 }
 
 fn draw_name(r: &mut Region, split: split::Ref) -> Result<()> {
-    r.set_font(font::Id::Normal);
+    r.set_font(font::Id::Normal)?;
     r.set_fg_colour(colour::Key::Name(split.position()));
     r.put_str(&split.split.name)?;
     Ok(())
@@ -71,14 +71,14 @@ fn draw_time(r: &mut Region, split: split::Ref) -> Result<()> {
 
 fn draw_summed_time(r: &mut Region, time: model::time::Time) -> Result<()> {
     // TODO(@MattWindsor91): hours?
-    r.set_font(font::Id::Normal);
+    r.set_font(font::Id::Normal)?;
     // for now
     r.set_fg_colour(colour::Key::RunAhead);
     r.put_str_r(&time_str(time))
 }
 
 fn draw_time_placeholder(r: &mut Region) -> Result<()> {
-    r.set_font(font::Id::Normal);
+    r.set_font(font::Id::Normal)?;
     r.set_fg_colour(colour::Key::NoTime);
     r.put_str_r("--'--\"---")
 }

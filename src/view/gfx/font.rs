@@ -3,6 +3,7 @@
 // TODO(@MattWindsor91): decouple SDL here?
 
 use std::{collections::HashMap, rc::Rc};
+use thiserror::Error;
 
 use sdl2::{
     image::LoadTexture,
@@ -10,9 +11,7 @@ use sdl2::{
     video::WindowContext,
 };
 
-use crate::view::error::{Error, Result};
-
-use super::colour;
+use super::{colour, metrics};
 
 /// A font manager, using a SDL texture creator.
 pub struct Manager<'a> {
@@ -20,6 +19,8 @@ pub struct Manager<'a> {
     creator: &'a TextureCreator<WindowContext>,
     /// The map of current font textures.
     textures: HashMap<(Id, colour::Key), Rc<Texture<'a>>>,
+    /// The map of known font configurations.
+    configs: HashMap<Id, Config>,
 }
 
 impl<'a> Manager<'a> {
@@ -28,6 +29,7 @@ impl<'a> Manager<'a> {
         Self {
             creator,
             textures: HashMap::new(),
+            configs: temp_config(),
         }
     }
 
@@ -36,26 +38,37 @@ impl<'a> Manager<'a> {
     ///
     /// # Errors
     ///
-    /// Returns an error if we need to load the font, but SDL cannot for some
-    /// reason.
-    pub fn font_texture(&mut self, id: Id, colour: colour::Key) -> Result<Rc<Texture<'a>>> {
+    /// Returns an error if we need to load the font but SDL cannot for some
+    /// reason, or the font is not configured.
+    pub fn texture(&mut self, id: Id, colour: colour::Key) -> Result<Rc<Texture<'a>>> {
         self.textures
             .get(&(id, colour))
             .cloned()
-            .map_or_else(|| self.cache_font(id, colour), Ok)
+            .map_or_else(|| self.cache(id, colour), Ok)
     }
 
-    fn cache_font(&mut self, id: Id, colour: colour::Key) -> Result<Rc<Texture<'a>>> {
-        let tex = Rc::new(self.load_font(id, colour)?);
+    /// Gets the given font's metrics set.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the font is not configured.
+    pub fn metrics(&self, id: Id) -> Result<metrics::Font> {
+        self.config(id).map(|x| x.metrics)
+    }
+
+    fn config(&self, id: Id) -> Result<&Config> {
+        self.configs.get(&id).ok_or(Error::Config(id))
+    }
+
+    fn cache(&mut self, id: Id, colour: colour::Key) -> Result<Rc<Texture<'a>>> {
+        let tex = Rc::new(self.load(id, colour)?);
         self.textures.insert((id, colour), tex.clone());
         Ok(tex)
     }
 
-    fn load_font(&mut self, id: Id, colour: colour::Key) -> Result<Texture<'a>> {
-        let mut tex = self
-            .creator
-            .load_texture(id.filename())
-            .map_err(Error::LoadFont)?;
+    fn load(&mut self, id: Id, colour: colour::Key) -> Result<Texture<'a>> {
+        let path = &self.config(id)?.path;
+        let mut tex = self.creator.load_texture(path).map_err(Error::Load)?;
         colourise(&mut tex, colour);
         Ok(tex)
     }
@@ -75,11 +88,37 @@ pub enum Id {
     Normal,
 }
 
-impl Id {
-    fn filename(self) -> &'static str {
-        // TODO(@MattWindsor91): de-hardcode this.
-        match self {
-            Self::Normal => "font.png",
-        }
-    }
+fn temp_config() -> HashMap<Id, Config> {
+    let mut map = HashMap::new();
+    map.insert(
+        Id::Normal,
+        Config {
+            path: "font.png".to_owned(),
+            metrics: metrics::FONT,
+        },
+    );
+    map
 }
+
+/// A font configuration.
+pub struct Config {
+    /// The font path.
+    path: String,
+    /// The font metrics.
+    metrics: metrics::Font,
+}
+
+/// A font error.
+#[derive(Debug, Error)]
+pub enum Error {
+    /// An error occurred while loading the font.
+    #[error("couldn't load font: {0}")]
+    Load(String),
+
+    /// We tried to use a font configuration that doesn't exist.
+    #[error("font not configured: {0:?}")]
+    Config(Id),
+}
+
+/// Shorthand for a result using [Error].
+pub type Result<T> = std::result::Result<T, Error>;
