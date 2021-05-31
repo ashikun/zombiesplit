@@ -1,5 +1,7 @@
 //! The cursor struct and associated functionality.
 
+use std::cmp::Ordering;
+
 /// A bounded cursor.
 #[derive(Copy, Clone)]
 pub struct Cursor {
@@ -20,6 +22,16 @@ impl Cursor {
     #[must_use]
     pub fn position(&self) -> usize {
         self.pos
+    }
+
+    /// Gets the relative position of `split` to this cursor.
+    #[must_use]
+    pub fn split_position(&self, split: usize) -> SplitPosition {
+        match split.cmp(&self.pos) {
+            Ordering::Less => SplitPosition::Done,
+            Ordering::Equal => SplitPosition::Cursor,
+            Ordering::Greater => SplitPosition::Coming,
+        }
     }
 
     /// Moves the cursor up by `n`, returning the amount by which the position moved.
@@ -62,4 +74,22 @@ pub enum Motion {
     Up,
     /// Move the cursor down.
     Down,
+}
+
+/// Relative positions of splits to cursors.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+pub enum SplitPosition {
+    /// This split is before the cursor.
+    Done,
+    /// This split is on the cursor.
+    Cursor,
+    /// This split is after the cursor.
+    Coming,
+}
+
+/// By default, we consider splits to be coming after the cursor.
+impl Default for SplitPosition {
+    fn default() -> Self {
+        Self::Coming
+    }
 }

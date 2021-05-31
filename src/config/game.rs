@@ -1,7 +1,7 @@
 //! Configuration structs for games, split groups, splits, records, and categories.
 use crate::model::{
     run::{self, Metadata},
-    time,
+    split, time,
 };
 
 use serde::{Deserialize, Serialize};
@@ -57,6 +57,8 @@ impl Game {
             attempt: 0,
             metadata: self.to_metadata(&cat),
             splits: self.to_splits(&cat)?,
+            // TODO(@MattWindsor91): add comparisons
+            comparisons: vec![],
         })
     }
 
@@ -73,7 +75,7 @@ impl Game {
         }
     }
 
-    fn to_splits(&self, category: &Category) -> Result<Vec<run::Split>> {
+    fn to_splits(&self, category: &Category) -> Result<Vec<split::Split>> {
         let mut splits = vec![];
         for groupid in &category.groups {
             let group = self
@@ -84,7 +86,7 @@ impl Game {
                 group
                     .splits
                     .iter()
-                    .map(|split| run::Split::new(&split.name)),
+                    .map(|split| split::Split::new(&split.name)),
             )
         }
         Ok(splits)

@@ -48,6 +48,26 @@ impl<P> From<Field<P>> for u16 {
     }
 }
 
+impl<P> PartialEq for Field<P> {
+    fn eq(&self, other: &Self) -> bool {
+        self.val == other.val
+    }
+}
+
+impl<P> Eq for Field<P> {}
+
+impl<P> PartialOrd for Field<P> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.val.partial_cmp(&other.val)
+    }
+}
+
+impl<P> Ord for Field<P> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.val.cmp(&other.val)
+    }
+}
+
 impl<P: Position> TryFrom<u32> for Field<P> {
     type Error = Error;
 

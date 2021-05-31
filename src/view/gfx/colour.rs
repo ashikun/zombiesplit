@@ -2,7 +2,7 @@
 
 // TODO(@MattWindsor91): consider making these configurable.
 
-use crate::presenter::split;
+use crate::{model::split::Pace, presenter::cursor::SplitPosition};
 use sdl2::pixels::Color;
 
 /// A set of colours to use in the user interface.
@@ -52,39 +52,43 @@ pub enum Key {
     /// Maps to the header colour.
     Header,
     /// Maps to the colour of a split name at a given position.
-    Name(split::Position),
+    Name(SplitPosition),
     /// Maps to a time that hasn't been reported.
     NoTime,
-    /// Maps to a time that is ahead for its split (a 'gold split').
-    SplitAhead,
-    /// Maps to a time that is part of a run that is ahead.
-    RunAhead,
-    /// Maps to a time that is part of a run that is behind.
-    RunBehind,
+    /// Maps to a pacing colour.
+    Pace(Pace),
 }
 
 impl Set {
-    /// Gets a colour by its key.
+    /// Gets a foreground colour by its key.
     #[must_use]
     pub fn by_key(&self, key: Key) -> Color {
         match key {
             Key::Header => self.fg_header,
             Key::Name(pos) => self.by_split_position(pos),
             Key::NoTime => self.fg_time_none,
-            Key::RunAhead => self.fg_time_run_ahead,
-            Key::SplitAhead => self.fg_time_split_ahead,
-            Key::RunBehind => self.fg_time_run_behind,
+            Key::Pace(pace) => self.by_pace(pace),
             Key::Editor => self.fg_editor,
             Key::FieldEditor => self.fg_editor_field,
         }
     }
 
     #[must_use]
-    pub fn by_split_position(&self, sp: split::Position) -> Color {
+    fn by_pace(&self, pace: Pace) -> Color {
+        match pace {
+            Pace::PersonalBest => self.fg_time_split_ahead,
+            Pace::Behind => self.fg_time_run_ahead,
+            Pace::Ahead => self.fg_time_run_behind,
+            Pace::Inconclusive => self.fg_normal,
+        }
+    }
+
+    #[must_use]
+    fn by_split_position(&self, sp: SplitPosition) -> Color {
         match sp {
-            split::Position::Done => self.fg_done,
-            split::Position::Cursor => self.fg_cursor,
-            split::Position::Coming => self.fg_normal,
+            SplitPosition::Done => self.fg_done,
+            SplitPosition::Cursor => self.fg_cursor,
+            SplitPosition::Coming => self.fg_normal,
         }
     }
 }

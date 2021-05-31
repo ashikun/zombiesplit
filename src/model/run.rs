@@ -1,6 +1,9 @@
 //! Models relating to an in-progress run.
 
-use super::time::Time;
+use super::{
+    split::{Comparison, Pace, Split},
+    time::Time,
+};
 
 /// An in-progress run.
 pub struct Run {
@@ -8,6 +11,7 @@ pub struct Run {
     /// The attempt number of this run.
     pub attempt: usize,
     pub splits: Vec<Split>,
+    pub comparisons: Vec<Comparison>,
 }
 
 impl Run {
@@ -35,6 +39,24 @@ impl Run {
             s.clear()
         }
     }
+
+    /// Gets the total time across all splits.
+    #[must_use]
+    pub fn total_time(&self) -> Time {
+        self.splits.iter().map(Split::summed_time).sum()
+    }
+
+    /// Gets the pace for the split at `split`.
+    #[must_use]
+    pub fn pace_at(&self, split: usize) -> Pace {
+        // TODO(@MattWindsor91): return 2D run/split pacing
+        // TODO(@MattWindsor91): compare split cumulatives
+        self.splits.get(split).map_or(Pace::default(), |s| {
+            self.comparisons
+                .get(split)
+                .map_or(Pace::default(), |c| c.pace(s.summed_time()))
+        })
+    }
 }
 
 /// Metadata in a run.
@@ -43,56 +65,4 @@ pub struct Metadata {
     pub game: String,
     /// The name of the category.
     pub category: String,
-}
-
-/// A split in a run.
-pub struct Split {
-    /// The name of the split.
-    pub name: String,
-    /// The entered times.
-    /// Invariant: none of the times are zero.
-    times: Vec<super::time::Time>,
-}
-
-impl Split {
-    /// Creates a new split with the given name and an empty time.
-    #[must_use]
-    pub fn new(name: &str) -> Self {
-        Self {
-            name: name.to_owned(),
-            times: Vec::new(),
-        }
-    }
-
-    /// Calculates the summed time of the split.
-    #[must_use]
-    pub fn summed_time(&self) -> Time {
-        self.times.iter().copied().sum()
-    }
-
-    /// Gets whether this split has times registered.
-    #[must_use]
-    pub fn has_times(&self) -> bool {
-        !self.times.is_empty()
-    }
-
-    /// Pushes a time onto this split.
-    ///
-    /// If the time is zero, it will not be added.
-    pub fn push(&mut self, time: Time) {
-        if !time.is_zero() {
-            self.times.push(time)
-        }
-    }
-
-    /// Tries to pop the most recently added time off this split.
-    #[must_use]
-    pub fn pop(&mut self) -> Option<Time> {
-        self.times.pop()
-    }
-
-    /// Removes all times from this split.
-    pub fn clear(&mut self) {
-        self.times.clear()
-    }
 }

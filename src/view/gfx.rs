@@ -8,6 +8,7 @@ pub mod metrics; // for now
 mod position;
 pub mod render;
 mod split;
+mod total;
 mod widget;
 
 use crate::presenter::Presenter;

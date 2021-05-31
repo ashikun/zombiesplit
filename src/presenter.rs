@@ -5,10 +5,11 @@ pub mod editor;
 pub mod event;
 pub mod mode;
 pub mod nav;
-pub mod split;
 
 use crate::model::run;
 pub use editor::Editor;
+
+use self::cursor::SplitPosition;
 
 /// The part of zombiesplit that displays and manipulates a model, exposing it
 /// to the view.
@@ -29,19 +30,12 @@ impl Presenter {
         }
     }
 
-    /// Produces a vector of split references.
+    /// Gets the split position, if any.
     #[must_use]
-    pub fn splits(&self) -> Vec<split::Ref> {
-        self.run
-            .splits
-            .iter()
-            .enumerate()
-            .map(|(index, split)| split::Ref {
-                index,
-                split,
-                presenter: self,
-            })
-            .collect()
+    pub fn split_position(&self, index: usize) -> SplitPosition {
+        self.mode
+            .cursor()
+            .map_or(SplitPosition::default(), |x| x.split_position(index))
     }
 
     /// Gets whether the UI should be running.

@@ -9,7 +9,7 @@ use super::{
 };
 use crate::{
     model,
-    presenter::{split, Presenter},
+    presenter::{cursor, Presenter},
     view::error::Result,
 };
 
@@ -25,9 +25,15 @@ impl super::widget::Widget for Widget {
     fn render(&mut self, r: &mut dyn Renderer, p: &Presenter) -> Result<()> {
         let mut r = Region::new(r, self.rect);
 
-        for split in p.splits() {
-            r.set_pos(self.split_pos(split));
-            draw_split(&mut r, split)?;
+        for (index, split) in p.run.splits.iter().enumerate() {
+            r.set_pos(self.split_pos(index));
+            SplitDrawer {
+                index,
+                r: &mut r,
+                p,
+                split,
+            }
+            .draw()?;
         }
         Ok(())
     }
@@ -39,48 +45,63 @@ impl Widget {
         Self { rect, split_h }
     }
 
-    fn split_pos(&self, split: split::Ref) -> Position {
-        Position::top_left(
-            0,
-            i32::try_from(split.index).unwrap_or_default() * self.split_h,
-        )
+    fn split_pos(&self, index: usize) -> Position {
+        Position::top_left(0, i32::try_from(index).unwrap_or_default() * self.split_h)
     }
 }
 
-fn draw_split(r: &mut Region, split: split::Ref) -> Result<()> {
-    draw_name(r, split)?;
-    draw_time(r, split)?;
-    Ok(())
+/// Contains all state useful to draw one split.
+struct SplitDrawer<'r, 'g, 'p, 's> {
+    index: usize,
+    r: &'r mut Region<'g>,
+    p: &'p Presenter,
+    split: &'s model::split::Split,
 }
 
-fn draw_name(r: &mut Region, split: split::Ref) -> Result<()> {
-    r.set_font(font::Id::Normal)?;
-    r.set_fg_colour(colour::Key::Name(split.position()));
-    r.put_str(&split.split.name)?;
-    Ok(())
-}
-
-fn draw_time(r: &mut Region, split: split::Ref) -> Result<()> {
-    r.set_pos(Position::x(X::Right(0)));
-    if split.split.has_times() {
-        draw_summed_time(r, split.split.summed_time())
-    } else {
-        draw_time_placeholder(r)
+impl<'r, 'g, 'p, 's> SplitDrawer<'r, 'g, 'p, 's> {
+    fn draw(&mut self) -> Result<()> {
+        self.draw_name()?;
+        self.draw_time()?;
+        Ok(())
     }
-}
 
-fn draw_summed_time(r: &mut Region, time: model::time::Time) -> Result<()> {
-    // TODO(@MattWindsor91): hours?
-    r.set_font(font::Id::Normal)?;
-    // for now
-    r.set_fg_colour(colour::Key::RunAhead);
-    r.put_str_r(&time_str(time))
-}
+    fn draw_name(&mut self) -> Result<()> {
+        self.r.set_font(font::Id::Normal)?;
+        self.r.set_fg_colour(colour::Key::Name(self.position()));
+        self.r.put_str(&self.split.name)?;
+        Ok(())
+    }
 
-fn draw_time_placeholder(r: &mut Region) -> Result<()> {
-    r.set_font(font::Id::Normal)?;
-    r.set_fg_colour(colour::Key::NoTime);
-    r.put_str_r("--'--\"---")
+    fn draw_time(&mut self) -> Result<()> {
+        self.r.set_pos(Position::x(X::Right(0)));
+        if self.split.has_times() {
+            self.draw_summed_time()
+        } else {
+            self.draw_time_placeholder()
+        }
+    }
+
+    fn draw_summed_time(&mut self) -> Result<()> {
+        // TODO(@MattWindsor91): hours?
+        self.r.set_font(font::Id::Normal)?;
+        // for now
+        self.r.set_fg_colour(colour::Key::Pace(self.pace()));
+        self.r.put_str_r(&time_str(self.split.summed_time()))
+    }
+
+    fn draw_time_placeholder(&mut self) -> Result<()> {
+        self.r.set_font(font::Id::Normal)?;
+        self.r.set_fg_colour(colour::Key::NoTime);
+        self.r.put_str_r("--'--\"---")
+    }
+
+    fn position(&self) -> cursor::SplitPosition {
+        self.p.split_position(self.index)
+    }
+
+    fn pace(&self) -> model::split::Pace {
+        self.p.run.pace_at(self.index)
+    }
 }
 
 #[must_use]
