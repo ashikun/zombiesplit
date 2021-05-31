@@ -5,7 +5,8 @@ use std::fmt::{Display, Formatter};
 use super::{
     cursor::{self, Cursor},
     event::{Edit, Event},
-    mode::{EventResult, Inactive, Mode, Nav},
+    mode::{EventResult, Inactive, Mode},
+    nav::Nav,
 };
 use crate::model::{
     run::Run,
@@ -25,7 +26,7 @@ pub struct Editor {
 }
 
 impl Mode for Editor {
-    fn handle_event(&mut self, e: &Event) -> EventResult {
+    fn handle_event(&mut self, e: &Event, _: &mut Run) -> EventResult {
         match e {
             Event::Undo => self.undo(),
             Event::Delete => self.delete(),
@@ -58,6 +59,17 @@ impl Editor {
             cur,
             time: time::Time::default(),
             field: field.map(Field::new),
+        }
+    }
+
+    /// Constructs a new editor with the given cursor and time, and with no
+    /// field open.
+    #[must_use]
+    pub fn with_time(cur: Cursor, time: time::Time) -> Self {
+        Self {
+            cur,
+            time,
+            field: None,
         }
     }
 

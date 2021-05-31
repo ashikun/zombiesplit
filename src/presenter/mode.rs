@@ -1,12 +1,8 @@
 //! The Mode trait and associated functionality.
 
-use crate::model::time::position;
+use crate::model::run::Run;
 
-use super::{
-    cursor::{self, Cursor},
-    editor::Editor,
-    event::Event,
-};
+use super::{cursor::Cursor, editor::Editor, event::Event};
 
 /// Trait for presenter modes.
 ///
@@ -15,14 +11,18 @@ use super::{
 pub trait Mode {
     /// Handles the given event according to the mode.
     ///
+    /// The mode can modify the model in-place if needed, but `commit` will get
+    /// called as the mode is transitioning out, and any modifications can be
+    /// batched until then.
+    ///
     /// Note that the presenter also handles some events at the global
     /// level.
-    fn handle_event(&mut self, _e: &Event) -> EventResult {
+    fn handle_event(&mut self, _e: &Event, _run: &mut Run) -> EventResult {
         EventResult::NotHandled
     }
 
-    /// Commits this mode's changes to the model.
-    fn commit(&mut self, _run: &mut crate::model::run::Run) {}
+    /// Commits any outstanding changes the mode needs to do to the model.
+    fn commit(&mut self, _run: &mut Run) {}
 
     /// If this mode has a cursor, retrieves it.
     fn cursor(&self) -> Option<&Cursor> {
@@ -44,52 +44,6 @@ pub trait Mode {
 pub struct Inactive;
 
 impl Mode for Inactive {}
-
-/// Mode for when we are navigating splits.
-pub struct Nav {
-    /// The cursor.
-    cur: Cursor,
-}
-
-impl Mode for Nav {
-    fn handle_event(&mut self, e: &Event) -> EventResult {
-        match e {
-            Event::Cursor(c) => self.move_cursor(*c),
-            Event::EnterField(f) => self.enter_field(*f),
-            _ => EventResult::NotHandled,
-        }
-    }
-
-    fn cursor(&self) -> Option<&Cursor> {
-        Some(&self.cur)
-    }
-}
-
-impl Nav {
-    /// Creates a new nav mode using a given cursor.
-    #[must_use]
-    pub fn new(cur: Cursor) -> Self {
-        Self { cur }
-    }
-
-    /// Creates a transition to a navigation from the given cursor.
-    #[must_use]
-    pub fn transition(cur: Cursor) -> EventResult {
-        EventResult::Transition(Box::new(Self::new(cur)))
-    }
-
-    /// Moves the state cursor according to `c`, if possible.
-    fn move_cursor(&mut self, motion: cursor::Motion) -> EventResult {
-        // TODO(@MattWindsor91): cursor multiplier
-        EventResult::from_handled(self.cur.move_by(motion, 1) != 0)
-    }
-
-    /// Constructs an editor entering the given field.
-    fn enter_field(&self, field: position::Name) -> EventResult {
-        let editor = Box::new(Editor::new(self.cur, Some(field)));
-        EventResult::Transition(editor)
-    }
-}
 
 /// Mode for when we are quitting.
 pub struct Quitting;
@@ -119,5 +73,11 @@ impl EventResult {
         } else {
             Self::NotHandled
         }
+    }
+
+    /// Shorthand for creating a transition.
+    #[must_use]
+    pub fn transition(to: impl Mode + 'static) -> Self {
+        Self::Transition(Box::new(to))
     }
 }

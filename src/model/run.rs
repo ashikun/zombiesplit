@@ -28,6 +28,13 @@ impl Run {
     pub fn pop_from(&mut self, split: usize) -> Option<Time> {
         self.splits.get_mut(split).and_then(Split::pop)
     }
+
+    /// Removes all times from the split at `split`, if it exists.
+    pub fn reset_at(&mut self, split: usize) {
+        if let Some(s) = self.splits.get_mut(split) {
+            s.clear()
+        }
+    }
 }
 
 /// Metadata in a run.

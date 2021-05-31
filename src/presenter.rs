@@ -4,6 +4,7 @@ pub mod cursor;
 pub mod editor;
 pub mod event;
 pub mod mode;
+pub mod nav;
 pub mod split;
 
 use crate::model::run;
@@ -57,7 +58,7 @@ impl Presenter {
 
     /// Handles an event.  Returns true if the event changed the state.
     pub fn handle_event(&mut self, e: &event::Event) {
-        match self.mode.handle_event(e) {
+        match self.mode.handle_event(e, &mut self.run) {
             mode::EventResult::Transition(new_mode) => self.transition(new_mode),
             mode::EventResult::NotHandled => self.handle_event_globally(e),
             mode::EventResult::Handled => (),
@@ -84,7 +85,7 @@ impl Presenter {
         self.run.reset();
         let cur = cursor::Cursor::new(self.run.splits.len() - 1);
         // Don't commit the previous mode.
-        self.mode = Box::new(mode::Nav::new(cur))
+        self.mode = Box::new(nav::Nav::new(cur))
     }
 
     /// Start the process of quitting.
