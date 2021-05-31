@@ -1,9 +1,9 @@
 //! Logic for drawing the split editor.
 
 use super::{
-    colour, metrics,
+    colour, font, metrics,
     position::{Position, X, Y},
-    render::{FontId, Region, Renderer},
+    render::{Region, Renderer},
     split, widget,
 };
 use crate::{
@@ -43,6 +43,9 @@ impl Widget {
 
 /// Draws any editor required by the current state.
 fn draw_editor(r: &mut dyn Renderer, editor: &Editor) -> Result<()> {
+    // Every part of the editor uses the normal font.
+    r.set_font(font::Id::Normal);
+
     draw_time(r, editor)?;
     if let Some(ref f) = editor.field {
         draw_field(r, f)?;
@@ -52,7 +55,7 @@ fn draw_editor(r: &mut dyn Renderer, editor: &Editor) -> Result<()> {
 
 fn draw_time(r: &mut dyn Renderer, editor: &Editor) -> Result<()> {
     move_to_editor(r);
-    r.set_font(FontId::Normal(colour::Key::Editor));
+    r.set_fg_colour(colour::Key::Editor);
     r.put_str(&split::time_str(editor.time))
 }
 
@@ -68,7 +71,7 @@ fn move_to_editor(r: &mut dyn Renderer) {
 fn draw_field(r: &mut dyn Renderer, field: &Field) -> Result<()> {
     // Position floats above main editor.
     r.move_chars(field_char_offset(field.position()), 0);
-    r.set_font(FontId::Normal(colour::Key::FieldEditor));
+    r.set_fg_colour(colour::Key::FieldEditor);
     r.put_str(&field.to_string())
 }
 

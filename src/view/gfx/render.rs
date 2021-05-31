@@ -1,13 +1,12 @@
 //! The low-level graphics rendering layer.
 
-use std::{cell::RefMut, collections::HashMap, rc::Rc};
+use std::{cell::RefMut, rc::Rc};
 
 use super::super::error::{Error, Result};
-use super::{colour, metrics, position::Position};
+use super::{colour, font, metrics, position::Position};
 use sdl2::{
-    image::LoadTexture,
     rect::{Point, Rect},
-    render::{Canvas, Texture, TextureCreator},
+    render::{Canvas, Texture},
     video,
 };
 
@@ -20,7 +19,10 @@ pub trait Renderer {
     fn move_chars(&mut self, dx: i32, dy: i32);
 
     /// Sets the current font.
-    fn set_font(&mut self, font: FontId);
+    fn set_font(&mut self, font: font::Id);
+
+    /// Sets the current foreground colour.
+    fn set_fg_colour(&mut self, colour: colour::Key);
 
     /// Puts a string `str` onto the screen at the current coordinate.
     ///
@@ -49,26 +51,19 @@ pub trait Renderer {
 /// The low-level window graphics renderer.
 pub struct Window<'a> {
     screen: RefMut<'a, Canvas<video::Window>>,
-    texture_creator: &'a TextureCreator<video::WindowContext>,
-    textures: HashMap<FontId, Rc<Texture<'a>>>,
+    font_manager: font::Manager<'a>,
 
     /// The current font.
-    font: FontId,
+    font: font::Id,
+    /// The current font colour.
+    colour: colour::Key,
     /// The current font's metrics.
     fmetrics: metrics::Font,
     /// The current position.
     pos: Point,
 }
 
-/// Font IDs.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub enum FontId {
-    /// The normal font, given a particular colour.
-    Normal(colour::Key),
-}
-
 impl<'a> Renderer for Window<'a> {
-    /// Sets the plotter to the given position.
     fn set_pos(&mut self, pos: Position) {
         self.pos = Point::new(
             pos.x.to_left(self.pos.x, metrics::WINDOW.win_w),
@@ -76,7 +71,6 @@ impl<'a> Renderer for Window<'a> {
         )
     }
 
-    /// Moves the plotter by the given number of characters in the current font.
     fn move_chars(&mut self, dx: i32, dy: i32) {
         self.set_pos(Position::rel(
             self.fmetrics.span_w(dx),
@@ -84,17 +78,14 @@ impl<'a> Renderer for Window<'a> {
         ))
     }
 
-    /// Sets the current font.
-    fn set_font(&mut self, font: FontId) {
+    fn set_font(&mut self, font: font::Id) {
         self.font = font
     }
 
-    /// Puts a string `str` onto the screen at the current coordinate.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if SDL fails to load the font (if it has not been
-    /// loaded already), or fails to blit the font onto the screen.
+    fn set_fg_colour(&mut self, colour: colour::Key) {
+        self.colour = colour
+    }
+
     fn put_str(&mut self, str: &str) -> Result<()> {
         let old_pos = self.pos;
         let texture = self.font_texture()?;
@@ -112,15 +103,12 @@ impl<'a> Renderer for Window<'a> {
 impl<'a> Window<'a> {
     /// Constructs a [Renderer] using the given screen and texture creator.
     #[must_use]
-    pub fn new(
-        screen: RefMut<'a, Canvas<video::Window>>,
-        texture_creator: &'a TextureCreator<video::WindowContext>,
-    ) -> Self {
+    pub fn new(screen: RefMut<'a, Canvas<video::Window>>, font_manager: font::Manager<'a>) -> Self {
         Self {
             screen,
-            texture_creator,
-            textures: HashMap::new(),
-            font: FontId::Normal(colour::Key::NoTime),
+            font_manager,
+            font: font::Id::Normal,
+            colour: colour::Key::NoTime,
             fmetrics: metrics::FONT,
             pos: Point::new(0, 0),
         }
@@ -137,6 +125,10 @@ impl<'a> Window<'a> {
         self.screen.present()
     }
 
+    fn font_texture(&mut self) -> Result<Rc<Texture<'a>>> {
+        self.font_manager.font_texture(self.font, self.colour)
+    }
+
     fn put_byte<'b>(
         &'b mut self,
         texture: &'b Texture<'a>,
@@ -146,43 +138,6 @@ impl<'a> Window<'a> {
         let src = self.font_rect(byte);
         let dst = self.char_rect(top_left);
         self.screen.copy(texture, src, dst).map_err(Error::Blit)
-    }
-
-    /// Gets the current font as a texture, or loads it if it hasn't yet been
-    /// loaded.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if we need to load the font, but SDL cannot for some
-    /// reason.
-    fn font_texture(&mut self) -> Result<Rc<Texture<'a>>> {
-        self.textures
-            .get(&self.font)
-            .cloned()
-            .map_or_else(|| self.cache_font(), Ok)
-    }
-
-    fn cache_font(&mut self) -> Result<Rc<Texture<'a>>> {
-        let tex = Rc::new(self.load_font(self.font)?);
-        self.textures.insert(self.font, tex.clone());
-        Ok(tex)
-    }
-
-    fn load_font(&mut self, id: FontId) -> Result<Texture<'a>> {
-        // TODO(@MattWindsor91): make a proper resource manager.
-        match id {
-            // TODO(@MattWindsor91): separate font and colour keys.
-            FontId::Normal(ckey) => {
-                let mut font = self
-                    .texture_creator
-                    .load_texture("font.png")
-                    .map_err(Error::LoadFont)?;
-                let colour = colour::SET.by_key(ckey);
-                font.set_color_mod(colour.r, colour.g, colour.b);
-                font.set_alpha_mod(colour.a);
-                Ok(font)
-            }
-        }
     }
 
     /// Produces a rectangle with top-left `top_left` and the size of one font
@@ -227,8 +182,11 @@ impl<'a> Renderer for Region<'a> {
     fn move_chars(&mut self, dx: i32, dy: i32) {
         self.renderer.move_chars(dx, dy)
     }
-    fn set_font(&mut self, font: FontId) {
+    fn set_font(&mut self, font: font::Id) {
         self.renderer.set_font(font)
+    }
+    fn set_fg_colour(&mut self, colour: colour::Key) {
+        self.renderer.set_fg_colour(colour)
     }
     fn put_str(&mut self, str: &str) -> Result<()> {
         self.renderer.put_str(str)

@@ -2,6 +2,7 @@
 
 pub mod colour;
 mod editor;
+pub mod font;
 mod header;
 pub mod metrics; // for now
 mod position;
