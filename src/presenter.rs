@@ -70,6 +70,7 @@ impl Presenter {
     fn handle_event_globally(&mut self, e: &event::Event) {
         use event::Event;
         match e {
+            Event::Commit => self.mode.commit(&mut self.run),
             Event::NewRun => self.start_new_run(),
             Event::Quit => self.quit(),
             _ => (),

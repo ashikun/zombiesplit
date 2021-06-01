@@ -43,6 +43,7 @@ fn from_key(k: sdl2::keyboard::Keycode) -> Option<Event> {
         Keycode::K | Keycode::Up => Some(Event::Cursor(cursor::Motion::Up)),
         // Top-level commands
         Keycode::H | Keycode::Left => Some(Event::Undo),
+        Keycode::L | Keycode::Right => Some(Event::Commit),
         Keycode::X | Keycode::Delete => Some(Event::Delete),
         Keycode::Return | Keycode::Z => Some(Event::NewRun),
         Keycode::Escape => Some(Event::Quit),

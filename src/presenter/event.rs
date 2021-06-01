@@ -1,21 +1,17 @@
 //! Events understood by the user interface.
 use crate::model::time::position;
 
-/// High-level event, translated from a SDL event.
+/// A high-level event.
+///
+/// The semantics of events depends on the current editing mode.
 #[non_exhaustive]
 pub enum Event {
     /// Undo something (the exact thing depends on the mode).
-    ///
-    /// For instance:
-    /// - Nav -> removes one time for a split and returns it to the editor.
-    /// - Editor -> removes the field, if any.
     Undo,
     /// Delete something completely (the exact thing depends on the mode).
-    ///
-    /// For instance:
-    /// - Nav -> removes all times for a split.
-    /// - Editor -> removes the entire split being edited and returns to Nav.
     Delete,
+    /// Commits whatever action is currently pending without moving the cursor.
+    Commit,
     /// Start editing a field at a particular position.
     EnterField(position::Name),
     /// Perform an event on the currently open editor.

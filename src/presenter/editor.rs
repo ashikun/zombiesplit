@@ -39,7 +39,7 @@ impl Mode for Editor {
 
     fn commit(&mut self, run: &mut Run) {
         self.commit_field();
-        run.push_to(self.cur.position(), self.time)
+        run.push_to(self.cur.position(), std::mem::take(&mut self.time));
     }
 
     fn cursor(&self) -> Option<&Cursor> {
@@ -106,7 +106,7 @@ impl Editor {
 
     /// Commits the field currently being edited.
     pub fn commit_field(&mut self) {
-        if let Some(ref f) = self.field {
+        if let Some(ref f) = self.field.take() {
             // TODO(@MattWindsor91): handle error properly.
             let _ = f.commit(&mut self.time);
         }
