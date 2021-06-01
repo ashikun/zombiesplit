@@ -1,6 +1,6 @@
 //! Splits and related items.
 
-use super::time::Time;
+use super::{pace::Pace, time::Time};
 
 /// A split in a run.
 pub struct Split {
@@ -51,26 +51,6 @@ impl Split {
     /// Removes all times from this split.
     pub fn clear(&mut self) {
         self.times.clear()
-    }
-}
-
-/// Possible paces for a split or run.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum Pace {
-    /// There is no pacing time.
-    Inconclusive,
-    /// This split, or run, is behind its comparison.
-    Behind,
-    /// This split, or run, is ahead its comparison.
-    Ahead,
-    /// This split, or run, is a personal best ('gold split').
-    PersonalBest,
-}
-
-/// The default pace is inconclusive.
-impl Default for Pace {
-    fn default() -> Self {
-        Self::Inconclusive
     }
 }
 

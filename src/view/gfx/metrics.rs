@@ -85,15 +85,13 @@ pub struct Window {
     pub win_w: u32,
     /// The window height.
     pub win_h: u32,
-    /// The horizontal padding on header contents.
-    pub header_xpad: u32,
-    /// The vertical padding on header contents.
-    pub header_ypad: u32,
-    /// The horizontal padding on split names and times.
-    pub split_xpad: u32,
-    /// The vertical position where the split times start.
-    pub split_ypos: u32,
-    /// The height of a split, including any padding between it and the next split.
+    /// Standard padding on contents.
+    pub padding: u32,
+    /// The height of the header.
+    pub header_h: u32,
+    /// The height of the total section.
+    pub total_h: u32,
+    /// The height of one split.
     pub split_h: u32,
 }
 
@@ -101,11 +99,10 @@ pub struct Window {
 pub const WINDOW: Window = Window {
     win_w: 320,
     win_h: 640,
-    header_xpad: 8,
-    header_ypad: 8,
-    split_xpad: 4,
+    padding: 4,
+    header_h: 32,
+    total_h: 32,
     split_h: 16,
-    split_ypos: 48,
 };
 
 impl Window {
@@ -113,22 +110,36 @@ impl Window {
     #[must_use]
     pub fn header_rect(&self) -> Rect {
         Rect {
-            x: sat_i32(self.header_xpad),
-            y: sat_i32(self.header_ypad),
-            w: self.padded_win_w(self.header_xpad),
-            h: self.split_ypos - (2 * self.header_ypad),
+            x: 0,
+            y: 0,
+            w: self.win_w,
+            h: self.header_h,
         }
+        .pad(self.padding)
     }
 
     /// Gets the bounding box of the splits part of the window.
     #[must_use]
     pub fn splits_rect(&self) -> Rect {
         Rect {
-            x: sat_i32(self.split_xpad),
-            y: sat_i32(self.split_ypos),
-            w: self.padded_win_w(self.split_xpad),
-            h: self.win_h - self.split_ypos,
+            x: 0,
+            y: self.splits_y(),
+            w: self.win_w,
+            h: self.splits_h(),
         }
+        .pad(self.padding)
+    }
+
+    /// Gets the bounding box of the total part of the window.
+    #[must_use]
+    pub fn total_rect(&self) -> Rect {
+        Rect {
+            x: 0,
+            y: self.total_y(),
+            w: self.win_w,
+            h: self.total_h,
+        }
+        .pad(self.padding)
     }
 
     /// Gets the unshifted bounding box of the editor part of the window.
@@ -139,8 +150,19 @@ impl Window {
         r
     }
 
-    fn padded_win_w(&self, padding: u32) -> u32 {
-        self.win_w - (2 * padding)
+    /// Gets the Y position of the splits part of the window.
+    fn splits_y(&self) -> i32 {
+        sat_i32(self.header_h)
+    }
+
+    /// Gets the Y position of the total part of the window.
+    fn total_y(&self) -> i32 {
+        sat_i32(self.win_h - self.total_h)
+    }
+
+    /// Gets the height of the splits part of the window.
+    fn splits_h(&self) -> u32 {
+        self.win_h - self.header_h - self.total_h
     }
 }
 
@@ -176,5 +198,16 @@ impl Rect {
     #[must_use]
     pub fn y2(self) -> i32 {
         self.y + sat_i32(self.h)
+    }
+
+    /// Produces a new [Rect] by inserting padding into the given [Rect].
+    #[must_use]
+    pub fn pad(self, amount: u32) -> Self {
+        Self {
+            x: self.x + sat_i32(amount),
+            y: self.y + sat_i32(amount),
+            w: self.w - (amount * 2),
+            h: self.h - (amount * 2),
+        }
     }
 }

@@ -6,7 +6,7 @@ pub mod event;
 pub mod mode;
 pub mod nav;
 
-use crate::model::run;
+use crate::model::{pace, run};
 pub use editor::Editor;
 
 use self::cursor::SplitPosition;
@@ -48,6 +48,14 @@ impl Presenter {
     #[must_use]
     pub fn editor(&self) -> Option<&Editor> {
         self.mode.editor()
+    }
+
+    /// Gets the run pace up to the cursor, if any.
+    #[must_use]
+    pub fn run_pace(&self) -> pace::Pair {
+        self.mode.cursor().map_or(pace::Pair::default(), |c| {
+            self.run.paced_time_at(c.position())
+        })
     }
 
     /// Handles an event.  Returns true if the event changed the state.

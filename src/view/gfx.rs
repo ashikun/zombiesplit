@@ -55,6 +55,7 @@ fn make_widgets(wmetrics: metrics::Window) -> Vec<Box<dyn Widget>> {
         make_splits(wmetrics),
         make_header(wmetrics),
         make_editor(wmetrics),
+        make_total(wmetrics),
     ]
 }
 
@@ -73,6 +74,12 @@ fn make_header(wmetrics: metrics::Window) -> Box<dyn Widget> {
 
 fn make_editor(wmetrics: metrics::Window) -> Box<dyn Widget> {
     Box::new(editor::Widget::new(wmetrics.editor_rect()))
+}
+
+fn make_total(wmetrics: metrics::Window) -> Box<dyn Widget> {
+    Box::new(total::Widget {
+        rect: wmetrics.total_rect(),
+    })
 }
 
 /// Makes a zombiesplit window.

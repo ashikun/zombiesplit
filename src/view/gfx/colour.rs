@@ -2,7 +2,7 @@
 
 // TODO(@MattWindsor91): consider making these configurable.
 
-use crate::{model::split::Pace, presenter::cursor::SplitPosition};
+use crate::{model::pace::Pace, presenter::cursor::SplitPosition};
 use sdl2::pixels::Color;
 
 /// A set of colours to use in the user interface.
