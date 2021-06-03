@@ -75,15 +75,15 @@ impl<P: Position> TryFrom<u32> for Field<P> {
     ///
     /// ```
     /// use std::convert::TryFrom;
-    /// use zombiesplit::model::time::{Field, Second};
+    /// use zombiesplit::model::time::Second;
     ///
-    /// let f1 = Field::<Second>::try_from(4);
+    /// let f1 = Second::try_from(4);
     /// assert!(f1.is_ok(), "shouldn't have overflowed");
-    /// let f2 = Field::<Second>::try_from(64);
+    /// let f2 = Second::try_from(64);
     /// assert!(!f2.is_ok(), "should have overflowed");
     /// ```
     ///
-    /// # Errors
+    /// # Errors
     ///
     /// Returns `Error::FieldTooBig` if `val` is too large for the field.
     fn try_from(val: u32) -> Result<Self> {
@@ -146,8 +146,8 @@ impl<P: Position> Field<P> {
     /// and any carry.
     ///
     /// ```
-    /// use zombiesplit::model::time::{Field, Second};
-    /// let result = Field::<Second>::new_with_carry(64);
+    /// use zombiesplit::model::time::Second;
+    /// let result = Second::new_with_carry(64);
     /// assert_eq!(u16::from(result.value), 4, "should have taken 4 seconds");
     /// assert_eq!(result.carry, 1, "should have carried over 1 minute")
     /// ```
@@ -158,9 +158,9 @@ impl<P: Position> Field<P> {
     /// Returns this field's value as milliseconds.
     ///
     /// ```
-    /// use zombiesplit::model::time::{Field, Second};
+    /// use zombiesplit::model::time::Second;
     /// use std::convert::TryFrom;
-    /// let msec = Field::<Second>::try_from(20).unwrap().as_msecs();
+    /// let msec = Second::try_from(20).unwrap().as_msecs();
     /// assert_eq!(msec, 20_000, "20 secs = 20,000 msecs");
     /// ```
     #[must_use]
@@ -184,58 +184,115 @@ impl<P: Position> TryFrom<carry::Carry<Field<P>>> for Field<P> {
     }
 }
 
+/// Shorthand for an hour field.
+pub type Hour = Field<position::Hour>;
+/// Shorthand for a minute field.
+pub type Minute = Field<position::Minute>;
+/// Shorthand for a second field.
+pub type Second = Field<position::Second>;
 /// Shorthand for a millisecond field.
 pub type Msec = Field<position::Msec>;
 
+#[cfg(test)]
 mod tests {
+    /// Tests that the unusual parsing behaviour of milliseconds works properly.
     mod msec {
+        /// Tests a millisecond parse.
+        fn test_parse(from: &'static str, want: u16) {
+            let t: super::super::Msec = from.parse().expect("should be valid");
+            assert_eq!(u16::from(t), want);
+        }
+
+        /// Tests a millisecond display.
+        fn test_display(from: u16, want: &'static str) {
+            let t: super::super::Msec = super::super::Msec::new(from);
+            assert_eq!(format!("{}", t), want);
+        }
+
         /// Tests that the empty string is parsed into the right msec.
         #[test]
         fn from_str_empty() {
-            let t: super::super::Msec = "".parse().expect("should be valid");
-            assert_eq!(u16::from(t), 0);
+            test_parse("", 0);
         }
 
         /// Tests that a short unpadded string is parsed into the right msec.
         #[test]
         fn from_str_short() {
-            let t: super::super::Msec = "2".parse().expect("should be valid");
-            assert_eq!(u16::from(t), 200);
+            test_parse("2", 200);
         }
 
         /// Tests that a full unpadded string is parsed into the right msec.
         #[test]
         fn from_str_full() {
-            let t: super::super::Msec = "246".parse().expect("should be valid");
-            assert_eq!(u16::from(t), 246);
+            test_parse("246", 246);
         }
 
         /// Tests that a short half-padded string is parsed into the right msec.
         #[test]
         fn from_str_short_leading_zero() {
-            let t: super::super::Msec = "02".parse().expect("should be valid");
-            assert_eq!(u16::from(t), 20);
+            test_parse("02", 20);
         }
 
         /// Tests that a full half-padded string is parsed into the right msec.
         #[test]
         fn from_str_full_leading_zero() {
-            let t: super::super::Msec = "024".parse().expect("should be valid");
-            assert_eq!(u16::from(t), 24);
+            test_parse("024", 24);
         }
 
         /// Tests that a short fully-padded string is parsed into the right msec.
         #[test]
         fn from_str_short_leading_zeroes() {
-            let t: super::super::Msec = "002".parse().expect("should be valid");
-            assert_eq!(u16::from(t), 2);
+            test_parse("002", 2);
         }
 
         /// Tests that a string full of zeroes is parsed into the right msec.
         #[test]
         fn from_str_all_zeroes() {
-            let t: super::super::Msec = "000".parse().expect("should be valid");
-            assert_eq!(u16::from(t), 0);
+            test_parse("000", 0);
         }
-    }        
+
+        /* These tests mainly guard against the resurfacing of a bug
+         * (reported and fixed by @Taneb) where the right padding used in
+         * parsing was accidentally replicated in display, causing eg. 8ms
+         * to be displayed as 800ms.
+         */
+
+        /// Tests that an empty millisecond field is padded into three zeroes.
+        #[test]
+        fn display_empty() {
+            test_display(0, "000");
+        }
+
+        /// Tests that an one-digit millisecond field is padded correctly.
+        #[test]
+        fn display_one_digit() {
+            test_display(1, "001");
+        }
+
+        /// Tests that a two-digit millisecond field is padded correctly.
+        #[test]
+        fn display_two_digits() {
+            test_display(23, "023");
+        }
+
+        /// Tests that a three-digit millisecond field is padded correctly.
+        #[test]
+        fn display_three_digits() {
+            test_display(456, "456");
+        }
+
+        /// Tests that an three-digit millisecond field with one trailing zero
+        /// is padded correctly.
+        #[test]
+        fn display_three_digits_one_zero() {
+            test_display(780, "780");
+        }
+
+        /// Tests that an three-digit millisecond field with two trailing zeroes
+        /// is padded correctly.
+        #[test]
+        fn display_three_digits_two_zeroes() {
+            test_display(900, "900");
+        }
+    }
 }

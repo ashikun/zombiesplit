@@ -13,8 +13,7 @@ pub mod field;
 pub mod position;
 
 pub use error::Error;
-pub use field::{Field, Msec};
-pub use position::{Hour, Minute, Second};
+pub use field::{Field, Hour, Minute, Msec, Second};
 
 /// A hh:mm:ss:ms timing.
 #[derive(
@@ -22,11 +21,11 @@ pub use position::{Hour, Minute, Second};
 )]
 pub struct Time {
     /// Number of hours.
-    pub hours: Field<Hour>,
+    pub hours: Hour,
     /// Number of minutes.
-    pub mins: Field<Minute>,
+    pub mins: Minute,
     /// Number of seconds.
-    pub secs: Field<Second>,
+    pub secs: Second,
     /// Number of milliseconds.
     pub millis: Msec,
 }
@@ -84,9 +83,9 @@ impl TryFrom<u32> for Time {
     /// ```
     fn try_from(stamp: u32) -> Result<Self, Self::Error> {
         let millis = Msec::new_with_carry(stamp);
-        let secs = Field::new_with_carry(millis.carry);
-        let mins = Field::new_with_carry(secs.carry);
-        let hours = Field::try_from(mins.carry)?;
+        let secs = Second::new_with_carry(millis.carry);
+        let mins = Minute::new_with_carry(secs.carry);
+        let hours = Hour::try_from(mins.carry)?;
         Ok(Self {
             hours,
             mins: mins.value,
@@ -99,10 +98,10 @@ impl TryFrom<u32> for Time {
 impl Default for Time {
     fn default() -> Self {
         Self {
-            millis: Field::default(),
-            secs: Field::default(),
-            mins: Field::default(),
-            hours: Field::default(),
+            millis: Msec::default(),
+            secs: Second::default(),
+            mins: Minute::default(),
+            hours: Hour::default(),
         }
     }
 }
@@ -154,9 +153,9 @@ impl FromStr for Time {
     type Err = error::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (hours, s) = Field::<Hour>::parse_delimited(s)?;
-        let (mins, s) = Field::<Minute>::parse_delimited(s)?;
-        let (secs, s) = Field::<Second>::parse_delimited(s)?;
+        let (hours, s) = Hour::parse_delimited(s)?;
+        let (mins, s) = Minute::parse_delimited(s)?;
+        let (secs, s) = Second::parse_delimited(s)?;
         let millis = s.parse()?;
         Ok(Self {
             hours,
