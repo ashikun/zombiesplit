@@ -58,7 +58,10 @@ impl Presenter {
         })
     }
 
-    /// Handles an event.  Returns true if the event changed the state.
+    /// Handles an event.
+    ///
+    /// Events are offered to the current mode first, and handled globally if
+    /// the event is refused by the mode.
     pub fn handle_event(&mut self, e: &event::Event) {
         match self.mode.handle_event(e, &mut self.run) {
             mode::EventResult::Transition(new_mode) => self.transition(new_mode),

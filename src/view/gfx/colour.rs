@@ -90,7 +90,7 @@ pub struct Set {
     /// Foreground colours.
     pub fg: ForegroundSet,
     /// Background colours.
-    pub bg: BackgroundSet
+    pub bg: BackgroundSet,
 }
 
 /// Foreground colour keys.
