@@ -187,6 +187,16 @@ mod tests {
         assert_eq!(u16::from(t.millis), 123);
     }
 
+
+    #[test]
+    fn time_from_str_msec_short() {
+        let t: super::Time = "02".parse().expect("should be valid");
+        assert_eq!(u16::from(t.hours), 0);
+        assert_eq!(u16::from(t.mins), 0);
+        assert_eq!(u16::from(t.secs), 0);
+        assert_eq!(u16::from(t.millis), 020);
+    }
+
     #[test]
     fn time_from_str_secs_only() {
         let t: super::Time = "10s".parse().expect("should be valid");

@@ -36,7 +36,7 @@
 	fg_editor = "rgb(0,149,233)" # Archaeon
 	fg_editor_field = "rgb(44,232,245)" # Ion
 	fg_cursor = "rgb(246,117,112)" # Peach
-	fg_done = "rgb(58,68,102)" # Steel
+	fg_done = "rgb(90,105,136)" # Steel
 	fg_normal = "white"
 	fg_header = "rgb(192,203,220)" # Zinc
 	fg_time_none = "rgb(24,20,37)" # Ink

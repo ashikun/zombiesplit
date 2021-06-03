@@ -5,7 +5,7 @@ use std::fmt::{Display, Formatter};
 use super::{
     cursor::{self, Cursor},
     event::{Edit, Event},
-    mode::{EventResult, Inactive, Mode},
+    mode::{EventResult, Mode},
     nav::Nav,
 };
 use crate::model::{
@@ -118,13 +118,8 @@ impl Editor {
         // Need to copy the cursor, so that the editor commits to the
         // right location.
         let mut cur = self.cur;
-        let amt = cur.move_by(motion, 1);
-        if amt != 1 && matches!(motion, cursor::Motion::Down) {
-            // End of run
-            EventResult::Transition(Box::new(Inactive))
-        } else {
-            Nav::transition(cur)
-        }
+        cur.move_by(motion, 1);
+        Nav::transition(cur)
     }
 }
 
