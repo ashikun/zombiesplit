@@ -13,8 +13,8 @@ pub mod field;
 pub mod position;
 
 pub use error::Error;
-pub use field::Field;
-pub use position::{Hour, Minute, Msec, Second};
+pub use field::{Field, Msec};
+pub use position::{Hour, Minute, Second};
 
 /// A hh:mm:ss:ms timing.
 #[derive(
@@ -28,7 +28,7 @@ pub struct Time {
     /// Number of seconds.
     pub secs: Field<Second>,
     /// Number of milliseconds.
-    pub millis: Field<Msec>,
+    pub millis: Msec,
 }
 
 impl Time {
@@ -83,7 +83,7 @@ impl TryFrom<u32> for Time {
     /// assert_eq!(u16::from(time.millis), 789);
     /// ```
     fn try_from(stamp: u32) -> Result<Self, Self::Error> {
-        let millis = Field::<Msec>::new_with_carry(stamp);
+        let millis = Msec::new_with_carry(stamp);
         let secs = Field::new_with_carry(millis.carry);
         let mins = Field::new_with_carry(secs.carry);
         let hours = Field::try_from(mins.carry)?;

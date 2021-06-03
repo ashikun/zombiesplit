@@ -2,7 +2,7 @@
 use super::{
     carry::{self, Carry},
     error::{Error, Result},
-    position::Position,
+    position::{self, Position},
 };
 use std::{
     convert::{TryFrom, TryInto},
@@ -182,4 +182,60 @@ impl<P: Position> TryFrom<carry::Carry<Field<P>>> for Field<P> {
             })
         }
     }
+}
+
+/// Shorthand for a millisecond field.
+pub type Msec = Field<position::Msec>;
+
+mod tests {
+    mod msec {
+        /// Tests that the empty string is parsed into the right msec.
+        #[test]
+        fn from_str_empty() {
+            let t: super::super::Msec = "".parse().expect("should be valid");
+            assert_eq!(u16::from(t), 0);
+        }
+
+        /// Tests that a short unpadded string is parsed into the right msec.
+        #[test]
+        fn from_str_short() {
+            let t: super::super::Msec = "2".parse().expect("should be valid");
+            assert_eq!(u16::from(t), 200);
+        }
+
+        /// Tests that a full unpadded string is parsed into the right msec.
+        #[test]
+        fn from_str_full() {
+            let t: super::super::Msec = "246".parse().expect("should be valid");
+            assert_eq!(u16::from(t), 246);
+        }
+
+        /// Tests that a short half-padded string is parsed into the right msec.
+        #[test]
+        fn from_str_short_leading_zero() {
+            let t: super::super::Msec = "02".parse().expect("should be valid");
+            assert_eq!(u16::from(t), 20);
+        }
+
+        /// Tests that a full half-padded string is parsed into the right msec.
+        #[test]
+        fn from_str_full_leading_zero() {
+            let t: super::super::Msec = "024".parse().expect("should be valid");
+            assert_eq!(u16::from(t), 24);
+        }
+
+        /// Tests that a short fully-padded string is parsed into the right msec.
+        #[test]
+        fn from_str_short_leading_zeroes() {
+            let t: super::super::Msec = "002".parse().expect("should be valid");
+            assert_eq!(u16::from(t), 2);
+        }
+
+        /// Tests that a string full of zeroes is parsed into the right msec.
+        #[test]
+        fn from_str_all_zeroes() {
+            let t: super::super::Msec = "000".parse().expect("should be valid");
+            assert_eq!(u16::from(t), 0);
+        }
+    }        
 }
