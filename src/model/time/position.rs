@@ -148,7 +148,7 @@ impl Position for Msec {
     // seconds.
 
     fn fmt_value(v: u16, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:0<3}", v)
+        write!(f, "{:0>3}", v)
     }
 
     fn fmt_value_delimited(v: u16, f: &mut fmt::Formatter<'_>) -> fmt::Result {
