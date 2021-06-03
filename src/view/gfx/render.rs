@@ -141,7 +141,7 @@ impl<'a> Window<'a> {
     /// Clears the screen.
     pub fn clear(&mut self) {
         self.screen
-            .set_draw_color(sdl2::pixels::Color::from(self.colour_set.bg));
+            .set_draw_color(sdl2::pixels::Color::from(self.colour_set.bg.window));
         self.screen.clear()
     }
 

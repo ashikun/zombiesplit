@@ -42,45 +42,58 @@ pub enum Error {
 /// Shorthand for result type.
 pub type Result<T> = std::result::Result<T, Error>;
 
-/// A set of colours to use in the user interface.
+/// A set of foreground colours.
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
-pub struct Set {
-    /// Main background colour.
-    pub bg: Colour,
-
+pub struct ForegroundSet {
     // Foreground text for the split editor.
-    pub fg_editor: Colour,
+    pub editor: Colour,
 
     // Foreground text for the split editor's current field.
-    pub fg_editor_field: Colour,
+    pub editor_field: Colour,
 
     // Foreground text for headers.
-    pub fg_header: Colour,
+    pub header: Colour,
 
     /// Foreground text for splits already passed.
-    pub fg_done: Colour,
+    pub done: Colour,
 
     /// Foreground text for normal splits.
-    pub fg_normal: Colour,
+    pub normal: Colour,
 
     /// Foreground text for the split currently under the cursor.
-    pub fg_cursor: Colour,
+    pub cursor: Colour,
 
     /// Foreground text for a time when there is no time entered.
-    pub fg_time_none: Colour,
+    pub time_none: Colour,
 
     /// Foreground text for a time when the run is ahead of comparison.
-    pub fg_time_run_ahead: Colour,
+    pub time_run_ahead: Colour,
 
     /// Foreground text for a time when the split is ahead of comparison.
     /// (Often referred to as a 'gold split'.)
-    pub fg_time_split_ahead: Colour,
+    pub time_split_ahead: Colour,
 
     /// Foreground text for a time when the run is behind comparison.
-    pub fg_time_run_behind: Colour,
+    pub time_run_behind: Colour,
 }
 
-/// High-level colour keys.
+/// A set of background colours.
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+pub struct BackgroundSet {
+    /// Main background colour.
+    pub window: Colour,
+}
+
+/// A set of colours to use in the user interface.
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+pub struct Set {
+    /// Foreground colours.
+    pub fg: ForegroundSet,
+    /// Background colours.
+    pub bg: BackgroundSet
+}
+
+/// Foreground colour keys.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Key {
     /// Maps to the split editor colour.
@@ -97,36 +110,36 @@ pub enum Key {
     Pace(Pace),
 }
 
-impl Set {
+impl ForegroundSet {
     /// Gets a foreground colour by its key.
     #[must_use]
     pub fn by_key(&self, key: Key) -> Colour {
         match key {
-            Key::Header => self.fg_header,
+            Key::Header => self.header,
             Key::Name(pos) => self.by_split_position(pos),
-            Key::NoTime => self.fg_time_none,
+            Key::NoTime => self.time_none,
             Key::Pace(pace) => self.by_pace(pace),
-            Key::Editor => self.fg_editor,
-            Key::FieldEditor => self.fg_editor_field,
+            Key::Editor => self.editor,
+            Key::FieldEditor => self.editor_field,
         }
     }
 
     #[must_use]
     fn by_pace(&self, pace: Pace) -> Colour {
         match pace {
-            Pace::PersonalBest => self.fg_time_split_ahead,
-            Pace::Behind => self.fg_time_run_ahead,
-            Pace::Ahead => self.fg_time_run_behind,
-            Pace::Inconclusive => self.fg_normal,
+            Pace::PersonalBest => self.time_split_ahead,
+            Pace::Behind => self.time_run_ahead,
+            Pace::Ahead => self.time_run_behind,
+            Pace::Inconclusive => self.normal,
         }
     }
 
     #[must_use]
     fn by_split_position(&self, sp: SplitPosition) -> Colour {
         match sp {
-            SplitPosition::Done => self.fg_done,
-            SplitPosition::Cursor => self.fg_cursor,
-            SplitPosition::Coming => self.fg_normal,
+            SplitPosition::Done => self.done,
+            SplitPosition::Cursor => self.cursor,
+            SplitPosition::Coming => self.normal,
         }
     }
 }

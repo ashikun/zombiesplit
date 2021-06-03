@@ -32,14 +32,14 @@
 
 [ui.colours]
 	# Based on the Endesga EDG32 palette
-	bg = "rgb(38,43,68)"
-	fg_editor = "rgb(0,149,233)" # Archaeon
-	fg_editor_field = "rgb(44,232,245)" # Ion
-	fg_cursor = "rgb(246,117,112)" # Peach
-	fg_done = "rgb(90,105,136)" # Steel
-	fg_normal = "white"
-	fg_header = "rgb(192,203,220)" # Zinc
-	fg_time_none = "rgb(24,20,37)" # Ink
-	fg_time_run_ahead = "rgb(62,137,72)" # Flora
-	fg_time_run_behind = "rgb(255,0,68)" # Iiem
-	fg_time_split_ahead = "rgb(254,174,52)" # Glow
+	bg.window = "rgb(38,43,68)" # Shade
+	fg.editor = "rgb(0,149,233)" # Archaeon
+	fg.editor_field = "rgb(44,232,245)" # Ion
+	fg.cursor = "rgb(246,117,112)" # Peach
+	fg.done = "rgb(90,105,136)" # Iron
+	fg.normal = "white"
+	fg.header = "rgb(192,203,220)" # Zinc
+	fg.time_none = "rgb(58,68,102)" # Steel
+	fg.time_run_ahead = "rgb(62,137,72)" # Flora
+	fg.time_run_behind = "rgb(255,0,68)" # Iiem
+	fg.time_split_ahead = "rgb(254,174,52)" # Glow

@@ -23,8 +23,8 @@ pub struct Manager<'a> {
     textures: HashMap<(Id, colour::Key), Rc<Texture<'a>>>,
     /// The map of known font configurations.
     configs: &'a HashMap<Id, Config>,
-    /// The colour set, used for setting up font colours.
-    colour_set: &'a colour::Set,
+    /// The foreground colour set, used for setting up font colours.
+    colour_set: &'a colour::ForegroundSet,
 }
 
 impl<'a> Manager<'a> {
@@ -33,7 +33,7 @@ impl<'a> Manager<'a> {
     pub fn new(
         creator: &'a TextureCreator<WindowContext>,
         configs: &'a HashMap<Id, Config>,
-        colour_set: &'a colour::Set,
+        colour_set: &'a colour::ForegroundSet,
     ) -> Self {
         Self {
             creator,
