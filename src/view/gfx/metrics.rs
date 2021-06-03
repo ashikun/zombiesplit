@@ -1,10 +1,12 @@
 //! Font and window metrics (most of which will be un-hardcoded later).
+use serde::{Deserialize, Serialize};
+
 use std::convert::TryFrom;
 
 pub(super) const TIME_CHARS: i32 = 9; // XX'XX"XXX
 
 /// Font metrics.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug, Deserialize, Serialize)]
 pub struct Font {
     /// Columns in the font texture.
     /// The number of rows is 256 divided by the number of columns.
@@ -18,15 +20,6 @@ pub struct Font {
     /// Vertical padding between characters in the font.
     pub pad_h: u8,
 }
-
-/// Hardcoded metrics for the one font in zombiesplit (for now).
-pub const FONT: Font = Font {
-    cols: 32,
-    char_w: 7,
-    char_h: 9,
-    pad_w: 1,
-    pad_h: 1,
-};
 
 impl Font {
     /// The padded width of one character in the font.
@@ -79,7 +72,7 @@ impl Font {
 }
 
 /// Window metrics.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug, Deserialize, Serialize)]
 pub struct Window {
     /// The window width.
     pub win_w: u32,
@@ -94,16 +87,6 @@ pub struct Window {
     /// The height of one split.
     pub split_h: u32,
 }
-
-/// Hardcoded metrics for the window in zombiesplit (for now).
-pub const WINDOW: Window = Window {
-    win_w: 320,
-    win_h: 640,
-    padding: 4,
-    header_h: 32,
-    total_h: 32,
-    split_h: 16,
-};
 
 impl Window {
     /// Gets the bounding box of the header part of the window.

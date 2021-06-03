@@ -54,15 +54,18 @@ pub trait Renderer {
 
 /// The low-level window graphics renderer.
 pub struct Window<'a> {
+    /// The target screen canvas.
     screen: RefMut<'a, Canvas<video::Window>>,
+    /// The current window metrics.
+    w_metrics: metrics::Window,
+    /// The font manager.
     font_manager: font::Manager<'a>,
-
     /// The current font.
     font: font::Id,
     /// The current font colour.
     colour: colour::Key,
     /// The current font's metrics.
-    fmetrics: metrics::Font,
+    f_metrics: metrics::Font,
     /// The current position.
     pos: Point,
 }
@@ -70,21 +73,21 @@ pub struct Window<'a> {
 impl<'a> Renderer for Window<'a> {
     fn set_pos(&mut self, pos: Position) {
         self.pos = Point::new(
-            pos.x.to_left(self.pos.x, metrics::WINDOW.win_w),
-            pos.y.to_top(self.pos.y, metrics::WINDOW.win_h),
+            pos.x.to_left(self.pos.x, self.w_metrics.win_w),
+            pos.y.to_top(self.pos.y, self.w_metrics.win_h),
         )
     }
 
     fn move_chars(&mut self, dx: i32, dy: i32) {
         self.set_pos(Position::rel(
-            self.fmetrics.span_w(dx),
-            self.fmetrics.span_h(dy),
+            self.f_metrics.span_w(dx),
+            self.f_metrics.span_h(dy),
         ))
     }
 
     fn set_font(&mut self, font: font::Id) -> Result<()> {
         self.font = font;
-        self.fmetrics = self.font_manager.metrics(self.font)?;
+        self.f_metrics = self.font_manager.metrics(self.font)?;
         Ok(())
     }
 
@@ -107,23 +110,25 @@ impl<'a> Renderer for Window<'a> {
 }
 
 impl<'a> Window<'a> {
-    /// Constructs a [Renderer] using the given screen and texture creator.
+    /// Constructs a [Renderer] using the given screen, metrics, and font manager.
     ///
     /// # Errors
     ///
     /// Errors if the default font isn't available.
     pub fn new(
         screen: RefMut<'a, Canvas<video::Window>>,
+        w_metrics: metrics::Window,
         font_manager: font::Manager<'a>,
     ) -> Result<Self> {
         let font = font::Id::Normal;
-        let fmetrics = font_manager.metrics(font)?;
+        let f_metrics = font_manager.metrics(font)?;
 
         Ok(Self {
             screen,
+            w_metrics,
             font_manager,
             font,
-            fmetrics,
+            f_metrics,
             colour: colour::Key::NoTime,
             pos: Point::new(0, 0),
         })
@@ -159,8 +164,8 @@ impl<'a> Window<'a> {
     /// character.
     #[must_use]
     fn char_rect(&self, top_left: Point) -> Rect {
-        let w = self.fmetrics.char_w;
-        let h = self.fmetrics.char_h;
+        let w = self.f_metrics.char_w;
+        let h = self.f_metrics.char_h;
         Rect::new(top_left.x, top_left.y, u32::from(w), u32::from(h))
     }
 
@@ -168,8 +173,8 @@ impl<'a> Window<'a> {
     #[must_use]
     fn font_rect(&self, char: u8) -> Rect {
         self.char_rect(Point::new(
-            self.fmetrics.glyph_x(char),
-            self.fmetrics.glyph_y(char),
+            self.f_metrics.glyph_x(char),
+            self.f_metrics.glyph_y(char),
         ))
     }
 }

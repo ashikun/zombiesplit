@@ -2,7 +2,9 @@
 
 // TODO(@MattWindsor91): decouple SDL here?
 
-use std::{collections::HashMap, rc::Rc};
+use serde::{Deserialize, Serialize};
+use serde_with::{DeserializeFromStr, SerializeDisplay};
+use std::{collections::HashMap, fmt::Display, rc::Rc, str::FromStr};
 use thiserror::Error;
 
 use sdl2::{
@@ -20,16 +22,20 @@ pub struct Manager<'a> {
     /// The map of current font textures.
     textures: HashMap<(Id, colour::Key), Rc<Texture<'a>>>,
     /// The map of known font configurations.
-    configs: HashMap<Id, Config>,
+    configs: &'a HashMap<Id, Config>,
 }
 
 impl<'a> Manager<'a> {
+    /// Creates a font manager with the given texture creator and config hashmap.
     #[must_use]
-    pub fn new(creator: &'a TextureCreator<WindowContext>) -> Self {
+    pub fn new(
+        creator: &'a TextureCreator<WindowContext>,
+        configs: &'a HashMap<Id, Config>,
+    ) -> Self {
         Self {
             creator,
             textures: HashMap::new(),
-            configs: temp_config(),
+            configs,
         }
     }
 
@@ -82,25 +88,39 @@ fn colourise(texture: &mut Texture, colour: colour::Key) {
 }
 
 /// A key in the font manager's lookup table.
-#[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Hash, Debug, Clone, Copy, SerializeDisplay, DeserializeFromStr)]
 pub enum Id {
     /// Normal font.
     Normal,
 }
 
-fn temp_config() -> HashMap<Id, Config> {
-    let mut map = HashMap::new();
-    map.insert(
-        Id::Normal,
-        Config {
-            path: "font.png".to_owned(),
-            metrics: metrics::FONT,
-        },
-    );
-    map
+const NORMAL_STR: &str = "normal";
+
+impl Display for Id {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Normal => NORMAL_STR,
+            }
+        )
+    }
+}
+
+impl FromStr for Id {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        match s {
+            NORMAL_STR => Ok(Self::Normal),
+            _ => Err(Error::Unknown(s.to_owned())),
+        }
+    }
 }
 
 /// A font configuration.
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
     /// The font path.
     path: String,
@@ -116,8 +136,12 @@ pub enum Error {
     Load(String),
 
     /// We tried to use a font configuration that doesn't exist.
-    #[error("font not configured: {0:?}")]
+    #[error("font not configured: {0}")]
     Config(Id),
+
+    /// We tried to configure a font using a nonexistent ID.
+    #[error("font id not recognised: {0}")]
+    Unknown(String),
 }
 
 /// Shorthand for a result using [Error].

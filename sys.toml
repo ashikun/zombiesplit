@@ -1,0 +1,31 @@
+# System configuration for zombiesplit.
+#
+# You may edit this, but there isn't any way to override parts of the config
+# yet, so be careful!
+
+# Window metrics
+[ui.window]
+	# Window width and height.
+	win_w = 320
+	win_h = 640
+	# Padding of window elements.
+	padding = 4
+	# Height of various parts of the window.
+	# Each is stacked atop each other, with the remaining space being used
+	# for the splits.
+	header_h = 32
+	total_h = 32
+	split_h = 16
+
+# Fonts
+[ui.fonts.normal]
+	# Path to the font bitmap.
+	path = "font.png"
+	# Number of columns in the font bitmap (rows = 256 / this number).
+	metrics.cols = 32
+	# Width and height of one character, less padding.
+	metrics.char_w = 7
+	metrics.char_h = 9
+	# Padding between characters (both on screen and in font bitmap).
+	metrics.pad_w = 1
+	metrics.pad_h = 1

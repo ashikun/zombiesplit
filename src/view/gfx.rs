@@ -25,10 +25,10 @@ pub struct Core<'a> {
 impl<'a> Core<'a> {
     /// Creates a new graphics core.
     #[must_use]
-    pub fn new(renderer: render::Window<'a>) -> Self {
+    pub fn new(renderer: render::Window<'a>, wmetrics: metrics::Window) -> Self {
         Self {
             renderer,
-            widgets: make_widgets(metrics::WINDOW),
+            widgets: make_widgets(wmetrics),
         }
     }
 
@@ -87,9 +87,12 @@ fn make_total(wmetrics: metrics::Window) -> Box<dyn Widget> {
 /// # Errors
 ///
 /// Returns an error if SDL fails to make the window.
-pub fn make_window(video: &sdl2::VideoSubsystem) -> Result<sdl2::video::Window> {
+pub fn make_window(
+    video: &sdl2::VideoSubsystem,
+    wmetrics: metrics::Window,
+) -> Result<sdl2::video::Window> {
     let window = video
-        .window("zombiesplit", metrics::WINDOW.win_w, metrics::WINDOW.win_h)
+        .window("zombiesplit", wmetrics.win_w, wmetrics.win_h)
         .position_centered()
         .build()
         .map_err(Error::Window)?;
