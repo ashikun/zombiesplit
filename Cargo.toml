@@ -8,6 +8,7 @@ edition = "2018"
 
 [dependencies]
 anyhow = "1.0.40"
+css-color-parser = "0.1.2"
 rusqlite = "0.25.0"
 sdl2 = { version = "0.34.4", features = ["image"] }
 serde = { version = "1.0.125", features = ["derive"] }

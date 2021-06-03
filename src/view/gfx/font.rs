@@ -23,6 +23,8 @@ pub struct Manager<'a> {
     textures: HashMap<(Id, colour::Key), Rc<Texture<'a>>>,
     /// The map of known font configurations.
     configs: &'a HashMap<Id, Config>,
+    /// The colour set, used for setting up font colours.
+    colour_set: &'a colour::Set,
 }
 
 impl<'a> Manager<'a> {
@@ -31,11 +33,13 @@ impl<'a> Manager<'a> {
     pub fn new(
         creator: &'a TextureCreator<WindowContext>,
         configs: &'a HashMap<Id, Config>,
+        colour_set: &'a colour::Set,
     ) -> Self {
         Self {
             creator,
             textures: HashMap::new(),
             configs,
+            colour_set,
         }
     }
 
@@ -75,16 +79,16 @@ impl<'a> Manager<'a> {
     fn load(&mut self, id: Id, colour: colour::Key) -> Result<Texture<'a>> {
         let path = &self.config(id)?.path;
         let mut tex = self.creator.load_texture(path).map_err(Error::Load)?;
-        colourise(&mut tex, colour);
+        self.colourise(&mut tex, colour);
         Ok(tex)
     }
-}
 
-fn colourise(texture: &mut Texture, colour: colour::Key) {
-    // TODO(@MattWindsor91): decouple colour::SET
-    let colour = colour::SET.by_key(colour);
-    texture.set_color_mod(colour.r, colour.g, colour.b);
-    texture.set_alpha_mod(colour.a);
+    fn colourise(&self, texture: &mut Texture, colour: colour::Key) {
+        // TODO(@MattWindsor91): decouple colour::SET
+        let colour = sdl2::pixels::Color::from(self.colour_set.by_key(colour));
+        texture.set_color_mod(colour.r, colour.g, colour.b);
+        texture.set_alpha_mod(colour.a);
+    }
 }
 
 /// A key in the font manager's lookup table.

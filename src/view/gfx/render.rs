@@ -64,6 +64,8 @@ pub struct Window<'a> {
     font: font::Id,
     /// The current font colour.
     colour: colour::Key,
+    /// The colour set.
+    colour_set: &'a colour::Set,
     /// The current font's metrics.
     f_metrics: metrics::Font,
     /// The current position.
@@ -119,6 +121,7 @@ impl<'a> Window<'a> {
         screen: RefMut<'a, Canvas<video::Window>>,
         w_metrics: metrics::Window,
         font_manager: font::Manager<'a>,
+        colour_set: &'a colour::Set,
     ) -> Result<Self> {
         let font = font::Id::Normal;
         let f_metrics = font_manager.metrics(font)?;
@@ -130,13 +133,15 @@ impl<'a> Window<'a> {
             font,
             f_metrics,
             colour: colour::Key::NoTime,
+            colour_set,
             pos: Point::new(0, 0),
         })
     }
 
     /// Clears the screen.
     pub fn clear(&mut self) {
-        self.screen.set_draw_color(colour::SET.bg);
+        self.screen
+            .set_draw_color(sdl2::pixels::Color::from(self.colour_set.bg));
         self.screen.clear()
     }
 

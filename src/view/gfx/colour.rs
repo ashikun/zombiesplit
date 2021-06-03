@@ -1,45 +1,83 @@
 //! Colour mappings for the UI.
 
-// TODO(@MattWindsor91): consider making these configurable.
-
 use crate::{model::pace::Pace, presenter::cursor::SplitPosition};
-use sdl2::pixels::Color;
+use serde::{Deserialize, Serialize};
+use serde_with::{DeserializeFromStr, SerializeDisplay};
+use std::{fmt::Display, str::FromStr};
+use thiserror::Error;
+
+/// A colour.
+#[derive(Copy, Clone, Debug, DeserializeFromStr, SerializeDisplay)]
+pub struct Colour(css_color_parser::Color);
+
+impl Display for Colour {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl FromStr for Colour {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        Ok(Colour(s.parse()?))
+    }
+}
+
+impl From<Colour> for sdl2::pixels::Color {
+    fn from(c: Colour) -> Self {
+        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+        let a = (255.0 * c.0.a).round() as u8;
+        Self::RGBA(c.0.r, c.0.g, c.0.b, a)
+    }
+}
+
+/// Errors that can occur when parsing a colour.
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("malformed colour")]
+    Malformed(#[from] css_color_parser::ColorParseError),
+}
+
+/// Shorthand for result type.
+pub type Result<T> = std::result::Result<T, Error>;
 
 /// A set of colours to use in the user interface.
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct Set {
     /// Main background colour.
-    pub bg: Color,
+    pub bg: Colour,
 
     // Foreground text for the split editor.
-    pub fg_editor: Color,
+    pub fg_editor: Colour,
 
     // Foreground text for the split editor's current field.
-    pub fg_editor_field: Color,
+    pub fg_editor_field: Colour,
 
     // Foreground text for headers.
-    pub fg_header: Color,
+    pub fg_header: Colour,
 
     /// Foreground text for splits already passed.
-    pub fg_done: Color,
+    pub fg_done: Colour,
 
     /// Foreground text for normal splits.
-    pub fg_normal: Color,
+    pub fg_normal: Colour,
 
     /// Foreground text for the split currently under the cursor.
-    pub fg_cursor: Color,
+    pub fg_cursor: Colour,
 
     /// Foreground text for a time when there is no time entered.
-    pub fg_time_none: Color,
+    pub fg_time_none: Colour,
 
     /// Foreground text for a time when the run is ahead of comparison.
-    pub fg_time_run_ahead: Color,
+    pub fg_time_run_ahead: Colour,
 
     /// Foreground text for a time when the split is ahead of comparison.
     /// (Often referred to as a 'gold split'.)
-    pub fg_time_split_ahead: Color,
+    pub fg_time_split_ahead: Colour,
 
     /// Foreground text for a time when the run is behind comparison.
-    pub fg_time_run_behind: Color,
+    pub fg_time_run_behind: Colour,
 }
 
 /// High-level colour keys.
@@ -62,7 +100,7 @@ pub enum Key {
 impl Set {
     /// Gets a foreground colour by its key.
     #[must_use]
-    pub fn by_key(&self, key: Key) -> Color {
+    pub fn by_key(&self, key: Key) -> Colour {
         match key {
             Key::Header => self.fg_header,
             Key::Name(pos) => self.by_split_position(pos),
@@ -74,7 +112,7 @@ impl Set {
     }
 
     #[must_use]
-    fn by_pace(&self, pace: Pace) -> Color {
+    fn by_pace(&self, pace: Pace) -> Colour {
         match pace {
             Pace::PersonalBest => self.fg_time_split_ahead,
             Pace::Behind => self.fg_time_run_ahead,
@@ -84,7 +122,7 @@ impl Set {
     }
 
     #[must_use]
-    fn by_split_position(&self, sp: SplitPosition) -> Color {
+    fn by_split_position(&self, sp: SplitPosition) -> Colour {
         match sp {
             SplitPosition::Done => self.fg_done,
             SplitPosition::Cursor => self.fg_cursor,
@@ -92,18 +130,3 @@ impl Set {
         }
     }
 }
-
-/// The default colour set.
-pub const SET: Set = Set {
-    bg: Color::BLACK,
-    fg_editor: Color::MAGENTA,
-    fg_editor_field: Color::WHITE,
-    fg_cursor: Color::CYAN,
-    fg_done: Color::GREY,
-    fg_normal: Color::WHITE,
-    fg_header: Color::WHITE,
-    fg_time_none: Color::GREY,
-    fg_time_run_ahead: Color::GREEN,
-    fg_time_run_behind: Color::RED,
-    fg_time_split_ahead: Color::YELLOW,
-};

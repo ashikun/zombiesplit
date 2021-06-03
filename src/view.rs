@@ -45,9 +45,14 @@ impl View {
     ///
     /// Returns an error if SDL can't spawn an event pump.
     pub fn spawn(&self, presenter: presenter::Presenter) -> Result<Instance> {
-        let font_manager = gfx::font::Manager::new(&self.textures, &self.cfg.fonts);
-        let renderer =
-            gfx::render::Window::new(self.screen.borrow_mut(), self.cfg.window, font_manager)?;
+        let font_manager =
+            gfx::font::Manager::new(&self.textures, &self.cfg.fonts, &self.cfg.colours);
+        let renderer = gfx::render::Window::new(
+            self.screen.borrow_mut(),
+            self.cfg.window,
+            font_manager,
+            &self.cfg.colours,
+        )?;
         let gfx = gfx::Core::new(renderer, self.cfg.window);
 
         let events = self.sdl.event_pump().map_err(Error::Init)?;
