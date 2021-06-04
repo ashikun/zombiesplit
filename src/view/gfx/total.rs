@@ -26,15 +26,14 @@ impl widget::Widget for Widget {
 
 fn render_label(r: &mut dyn Renderer) -> Result<()> {
     r.set_pos(Position::top_left(0, 0));
-    r.set_font(font::Id::Normal)?;
+    r.set_font(font::Id::Normal);
     r.set_fg_colour(colour::Key::Header);
     r.put_str("Total after cursor")
 }
 
 fn render_time(r: &mut dyn Renderer, p: &Presenter) -> Result<()> {
     r.set_pos(Position::x(X::Right(0)));
-    // TODO(@MattWindsor91): large font?
-    r.set_font(font::Id::Normal)?;
+    r.set_font(font::Id::Large);
     let pace::Pair {
         run_so_far: pace::PacedTime { pace, time },
         ..

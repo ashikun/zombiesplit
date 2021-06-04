@@ -44,7 +44,7 @@ impl Widget {
 /// Draws any editor required by the current state.
 fn draw_editor(r: &mut dyn Renderer, editor: &Editor) -> Result<()> {
     // Every part of the editor uses the normal font.
-    r.set_font(font::Id::Normal)?;
+    r.set_font(font::Id::Normal);
 
     draw_time(r, editor)?;
     if let Some(ref f) = editor.field {

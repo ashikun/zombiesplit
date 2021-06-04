@@ -66,7 +66,7 @@ impl<'r, 'g, 'p, 's> SplitDrawer<'r, 'g, 'p, 's> {
     }
 
     fn draw_name(&mut self) -> Result<()> {
-        self.r.set_font(font::Id::Normal)?;
+        self.r.set_font(font::Id::Normal);
         self.r.set_fg_colour(colour::Key::Name(self.position()));
         self.r.put_str(&self.split.name)?;
         Ok(())
@@ -83,7 +83,7 @@ impl<'r, 'g, 'p, 's> SplitDrawer<'r, 'g, 'p, 's> {
 
     fn draw_summed_time(&mut self) -> Result<()> {
         // TODO(@MattWindsor91): hours?
-        self.r.set_font(font::Id::Normal)?;
+        self.r.set_font(font::Id::Normal);
         // TODO(@MattWindsor91): use both dimensions of pace.
         let model::pace::Pair { split, .. } = self.paced_time();
         self.r.set_fg_colour(colour::Key::Pace(split.pace));
@@ -91,7 +91,7 @@ impl<'r, 'g, 'p, 's> SplitDrawer<'r, 'g, 'p, 's> {
     }
 
     fn draw_time_placeholder(&mut self) -> Result<()> {
-        self.r.set_font(font::Id::Normal)?;
+        self.r.set_font(font::Id::Normal);
         self.r.set_fg_colour(colour::Key::NoTime);
         self.r.put_str_r("--'--\"---")
     }

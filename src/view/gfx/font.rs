@@ -3,8 +3,8 @@
 // TODO(@MattWindsor91): decouple SDL here?
 
 use serde::{Deserialize, Serialize};
-use serde_with::{DeserializeFromStr, SerializeDisplay};
-use std::{collections::HashMap, fmt::Display, rc::Rc, str::FromStr};
+
+use std::{collections::HashMap, rc::Rc};
 use thiserror::Error;
 
 use sdl2::{
@@ -21,8 +21,8 @@ pub struct Manager<'a> {
     creator: &'a TextureCreator<WindowContext>,
     /// The map of current font textures.
     textures: HashMap<(Id, colour::Key), Rc<Texture<'a>>>,
-    /// The map of known font configurations.
-    configs: &'a HashMap<Id, Config>,
+    /// The font set, containing configuration for each font.
+    font_set: &'a Set,
     /// The foreground colour set, used for setting up font colours.
     colour_set: &'a colour::ForegroundSet,
 }
@@ -32,13 +32,13 @@ impl<'a> Manager<'a> {
     #[must_use]
     pub fn new(
         creator: &'a TextureCreator<WindowContext>,
-        configs: &'a HashMap<Id, Config>,
+        font_set: &'a Set,
         colour_set: &'a colour::ForegroundSet,
     ) -> Self {
         Self {
             creator,
             textures: HashMap::new(),
-            configs,
+            font_set,
             colour_set,
         }
     }
@@ -58,16 +58,9 @@ impl<'a> Manager<'a> {
     }
 
     /// Gets the given font's metrics set.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the font is not configured.
-    pub fn metrics(&self, id: Id) -> Result<metrics::Font> {
-        self.config(id).map(|x| x.metrics)
-    }
-
-    fn config(&self, id: Id) -> Result<&Config> {
-        self.configs.get(&id).ok_or(Error::Config(id))
+    #[must_use]
+    pub fn metrics(&self, id: Id) -> metrics::Font {
+        self.font_set.get(id).metrics
     }
 
     fn cache(&mut self, id: Id, colour: colour::Key) -> Result<Rc<Texture<'a>>> {
@@ -77,7 +70,7 @@ impl<'a> Manager<'a> {
     }
 
     fn load(&mut self, id: Id, colour: colour::Key) -> Result<Texture<'a>> {
-        let path = &self.config(id)?.path;
+        let path = &self.font_set.get(id).path;
         let mut tex = self.creator.load_texture(path).map_err(Error::Load)?;
         self.colourise(&mut tex, colour);
         Ok(tex)
@@ -92,33 +85,31 @@ impl<'a> Manager<'a> {
 }
 
 /// A key in the font manager's lookup table.
-#[derive(PartialEq, Eq, Hash, Debug, Clone, Copy, SerializeDisplay, DeserializeFromStr)]
+#[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
+#[non_exhaustive]
 pub enum Id {
     /// Normal font.
     Normal,
+    /// Large font.
+    Large,
 }
 
-const NORMAL_STR: &str = "normal";
-
-impl Display for Id {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::Normal => NORMAL_STR,
-            }
-        )
-    }
+/// A font configuration set.
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Set {
+    /// The normal font.
+    pub normal: Config,
+    /// The large font, used for titles and totals.
+    pub large: Config,
 }
 
-impl FromStr for Id {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Self> {
-        match s {
-            NORMAL_STR => Ok(Self::Normal),
-            _ => Err(Error::Unknown(s.to_owned())),
+impl Set {
+    /// Gets the configuration for a particular font.
+    #[must_use]
+    pub fn get(&self, id: Id) -> &Config {
+        match id {
+            Id::Normal => &self.normal,
+            Id::Large => &self.large,
         }
     }
 }
@@ -127,9 +118,9 @@ impl FromStr for Id {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
     /// The font path.
-    path: String,
+    pub path: String,
     /// The font metrics.
-    metrics: metrics::Font,
+    pub metrics: metrics::Font,
 }
 
 /// A font error.
@@ -138,10 +129,6 @@ pub enum Error {
     /// An error occurred while loading the font.
     #[error("couldn't load font: {0}")]
     Load(String),
-
-    /// We tried to use a font configuration that doesn't exist.
-    #[error("font not configured: {0}")]
-    Config(Id),
 
     /// We tried to configure a font using a nonexistent ID.
     #[error("font id not recognised: {0}")]

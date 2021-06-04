@@ -19,11 +19,7 @@ pub trait Renderer {
     fn move_chars(&mut self, dx: i32, dy: i32);
 
     /// Sets the current font.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the font has not been configured properly.
-    fn set_font(&mut self, font: font::Id) -> Result<()>;
+    fn set_font(&mut self, font: font::Id);
 
     /// Sets the current foreground colour.
     fn set_fg_colour(&mut self, colour: colour::Key);
@@ -87,10 +83,9 @@ impl<'a> Renderer for Window<'a> {
         ))
     }
 
-    fn set_font(&mut self, font: font::Id) -> Result<()> {
+    fn set_font(&mut self, font: font::Id) {
         self.font = font;
-        self.f_metrics = self.font_manager.metrics(self.font)?;
-        Ok(())
+        self.f_metrics = self.font_manager.metrics(self.font);
     }
 
     fn set_fg_colour(&mut self, colour: colour::Key) {
@@ -113,20 +108,17 @@ impl<'a> Renderer for Window<'a> {
 
 impl<'a> Window<'a> {
     /// Constructs a [Renderer] using the given screen, metrics, and font manager.
-    ///
-    /// # Errors
-    ///
-    /// Errors if the default font isn't available.
+    #[must_use]
     pub fn new(
         screen: RefMut<'a, Canvas<video::Window>>,
         w_metrics: metrics::Window,
         font_manager: font::Manager<'a>,
         colour_set: &'a colour::Set,
-    ) -> Result<Self> {
+    ) -> Self {
         let font = font::Id::Normal;
-        let f_metrics = font_manager.metrics(font)?;
+        let f_metrics = font_manager.metrics(font);
 
-        Ok(Self {
+        Self {
             screen,
             w_metrics,
             font_manager,
@@ -135,7 +127,7 @@ impl<'a> Window<'a> {
             colour: colour::Key::NoTime,
             colour_set,
             pos: Point::new(0, 0),
-        })
+        }
     }
 
     /// Clears the screen.
@@ -207,7 +199,7 @@ impl<'a> Renderer for Region<'a> {
     fn move_chars(&mut self, dx: i32, dy: i32) {
         self.renderer.move_chars(dx, dy)
     }
-    fn set_font(&mut self, font: font::Id) -> Result<()> {
+    fn set_font(&mut self, font: font::Id) {
         self.renderer.set_font(font)
     }
     fn set_fg_colour(&mut self, colour: colour::Key) {

@@ -52,7 +52,7 @@ impl View {
             self.cfg.window,
             font_manager,
             &self.cfg.colours,
-        )?;
+        );
         let gfx = gfx::Core::new(renderer, self.cfg.window);
 
         let events = self.sdl.event_pump().map_err(Error::Init)?;

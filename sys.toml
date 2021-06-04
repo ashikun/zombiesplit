@@ -13,7 +13,7 @@
 	# Height of various parts of the window.
 	# Each is stacked atop each other, with the remaining space being used
 	# for the splits.
-	header_h = 32
+	header_h = 40
 	total_h = 32
 	split_h = 16
 
@@ -27,6 +27,13 @@
 	metrics.char_w = 7
 	metrics.char_h = 9
 	# Padding between characters (both on screen and in font bitmap).
+	metrics.pad_w = 1
+	metrics.pad_h = 1
+[ui.fonts.large]
+	path = "font-l.png"
+	metrics.cols = 32
+	metrics.char_w = 12
+	metrics.char_h = 16
 	metrics.pad_w = 1
 	metrics.pad_h = 1
 
