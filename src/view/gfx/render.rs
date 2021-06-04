@@ -63,7 +63,7 @@ pub struct Window<'a> {
     /// The colour set.
     colour_set: &'a colour::Set,
     /// The current font's metrics.
-    f_metrics: metrics::Font,
+    f_metrics: font::Metrics,
     /// The current position.
     pos: Point,
 }
@@ -161,8 +161,8 @@ impl<'a> Window<'a> {
     /// character.
     #[must_use]
     fn char_rect(&self, top_left: Point) -> Rect {
-        let w = self.f_metrics.char_w;
-        let h = self.f_metrics.char_h;
+        let w = self.f_metrics.char.w;
+        let h = self.f_metrics.char.h;
         Rect::new(top_left.x, top_left.y, u32::from(w), u32::from(h))
     }
 
