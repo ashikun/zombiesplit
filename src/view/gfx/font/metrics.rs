@@ -50,13 +50,15 @@ impl Metrics {
     /// The left position of a glyph in the font.
     #[must_use]
     pub fn glyph_x(self, char: u8) -> i32 {
-        i32::from(self.glyph_col(char) * self.padded_w())
+        // Can't multiply _then_ convert, because of overflow on big fonts.
+        i32::from(self.glyph_col(char)) * i32::from(self.padded_w())
     }
 
     /// The top position of a glyph in the font.
     #[must_use]
     pub fn glyph_y(self, char: u8) -> i32 {
-        i32::from(self.glyph_row(char) * self.padded_h())
+        // Can't multiply _then_ convert, because of overflow on big fonts.
+        i32::from(self.glyph_row(char)) * i32::from(self.padded_h())
     }
 
     /// The size of a horizontal padded character span.
@@ -69,5 +71,28 @@ impl Metrics {
     #[must_use]
     pub fn span_h(self, size: i32) -> i32 {
         i32::from(self.padded_h()) * size
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const BIG_FONT: Metrics = Metrics {
+        cols: 32,
+        char: Pair { w: 9, h: 9 },
+        pad: Pair { w: 1, h: 1 },
+    };
+
+    /// Tests that `glyph_x` works correctly without overflow on a big bitmap.
+    #[test]
+    fn glyph_x_overflow() {
+        assert_eq!(BIG_FONT.glyph_x(31), 310)
+    }
+
+    /// Tests that `glyph_y` works correctly without overflow on a big bitmap.
+    #[test]
+    fn glyph_y_overflow() {
+        assert_eq!(BIG_FONT.glyph_y(255), 70)
     }
 }
