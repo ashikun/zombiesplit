@@ -27,10 +27,10 @@ impl Split {
         self.times.iter().copied().sum()
     }
 
-    /// Gets whether this split has times registered.
+    /// Gets the number of times logged for this split.
     #[must_use]
-    pub fn has_times(&self) -> bool {
-        !self.times.is_empty()
+    pub fn num_times(&self) -> usize {
+        self.times.len()
     }
 
     /// Pushes a time onto this split.

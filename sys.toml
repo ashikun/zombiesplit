@@ -20,7 +20,7 @@
 # Fonts
 [ui.fonts.normal]
 	# Path to the font bitmap.
-	path = "font.png"
+	path = "assets/font.png"
 	# Number of columns in the font bitmap (rows = 256 / this number).
 	metrics.cols = 32
 	# Width and height of one character, less padding.
@@ -29,8 +29,15 @@
 	# Padding between characters (both on screen and in font bitmap).
 	metrics.pad.w = 1
 	metrics.pad.h = 1
+[ui.fonts.small]
+	path = "assets/font-s.png"
+	metrics.cols = 32
+	metrics.char.w = 5
+	metrics.char.h = 5
+	metrics.pad.w = 1
+	metrics.pad.h = 1
 [ui.fonts.large]
-	path = "font-l.png"
+	path = "assets/font-l.png"
 	metrics.cols = 32
 	metrics.char.w = 12
 	metrics.char.h = 16

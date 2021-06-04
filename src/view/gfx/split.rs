@@ -62,6 +62,7 @@ impl<'r, 'g, 'p, 's> SplitDrawer<'r, 'g, 'p, 's> {
     fn draw(&mut self) -> Result<()> {
         self.draw_name()?;
         self.draw_time()?;
+        self.draw_num_times()?;
         Ok(())
     }
 
@@ -74,7 +75,7 @@ impl<'r, 'g, 'p, 's> SplitDrawer<'r, 'g, 'p, 's> {
 
     fn draw_time(&mut self) -> Result<()> {
         self.r.set_pos(Position::x(X::Right(0)));
-        if self.split.has_times() {
+        if 0 < self.split.num_times() {
             self.draw_summed_time()
         } else {
             self.draw_time_placeholder()
@@ -94,6 +95,16 @@ impl<'r, 'g, 'p, 's> SplitDrawer<'r, 'g, 'p, 's> {
         self.r.set_font(font::Id::Normal);
         self.r.set_fg_colour(colour::Key::NoTime);
         self.r.put_str_r("--'--\"---")
+    }
+
+    /// Draws a representation of the number of times this split has logged.
+    fn draw_num_times(&mut self) -> Result<()> {
+        // TODO(@MattWindsor91): jog to position more accurately.
+        self.r.move_chars(-10, 0);
+        self.r.set_font(font::Id::Small);
+        // TODO(@MattWindsor91): better key?
+        self.r.set_fg_colour(colour::Key::Header);
+        self.r.put_str_r(&format!("{}x", self.split.num_times()))
     }
 
     fn position(&self) -> cursor::SplitPosition {

@@ -51,6 +51,12 @@ impl Run {
             .sum()
     }
 
+    /// Gets the number of times logged for the split at `split`.
+    #[must_use]
+    pub fn num_times_at(&self, split: usize) -> usize {
+        self.splits.get(split).map_or(0, Split::num_times)
+    }
+
     /// Gets the paced time for the split at `split`.
     /// Said pace is made up of the split and run-so-far paces.
     #[must_use]
