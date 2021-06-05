@@ -3,7 +3,7 @@
 use std::{cell::RefMut, rc::Rc};
 
 use super::super::error::{Error, Result};
-use super::{colour, font, metrics, position::Position};
+use super::{colour, font, metrics, pen, position::Position};
 use sdl2::{
     rect::{Point, Rect},
     render::{Canvas, Texture},
@@ -56,14 +56,10 @@ pub struct Window<'a> {
     w_metrics: metrics::Window,
     /// The font manager.
     font_manager: font::Manager<'a>,
-    /// The current font.
-    font: font::Id,
-    /// The current font colour.
-    colour: colour::Key,
+    /// The pen.
+    pen: pen::Pen,
     /// The colour set.
     colour_set: &'a colour::Set,
-    /// The current font's metrics.
-    f_metrics: font::Metrics,
     /// The current position.
     pos: Point,
 }
@@ -77,19 +73,15 @@ impl<'a> Renderer for Window<'a> {
     }
 
     fn move_chars(&mut self, dx: i32, dy: i32) {
-        self.set_pos(Position::rel(
-            self.f_metrics.span_w(dx),
-            self.f_metrics.span_h(dy),
-        ))
+        self.set_pos(Position::rel_chars(self.pen.font_metrics(), dx, dy))
     }
 
     fn set_font(&mut self, font: font::Id) {
-        self.font = font;
-        self.f_metrics = self.font_manager.metrics(self.font);
+        self.pen.set_font(font, &self.font_manager)
     }
 
     fn set_fg_colour(&mut self, colour: colour::Key) {
-        self.colour = colour
+        self.pen.set_fg_colour(colour)
     }
 
     fn put_str(&mut self, str: &str) -> Result<()> {
@@ -115,16 +107,12 @@ impl<'a> Window<'a> {
         font_manager: font::Manager<'a>,
         colour_set: &'a colour::Set,
     ) -> Self {
-        let font = font::Id::Normal;
-        let f_metrics = font_manager.metrics(font);
-
+        let pen = pen::Pen::new(&font_manager);
         Self {
             screen,
             w_metrics,
+            pen,
             font_manager,
-            font,
-            f_metrics,
-            colour: colour::Key::NoTime,
             colour_set,
             pos: Point::new(0, 0),
         }
@@ -143,7 +131,11 @@ impl<'a> Window<'a> {
     }
 
     fn font_texture(&mut self) -> Result<Rc<Texture<'a>>> {
-        Ok(self.font_manager.texture(self.font, self.colour)?)
+        Ok(self.font_manager.texture(self.font_spec())?)
+    }
+
+    fn font_spec(&self) -> font::manager::Spec {
+        self.pen.font_spec()
     }
 
     fn put_byte<'b>(
@@ -161,18 +153,15 @@ impl<'a> Window<'a> {
     /// character.
     #[must_use]
     fn char_rect(&self, top_left: Point) -> Rect {
-        let w = self.f_metrics.char.w;
-        let h = self.f_metrics.char.h;
-        Rect::new(top_left.x, top_left.y, u32::from(w), u32::from(h))
+        let char = self.pen.font_metrics().char;
+        Rect::new(top_left.x, top_left.y, u32::from(char.w), u32::from(char.h))
     }
 
     /// Produces the appropriate rectangle for looking up `char` in the font.
     #[must_use]
     fn font_rect(&self, char: u8) -> Rect {
-        self.char_rect(Point::new(
-            self.f_metrics.glyph_x(char),
-            self.f_metrics.glyph_y(char),
-        ))
+        let metrics = self.pen.font_metrics();
+        self.char_rect(Point::new(metrics.glyph_x(char), metrics.glyph_y(char)))
     }
 }
 

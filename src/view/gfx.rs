@@ -5,6 +5,7 @@ mod editor;
 pub mod font;
 mod header;
 pub mod metrics; // for now
+pub mod pen;
 mod position;
 pub mod render;
 mod split;

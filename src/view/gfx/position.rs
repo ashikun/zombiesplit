@@ -25,6 +25,12 @@ impl Position {
         }
     }
 
+    /// Make a position relative to the current position in terms of characters
+    /// in a given font.
+    pub fn rel_chars(metrics: super::font::Metrics, dx: i32, dy: i32) -> Self {
+        Self::rel(metrics.span_w(dx), metrics.span_h(dy))
+    }
+
     /// Move X by `x` only.
     pub fn x(x: X) -> Self {
         Self { x, y: Y::Rel(0) }
