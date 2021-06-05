@@ -33,7 +33,7 @@
 	path = "assets/font-s.png"
 	metrics.cols = 32
 	metrics.char.w = 5
-	metrics.char.h = 5
+	metrics.char.h = 7
 	metrics.pad.w = 1
 	metrics.pad.h = 1
 [ui.fonts.large]
