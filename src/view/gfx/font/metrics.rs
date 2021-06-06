@@ -1,5 +1,7 @@
 //! Font metrics.
+use super::super::metrics::Size;
 use serde::{Deserialize, Serialize};
+use std::convert::TryFrom;
 
 /// A font metrics set.
 #[derive(Copy, Clone, Debug, Deserialize, Serialize)]
@@ -20,6 +22,26 @@ pub struct Pair {
     pub w: u8,
     /// Height of a font element, in pixels.
     pub h: u8,
+}
+
+/// Trait for things that can calculate the width or height of a span of text.
+pub trait TextSizer {
+    /// The size of a horizontal padded character span.
+    #[must_use]
+    fn span_w(&self, size: i32) -> i32;
+
+    /// The size of a vertical padded character span.
+    #[must_use]
+    fn span_h(&self, size: i32) -> i32;
+
+    /// Converts a size in chars into a size in pixels.
+    #[must_use]
+    fn text_size(&self, w_chars: i32, h_chars: i32) -> Size {
+        Size {
+            w: u32::try_from(self.span_w(w_chars)).unwrap_or_default(),
+            h: u32::try_from(self.span_w(h_chars)).unwrap_or_default(),
+        }
+    }
 }
 
 impl Metrics {
@@ -60,16 +82,15 @@ impl Metrics {
         // Can't multiply _then_ convert, because of overflow on big fonts.
         i32::from(self.glyph_row(char)) * i32::from(self.padded_h())
     }
+}
 
-    /// The size of a horizontal padded character span.
-    #[must_use]
-    pub fn span_w(self, size: i32) -> i32 {
+/// A raw metrics set can calculate text sizes.
+impl TextSizer for Metrics {
+    fn span_w(&self, size: i32) -> i32 {
         i32::from(self.padded_w()) * size
     }
 
-    /// The size of a vertical padded character span.
-    #[must_use]
-    pub fn span_h(self, size: i32) -> i32 {
+    fn span_h(&self, size: i32) -> i32 {
         i32::from(self.padded_h()) * size
     }
 }

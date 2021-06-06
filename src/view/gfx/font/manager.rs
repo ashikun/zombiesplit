@@ -23,7 +23,7 @@ pub struct Manager<'a> {
     /// The font set, containing configuration for each font.
     font_set: &'a Set,
     /// The foreground colour set, used for setting up font colours.
-    colour_set: &'a colour::ForegroundSet,
+    colour_set: &'a colour::fg::Set,
 }
 
 impl<'a> Manager<'a> {
@@ -32,7 +32,7 @@ impl<'a> Manager<'a> {
     pub fn new(
         creator: &'a TextureCreator<WindowContext>,
         font_set: &'a super::Set,
-        colour_set: &'a colour::ForegroundSet,
+        colour_set: &'a colour::fg::Set,
     ) -> Self {
         Self {
             creator,
@@ -69,9 +69,9 @@ impl<'a> Manager<'a> {
         Ok(tex)
     }
 
-    fn colourise(&self, texture: &mut Texture, colour: colour::Key) {
+    fn colourise(&self, texture: &mut Texture, colour: colour::fg::Id) {
         // TODO(@MattWindsor91): decouple colour::SET
-        let colour = sdl2::pixels::Color::from(self.colour_set.by_key(colour));
+        let colour = sdl2::pixels::Color::from(self.colour_set.get(colour));
         texture.set_color_mod(colour.r, colour.g, colour.b);
         texture.set_alpha_mod(colour.a);
     }
@@ -90,5 +90,5 @@ pub struct Spec {
     /// The identifier of the font.
     pub id: Id,
     /// The colour key for the font.
-    pub colour: colour::Key,
+    pub colour: colour::fg::Id,
 }

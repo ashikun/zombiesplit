@@ -1,6 +1,9 @@
 //! The [Pen] struct and implementations.
 
-use super::{colour, font};
+use super::{
+    colour,
+    font::{self, metrics::TextSizer},
+};
 
 /// The pen used for rendering.
 pub struct Pen {
@@ -9,7 +12,9 @@ pub struct Pen {
     /// The metrics of the current font.
     f_metrics: font::Metrics,
     /// The current foreground colour.
-    fg_colour: colour::Key,
+    pub fg_colour: colour::fg::Id,
+    /// The current background colour.
+    pub bg_colour: colour::bg::Id,
 }
 
 impl Pen {
@@ -20,7 +25,8 @@ impl Pen {
         Self {
             font,
             f_metrics: metrics.metrics(font),
-            fg_colour: colour::Key::NoTime,
+            fg_colour: colour::fg::Id::NoTime,
+            bg_colour: colour::bg::Id::Window,
         }
     }
 
@@ -28,11 +34,6 @@ impl Pen {
     pub fn set_font(&mut self, font: font::Id, metrics: &dyn font::metrics::Source<font::Id>) {
         self.font = font;
         self.f_metrics = metrics.metrics(self.font);
-    }
-
-    /// Sets this pen's foreground colour.
-    pub fn set_fg_colour(&mut self, id: colour::Key) {
-        self.fg_colour = id;
     }
 
     /// Gets the pen's current font spec.
@@ -48,5 +49,16 @@ impl Pen {
     #[must_use]
     pub fn font_metrics(&self) -> font::Metrics {
         self.f_metrics
+    }
+}
+
+/// Pens can calculate text size for their current font.
+impl TextSizer for Pen {
+    fn span_w(&self, size: i32) -> i32 {
+        self.f_metrics.span_w(size)
+    }
+
+    fn span_h(&self, size: i32) -> i32 {
+        self.f_metrics.span_h(size)
     }
 }

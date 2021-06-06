@@ -3,6 +3,7 @@
 use std::{cell::RefMut, rc::Rc};
 
 use super::super::error::{Error, Result};
+use super::font::metrics::TextSizer;
 use super::{colour, font, metrics, pen, position::Position};
 use sdl2::{
     rect::{Point, Rect},
@@ -11,18 +12,18 @@ use sdl2::{
 };
 
 /// Trait of things that provide rendering facilities.
-pub trait Renderer {
+pub trait Renderer: font::metrics::TextSizer {
     /// Sets the plotter to the given position.
     fn set_pos(&mut self, pos: Position);
-
-    /// Moves the plotter by the given number of characters in the current font.
-    fn move_chars(&mut self, dx: i32, dy: i32);
 
     /// Sets the current font.
     fn set_font(&mut self, font: font::Id);
 
+    /// Sets the current background colour.
+    fn set_bg_colour(&mut self, colour: colour::bg::Id);
+
     /// Sets the current foreground colour.
-    fn set_fg_colour(&mut self, colour: colour::Key);
+    fn set_fg_colour(&mut self, colour: colour::fg::Id);
 
     /// Puts a string `str` onto the screen at the current coordinate.
     ///
@@ -39,13 +40,15 @@ pub trait Renderer {
     ///
     /// Returns an error if SDL fails to load the font (if it has not been
     /// loaded already), or fails to blit the font onto the screen.
-    fn put_str_r(&mut self, str: &str) -> Result<()> {
-        let len = metrics::sat_i32(str.len());
-        self.move_chars(-len, 0);
-        self.put_str(str)?;
-        self.move_chars(len, 0);
-        Ok(())
-    }
+    fn put_str_r(&mut self, str: &str) -> Result<()>;
+
+    /// Fills the rectangle `rect`, whose top-left is positioned relative to
+    /// the current position, with the current background colour.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if SDL fails to blit the rect onto the screen.
+    fn fill(&mut self, rect: metrics::Rect) -> Result<()>;
 }
 
 /// The low-level window graphics renderer.
@@ -72,29 +75,42 @@ impl<'a> Renderer for Window<'a> {
         )
     }
 
-    fn move_chars(&mut self, dx: i32, dy: i32) {
-        self.set_pos(Position::rel_chars(self.pen.font_metrics(), dx, dy))
+    fn fill(&mut self, rect: metrics::Rect) -> Result<()> {
+        let rect = self.convert_rect(rect);
+        self.set_screen_bg();
+        self.screen.fill_rect(rect).map_err(Error::Blit)?;
+        Ok(())
     }
 
     fn set_font(&mut self, font: font::Id) {
         self.pen.set_font(font, &self.font_manager)
     }
 
-    fn set_fg_colour(&mut self, colour: colour::Key) {
-        self.pen.set_fg_colour(colour)
+    fn set_bg_colour(&mut self, colour: colour::bg::Id) {
+        self.pen.bg_colour = colour
+    }
+
+    fn set_fg_colour(&mut self, colour: colour::fg::Id) {
+        self.pen.fg_colour = colour
     }
 
     fn put_str(&mut self, str: &str) -> Result<()> {
-        let old_pos = self.pos;
-        let texture = self.font_texture()?;
+        self.put_str_at(self.pos, str)
+    }
 
-        for byte in str.as_bytes() {
-            self.put_byte(&texture, *byte, self.pos)?;
-            self.move_chars(1, 0);
-        }
+    fn put_str_r(&mut self, str: &str) -> Result<()> {
+        let w = self.span_w(-metrics::sat_i32(str.len()));
+        self.put_str_at(self.pos.offset(w, 0), str)
+    }
+}
 
-        self.pos = old_pos;
-        Ok(())
+impl<'a> font::metrics::TextSizer for Window<'a> {
+    fn span_w(&self, size: i32) -> i32 {
+        self.pen.span_w(size)
+    }
+
+    fn span_h(&self, size: i32) -> i32 {
+        self.pen.span_h(size)
     }
 }
 
@@ -120,8 +136,8 @@ impl<'a> Window<'a> {
 
     /// Clears the screen.
     pub fn clear(&mut self) {
-        self.screen
-            .set_draw_color(sdl2::pixels::Color::from(self.colour_set.bg.window));
+        self.set_bg_colour(colour::bg::Id::Window);
+        self.set_screen_bg();
         self.screen.clear()
     }
 
@@ -130,12 +146,34 @@ impl<'a> Window<'a> {
         self.screen.present()
     }
 
+    // Sets the screen draw colour to the background colour.
+    fn set_screen_bg(&mut self) {
+        let colour = self.colour_set.bg.get(self.pen.bg_colour);
+        self.screen.set_draw_color(colour)
+    }
+
     fn font_texture(&mut self) -> Result<Rc<Texture<'a>>> {
         Ok(self.font_manager.texture(self.font_spec())?)
     }
 
     fn font_spec(&self) -> font::manager::Spec {
         self.pen.font_spec()
+    }
+
+    fn convert_rect(&self, rect: metrics::Rect) -> sdl2::rect::Rect {
+        let pos = self.pos.offset(rect.x, rect.y);
+        sdl2::rect::Rect::new(pos.x, pos.y, rect.size.w, rect.size.h)
+    }
+
+    fn put_str_at(&mut self, mut pos: Point, str: &str) -> Result<()> {
+        let texture = self.font_texture()?;
+
+        for byte in str.as_bytes() {
+            self.put_byte(&texture, *byte, pos)?;
+            pos.x += self.span_w(1);
+        }
+
+        Ok(())
     }
 
     fn put_byte<'b>(
@@ -185,16 +223,33 @@ impl<'a> Renderer for Region<'a> {
     fn set_pos(&mut self, pos: Position) {
         self.renderer.set_pos(pos.normalise_to_rect(self.rect))
     }
-    fn move_chars(&mut self, dx: i32, dy: i32) {
-        self.renderer.move_chars(dx, dy)
-    }
     fn set_font(&mut self, font: font::Id) {
         self.renderer.set_font(font)
     }
-    fn set_fg_colour(&mut self, colour: colour::Key) {
+    fn set_bg_colour(&mut self, colour: colour::bg::Id) {
+        self.renderer.set_bg_colour(colour)
+    }
+    fn set_fg_colour(&mut self, colour: colour::fg::Id) {
         self.renderer.set_fg_colour(colour)
     }
     fn put_str(&mut self, str: &str) -> Result<()> {
         self.renderer.put_str(str)
+    }
+    fn put_str_r(&mut self, str: &str) -> Result<()> {
+        self.renderer.put_str_r(str)
+    }
+    fn fill(&mut self, rect: metrics::Rect) -> Result<()> {
+        self.renderer.fill(rect)
+    }
+}
+
+/// We delegate text sizing to the next renderer in the chain.
+impl<'a> font::metrics::TextSizer for Region<'a> {
+    fn span_w(&self, size: i32) -> i32 {
+        self.renderer.span_w(size)
+    }
+
+    fn span_h(&self, size: i32) -> i32 {
+        self.renderer.span_h(size)
     }
 }

@@ -10,6 +10,7 @@ pub struct Position {
 
 impl Position {
     /// Make a position relative to the top-left.
+    #[must_use]
     pub fn top_left(x: i32, y: i32) -> Self {
         Self {
             x: X::Left(x),
@@ -17,7 +18,17 @@ impl Position {
         }
     }
 
+    /// Make a position relative to the top-right.
+    #[must_use]
+    pub fn top_right(x: i32, y: i32) -> Self {
+        Self {
+            x: X::Right(x),
+            y: Y::Top(y),
+        }
+    }
+
     /// Make a position relative to the current position.
+    #[must_use]
     pub fn rel(dx: i32, dy: i32) -> Self {
         Self {
             x: X::Rel(dx),
@@ -27,16 +38,23 @@ impl Position {
 
     /// Make a position relative to the current position in terms of characters
     /// in a given font.
-    pub fn rel_chars(metrics: super::font::Metrics, dx: i32, dy: i32) -> Self {
-        Self::rel(metrics.span_w(dx), metrics.span_h(dy))
+    #[must_use]
+    pub fn rel_chars<T: super::font::metrics::TextSizer + ?Sized>(
+        sizer: &T,
+        dx: i32,
+        dy: i32,
+    ) -> Self {
+        Self::rel(sizer.span_w(dx), sizer.span_h(dy))
     }
 
     /// Move X by `x` only.
+    #[must_use]
     pub fn x(x: X) -> Self {
         Self { x, y: Y::Rel(0) }
     }
 
     /// Move Y by `y` only.
+    #[must_use]
     pub fn y(y: Y) -> Self {
         Self { x: X::Rel(0), y }
     }

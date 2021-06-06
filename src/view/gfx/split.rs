@@ -3,7 +3,9 @@
 use std::convert::TryFrom;
 
 use super::{
-    colour, font, metrics,
+    colour,
+    font::{self, metrics::TextSizer},
+    metrics,
     position::{Position, X},
     render::{Region, Renderer},
 };
@@ -68,7 +70,7 @@ impl<'r, 'g, 'p, 's> SplitDrawer<'r, 'g, 'p, 's> {
 
     fn draw_name(&mut self) -> Result<()> {
         self.r.set_font(font::Id::Normal);
-        self.r.set_fg_colour(colour::Key::Name(self.position()));
+        self.r.set_fg_colour(colour::fg::Id::Name(self.position()));
         self.r.put_str(&self.split.name)?;
         Ok(())
     }
@@ -87,23 +89,23 @@ impl<'r, 'g, 'p, 's> SplitDrawer<'r, 'g, 'p, 's> {
         self.r.set_font(font::Id::Normal);
         // TODO(@MattWindsor91): use both dimensions of pace.
         let model::pace::Pair { split, .. } = self.paced_time();
-        self.r.set_fg_colour(colour::Key::Pace(split.pace));
+        self.r.set_fg_colour(colour::fg::Id::Pace(split.pace));
         self.r.put_str_r(&time_str(split.time))
     }
 
     fn draw_time_placeholder(&mut self) -> Result<()> {
         self.r.set_font(font::Id::Normal);
-        self.r.set_fg_colour(colour::Key::NoTime);
+        self.r.set_fg_colour(colour::fg::Id::NoTime);
         self.r.put_str_r("--'--\"---")
     }
 
     /// Draws a representation of the number of times this split has logged.
     fn draw_num_times(&mut self) -> Result<()> {
         // TODO(@MattWindsor91): jog to position more accurately.
-        self.r.move_chars(-10, 0);
+        self.r.set_pos(Position::x(X::Rel(self.r.span_w(-10))));
         self.r.set_font(font::Id::Small);
         // TODO(@MattWindsor91): better key?
-        self.r.set_fg_colour(colour::Key::Header);
+        self.r.set_fg_colour(colour::fg::Id::Header);
         self.r.put_str_r(&format!("{}x", self.split.num_times()))
     }
 

@@ -3,8 +3,6 @@ use serde::{Deserialize, Serialize};
 
 use std::convert::TryFrom;
 
-pub(super) const TIME_CHARS: i32 = 9; // XX'XX"XXX
-
 /// Window metrics.
 #[derive(Copy, Clone, Debug, Deserialize, Serialize)]
 pub struct Window {
@@ -29,10 +27,12 @@ impl Window {
         Rect {
             x: 0,
             y: 0,
-            w: self.win_w,
-            h: self.header_h,
+            size: Size {
+                w: self.win_w,
+                h: self.header_h,
+            },
         }
-        .pad(self.padding)
+        .shrink(self.padding)
     }
 
     /// Gets the bounding box of the splits part of the window.
@@ -41,10 +41,12 @@ impl Window {
         Rect {
             x: 0,
             y: self.splits_y(),
-            w: self.win_w,
-            h: self.splits_h(),
+            size: Size {
+                w: self.win_w,
+                h: self.splits_h(),
+            },
         }
-        .pad(self.padding)
+        .shrink(self.padding)
     }
 
     /// Gets the bounding box of the total part of the window.
@@ -53,17 +55,19 @@ impl Window {
         Rect {
             x: 0,
             y: self.total_y(),
-            w: self.win_w,
-            h: self.total_h,
+            size: Size {
+                w: self.win_w,
+                h: self.total_h,
+            },
         }
-        .pad(self.padding)
+        .shrink(self.padding)
     }
 
     /// Gets the unshifted bounding box of the editor part of the window.
     #[must_use]
     pub fn editor_rect(&self) -> Rect {
         let mut r = self.splits_rect();
-        r.h = self.split_h;
+        r.size.h = self.split_h;
         r
     }
 
@@ -91,6 +95,47 @@ where
     i32::try_from(x).unwrap_or(i32::MAX)
 }
 
+/// A two-dimensional size.
+#[derive(Clone, Copy, Debug)]
+pub struct Size {
+    /// Width in pixels.
+    pub w: u32,
+    /// Height in pixels.
+    pub h: u32,
+}
+
+impl Size {
+    /// Shrinks the size in both dimensions by `amount`.
+    #[must_use]
+    pub fn shrink(self, amount: u32) -> Self {
+        Self {
+            w: self.w - amount,
+            h: self.h - amount,
+        }
+    }
+
+    /// Grows the size in both dimensions by `amount`.
+    #[must_use]
+    pub fn grow(self, amount: u32) -> Self {
+        Self {
+            w: self.w + amount,
+            h: self.h + amount,
+        }
+    }
+
+    /// Gets the width as a signed integer, saturating if needed.
+    #[must_use]
+    pub fn w_i32(self) -> i32 {
+        sat_i32(self.w)
+    }
+
+    /// Gets the height as a signed integer, saturating if needed.
+    #[must_use]
+    pub fn h_i32(self) -> i32 {
+        sat_i32(self.h)
+    }
+}
+
 /// Output-independent rectangle.
 #[derive(Clone, Copy, Debug)]
 pub struct Rect {
@@ -98,33 +143,40 @@ pub struct Rect {
     pub x: i32,
     /// Y position of top.
     pub y: i32,
-    /// Width in pixels.
-    pub w: u32,
-    /// Height in pixels.
-    pub h: u32,
+    /// Size of the rectangle.
+    pub size: Size,
 }
 
 impl Rect {
     /// Gets the right X co-ordinate.
     #[must_use]
     pub fn x2(self) -> i32 {
-        self.x + sat_i32(self.w)
+        self.x + self.size.w_i32()
     }
 
     /// Gets the bottom Y co-ordinate.
     #[must_use]
     pub fn y2(self) -> i32 {
-        self.y + sat_i32(self.h)
+        self.y + self.size.h_i32()
     }
 
-    /// Produces a new [Rect] by inserting padding into the given [Rect].
+    /// Produces a new [Rect] by shrinking the given [Rect] by `amount` on each side.
     #[must_use]
-    pub fn pad(self, amount: u32) -> Self {
+    pub fn shrink(self, amount: u32) -> Self {
         Self {
             x: self.x + sat_i32(amount),
             y: self.y + sat_i32(amount),
-            w: self.w - (amount * 2),
-            h: self.h - (amount * 2),
+            size: self.size.shrink(amount * 2),
+        }
+    }
+
+    /// Produces a new [Rect] by growing the given [Rect] by `amount` on each side.
+    #[must_use]
+    pub fn grow(self, amount: u32) -> Self {
+        Self {
+            x: self.x - sat_i32(amount),
+            y: self.y - sat_i32(amount),
+            size: self.size.grow(amount * 2),
         }
     }
 }

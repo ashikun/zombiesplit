@@ -39,7 +39,9 @@ fn from_key(k: sdl2::keyboard::Keycode) -> Option<Event> {
         Keycode::S => Some(Event::EnterField(position::Name::Seconds)),
         Keycode::Period => Some(Event::EnterField(position::Name::Milliseconds)),
         // Cursor motions
-        Keycode::J | Keycode::Down | Keycode::Space | Keycode::Return => Some(Event::Cursor(cursor::Motion::Down)),
+        Keycode::J | Keycode::Down | Keycode::Space | Keycode::Return => {
+            Some(Event::Cursor(cursor::Motion::Down))
+        }
         Keycode::K | Keycode::Up => Some(Event::Cursor(cursor::Motion::Up)),
         // Top-level commands
         Keycode::H | Keycode::Left => Some(Event::Undo),

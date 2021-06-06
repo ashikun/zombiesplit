@@ -44,16 +44,19 @@
 	metrics.pad.w = 1
 	metrics.pad.h = 1
 
-[ui.colours]
-	# Based on the Endesga EDG32 palette
-	bg.window = "rgb(38,43,68)" # Shade
-	fg.editor = "rgb(0,149,233)" # Archaeon
-	fg.editor_field = "rgb(44,232,245)" # Ion
-	fg.cursor = "rgb(246,117,112)" # Peach
-	fg.done = "rgb(90,105,136)" # Iron
-	fg.normal = "white"
-	fg.header = "rgb(192,203,220)" # Zinc
-	fg.time_none = "rgb(58,68,102)" # Steel
-	fg.time_run_ahead = "rgb(62,137,72)" # Flora
-	fg.time_run_behind = "rgb(255,0,68)" # Iiem
-	fg.time_split_ahead = "rgb(254,174,52)" # Glow
+# Based on the Endesga EDG32 palette
+[ui.colours.bg]
+	window = "rgb(38,43,68)" # Shade
+	editor = "rgb(18,78,137)" # Deep
+	editor_field = "rgb(0,149,233)" # Archaeon
+[ui.colours.fg]
+	editor = "rgb(44,232,245)" # Ion
+	editor_field = "white"
+	cursor = "rgb(246,117,112)" # Peach
+	done = "rgb(90,105,136)" # Iron
+	normal = "white"
+	header = "rgb(192,203,220)" # Zinc
+	time_none = "rgb(58,68,102)" # Steel
+	time_run_ahead = "rgb(62,137,72)" # Flora
+	time_run_behind = "rgb(255,0,68)" # Iiem
+	time_split_ahead = "rgb(254,174,52)" # Glow
