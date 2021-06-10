@@ -1,5 +1,11 @@
 //! Models used in zombiesplit.
-pub mod pace;
+pub mod comparison;
+pub mod db;
 pub mod run;
+pub mod session;
 pub mod split;
 pub mod time;
+
+pub use run::Run;
+pub use session::{Metadata, Session};
+pub use time::Time;

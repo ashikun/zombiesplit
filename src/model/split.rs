@@ -1,6 +1,6 @@
 //! Splits and related items.
 
-use super::{pace::Pace, time::Time};
+use super::time::Time;
 
 /// A split in a run.
 pub struct Split {
@@ -54,36 +54,36 @@ impl Split {
     }
 }
 
-/// Split comparisons.
-pub struct Comparison {
-    /// The personal best for this split, if any.
-    pub split: Option<Time>,
-    /// The time for this split in the comparison run, if any.
-    pub in_run: Option<Time>,
-}
+/// Trait for things that contain splits.
+pub trait Set {
+    /// Gets the name of the split at `split`, if it exists.
+    fn name_at(&self, split: usize) -> &str;
 
-impl Comparison {
-    /// Compares `split_time` against this comparison.
+    /// Wipes all data for all splits, incrementing any attempt counter.
+    fn reset(&mut self);
+
+    /// Removes all times from the split at `split`, if it exists.
+    fn clear_at(&mut self, split: usize);
+
+    /// Pushes the time `time` onto the split at `split`, if it exists.
+    fn push_to(&mut self, split: usize, time: Time);
+
+    /// Pops a time from the split at `split`, if it exists.
+    fn pop_from(&mut self, split: usize) -> Option<Time>;
+
+    /// Gets the total time up to and including `split`.
     #[must_use]
-    pub fn pace(&self, split_time: Time) -> Pace {
-        if self.is_pb(split_time) {
-            Pace::PersonalBest
-        } else {
-            self.pace_from_run(split_time)
-        }
-    }
+    fn total_at(&self, split: usize) -> Time;
 
-    fn pace_from_run(&self, split_time: Time) -> Pace {
-        self.in_run.map_or(Pace::default(), |cmp| {
-            if split_time <= cmp {
-                Pace::Ahead
-            } else {
-                Pace::Behind
-            }
-        })
-    }
+    /// Gets the number of times logged for the split at `split`.
+    #[must_use]
+    fn num_times_at(&self, split: usize) -> usize;
 
-    fn is_pb(&self, split_time: Time) -> bool {
-        self.split.map_or(false, |pb| split_time < pb)
-    }
+    /// Gets the summed time logged for the split at `split`.
+    #[must_use]
+    fn time_at(&self, split: usize) -> Time;
+
+    /// Gets the number of splits in this set.
+    #[must_use]
+    fn num_splits(&self) -> usize;
 }

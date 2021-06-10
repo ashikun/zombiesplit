@@ -9,8 +9,9 @@ use super::{
     nav::Nav,
 };
 use crate::model::{
-    run::Run,
+    split::Set,
     time::{self, position},
+    Session,
 };
 
 /// A split editor.
@@ -26,7 +27,7 @@ pub struct Editor {
 }
 
 impl Mode for Editor {
-    fn handle_event(&mut self, e: &Event, _: &mut Run) -> EventResult {
+    fn handle_event(&mut self, e: &Event, _: &mut Session) -> EventResult {
         match e {
             Event::Undo => self.undo(),
             Event::Delete => self.delete(),
@@ -37,9 +38,9 @@ impl Mode for Editor {
         }
     }
 
-    fn commit(&mut self, run: &mut Run) {
+    fn commit(&mut self, session: &mut Session) {
         self.commit_field();
-        run.push_to(self.cur.position(), std::mem::take(&mut self.time));
+        session.push_to(self.cur.position(), std::mem::take(&mut self.time));
     }
 
     fn cursor(&self) -> Option<&Cursor> {

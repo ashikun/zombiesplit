@@ -1,8 +1,5 @@
 //! Configuration structs for games, split groups, splits, records, and categories.
-use crate::model::{
-    run::{self, Metadata},
-    split, time,
-};
+use crate::model::{split, time, Metadata, Run, Session};
 
 use serde::{Deserialize, Serialize};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
@@ -40,7 +37,7 @@ impl Game {
         Ok(toml::from_str(&contents)?)
     }
 
-    /// Creates a new run using the game as a template.
+    /// Creates a new session using the game as a template.
     ///
     /// This is a temporary function that will likely go away once we implement
     /// sqlite integration.
@@ -49,17 +46,18 @@ impl Game {
     ///
     /// Returns an error if the configuration references a category or group
     /// that is not available elsewhere in the configuration.
-    pub fn to_run(&self, category: &str) -> Result<run::Run> {
+    pub fn to_run(&self, category: &str) -> Result<Session> {
         let cat = self.expand_category(category)?;
         // TODO(@MattWindsor91): check groups are valid
 
-        Ok(run::Run {
-            attempt: 0,
-            metadata: self.to_metadata(&cat),
-            splits: self.to_splits(&cat)?,
-            // TODO(@MattWindsor91): add comparisons
-            comparisons: vec![],
-        })
+        Ok(Session::new(
+            self.to_metadata(&cat),
+            Run {
+                attempt: 0,
+                splits: self.to_splits(&cat)?,
+            },
+        ))
+        // TODO(@MattWindsor91): add comparisons
     }
 
     fn expand_category(&self, category: &str) -> Result<&Category> {
@@ -68,7 +66,7 @@ impl Game {
             .ok_or_else(|| Error::MissingCategory(category.to_owned()))
     }
 
-    fn to_metadata(&self, category: &Category) -> run::Metadata {
+    fn to_metadata(&self, category: &Category) -> Metadata {
         Metadata {
             game: self.name.clone(),
             category: category.name.clone(),

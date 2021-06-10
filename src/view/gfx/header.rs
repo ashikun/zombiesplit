@@ -6,7 +6,7 @@ use super::{
     render::{Region, Renderer},
     widget,
 };
-use crate::{model::run::Metadata, presenter::Presenter, view::error::Result};
+use crate::{model::Metadata, presenter::Presenter, view::error::Result};
 
 /// Views information about the run in the form of a header.
 pub struct Widget {
@@ -20,8 +20,8 @@ impl widget::Widget for Widget {
 
         r.set_fg_colour(colour::fg::Id::Header);
 
-        render_meta(&mut r, &p.run.metadata)?;
-        render_attempt(&mut r, p.run.attempt)?;
+        render_meta(&mut r, &p.session.metadata)?;
+        render_attempt(&mut r, p.session.attempt())?;
         Ok(())
     }
 }

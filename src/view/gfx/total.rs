@@ -7,7 +7,7 @@ use super::{
     split::time_str,
     widget,
 };
-use crate::{model::pace, presenter::Presenter, view::error::Result};
+use crate::{model::comparison::pace, presenter::Presenter, view::error::Result};
 
 /// Views the total time for a run.
 pub struct Widget {

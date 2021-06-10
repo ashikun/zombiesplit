@@ -6,7 +6,7 @@ use super::{
     event::Event,
     mode::{EventResult, Mode},
 };
-use crate::model::{run::Run, time::position};
+use crate::model::{split::Set, time::position, Session};
 
 /// Mode for when we are navigating splits.
 pub struct Nav {
@@ -15,12 +15,12 @@ pub struct Nav {
 }
 
 impl Mode for Nav {
-    fn handle_event(&mut self, e: &Event, r: &mut Run) -> EventResult {
+    fn handle_event(&mut self, e: &Event, s: &mut Session) -> EventResult {
         match e {
             Event::Cursor(c) => self.move_cursor(*c),
             Event::EnterField(f) => self.enter_field(*f),
-            Event::Undo => self.undo(r),
-            Event::Delete => self.delete(r),
+            Event::Undo => self.undo(s),
+            Event::Delete => self.delete(s),
             _ => EventResult::NotHandled,
         }
     }
@@ -44,16 +44,16 @@ impl Nav {
     }
 
     /// Performs an undo on the current split, if any.
-    fn undo(&mut self, r: &mut Run) -> EventResult {
-        r.pop_from(self.cur.position())
+    fn undo(&mut self, s: &mut Session) -> EventResult {
+        s.pop_from(self.cur.position())
             .map_or(EventResult::Handled, |time| {
                 EventResult::transition(Editor::with_time(self.cur, time))
             })
     }
 
     /// Performs a delete on the current split, if any.
-    fn delete(&mut self, r: &mut Run) -> EventResult {
-        r.reset_at(self.cur.position());
+    fn delete(&mut self, s: &mut Session) -> EventResult {
+        s.clear_at(self.cur.position());
         EventResult::Handled
     }
 

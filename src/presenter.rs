@@ -6,7 +6,7 @@ pub mod event;
 pub mod mode;
 pub mod nav;
 
-use crate::model::{pace, run};
+use crate::model::{comparison::pace, split::Set, Session};
 pub use editor::Editor;
 
 use self::cursor::SplitPosition;
@@ -17,16 +17,16 @@ pub struct Presenter {
     /// The current mode.
     pub mode: Box<dyn mode::Mode>,
     /// The current run.
-    pub run: run::Run,
+    pub session: Session,
 }
 
 impl Presenter {
-    /// Constructs a new initial state for a given run.
+    /// Constructs a new initial state for a given session.
     #[must_use]
-    pub fn new(run: run::Run) -> Self {
+    pub fn new(session: Session) -> Self {
         Self {
             mode: Box::new(mode::Inactive),
-            run,
+            session,
         }
     }
 
@@ -54,7 +54,7 @@ impl Presenter {
     #[must_use]
     pub fn run_pace(&self) -> pace::Pair {
         self.mode.cursor().map_or(pace::Pair::default(), |c| {
-            self.run.paced_time_at(c.position())
+            self.session.paced_time_at(c.position())
         })
     }
 
@@ -63,7 +63,7 @@ impl Presenter {
     /// Events are offered to the current mode first, and handled globally if
     /// the event is refused by the mode.
     pub fn handle_event(&mut self, e: &event::Event) {
-        match self.mode.handle_event(e, &mut self.run) {
+        match self.mode.handle_event(e, &mut self.session) {
             mode::EventResult::Transition(new_mode) => self.transition(new_mode),
             mode::EventResult::NotHandled => self.handle_event_globally(e),
             mode::EventResult::Handled => (),
@@ -73,7 +73,7 @@ impl Presenter {
     fn handle_event_globally(&mut self, e: &event::Event) {
         use event::Event;
         match e {
-            Event::Commit => self.mode.commit(&mut self.run),
+            Event::Commit => self.mode.commit(&mut self.session),
             Event::NewRun => self.start_new_run(),
             Event::Quit => self.quit(),
             _ => (),
@@ -81,15 +81,14 @@ impl Presenter {
     }
 
     fn transition(&mut self, new_mode: Box<dyn mode::Mode>) {
-        self.mode.commit(&mut self.run);
+        self.mode.commit(&mut self.session);
         self.mode = new_mode
     }
 
     /// Starts a new run, abandoning any previous run.
     fn start_new_run(&mut self) {
-        // TODO(@MattWindsor91): actually reset the run here.
-        self.run.reset();
-        let cur = cursor::Cursor::new(self.run.splits.len() - 1);
+        self.session.reset();
+        let cur = cursor::Cursor::new(self.session.num_splits() - 1);
         // Don't commit the previous mode.
         self.mode = Box::new(nav::Nav::new(cur))
     }

@@ -1,6 +1,6 @@
 //! The Mode trait and associated functionality.
 
-use crate::model::run::Run;
+use crate::model::Session;
 
 use super::{cursor::Cursor, editor::Editor, event::Event};
 
@@ -17,12 +17,12 @@ pub trait Mode {
     ///
     /// Note that the presenter also handles some events at the global
     /// level.
-    fn handle_event(&mut self, _e: &Event, _run: &mut Run) -> EventResult {
+    fn handle_event(&mut self, _e: &Event, _session: &mut Session) -> EventResult {
         EventResult::NotHandled
     }
 
     /// Commits any outstanding changes the mode needs to do to the model.
-    fn commit(&mut self, _run: &mut Run) {}
+    fn commit(&mut self, _session: &mut Session) {}
 
     /// If this mode has a cursor, retrieves it.
     fn cursor(&self) -> Option<&Cursor> {
