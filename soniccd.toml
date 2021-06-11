@@ -4,79 +4,58 @@ name = "Sonic CD (2011)"
     name = "Palmtree Panic"
     [[groups.pp.splits]]
         name = "Palmtree Panic 1"
-        records.il = "0m0s0"
     [[groups.pp.splits]]
         name = "Palmtree Panic 2"
-        records.il = "0m0s0"
     [[groups.pp.splits]]
         name = "Palmtree Panic 3"
-        records.il = "0m0s0"
 [groups.cc]
     name = "Collision Chaos"
     [[groups.cc.splits]]
         name = "Collision Chaos 1"
-        records.il = "0m0s0"
     [[groups.cc.splits]]
         name = "Collision Chaos 2"
-        records.il = "0m0s0"
     [[groups.cc.splits]]
         name = "Collision Chaos 3"
-        records.il = "0m0s0"
 [groups.tt]
     name = "Tidal Tempest"
     [[groups.tt.splits]]
         name = "Tidal Tempest 1"
-        records.il = "0m0s0"
     [[groups.tt.splits]]
         name = "Tidal Tempest 2"
-        records.il = "0m0s0"
     [[groups.tt.splits]]
         name = "Tidal Tempest 3"
-        records.il = "0m0s0"
 [groups.qq]
     name = "Quartz Quadrant"
     [[groups.qq.splits]]
         name = "Quartz Quadrant 1"
-        records.il = "0m0s0"
     [[groups.qq.splits]]
         name = "Quartz Quadrant 2"
-        records.il = "0m0s0"
     [[groups.qq.splits]]
         name = "Quartz Quadrant 3"
-        records.il = "0m0s0"
 [groups.ww]
     name = "Wacky Workbench"
     [[groups.ww.splits]]
         name = "Wacky Workbench 1"
-        records.il = "0m0s0"
     [[groups.ww.splits]]
         name = "Wacky Workbench 2"
-        records.il = "0m0s0"
     [[groups.ww.splits]]
         name = "Wacky Workbench 3"
-        records.il = "0m0s0"
 [groups.ss]
     name = "Stardust Speedway"
     [[groups.ss.splits]]
         name = "Stardust Speedway 1"
-        records.il = "0m0s0"
     [[groups.ss.splits]]
         name = "Stardust Speedway 2"
-        records.il = "0m0s0"
     [[groups.ss.splits]]
         name = "Stardust Speedway 3"
-        records.il = "0m0s0"
 [groups.mm]
     name = "Metallic Madness"
     [[groups.mm.splits]]
         name = "Metallic Madness 1"
-        records.il = "0m0s0"
     [[groups.mm.splits]]
         name = "Metallic Madness 2"
-        records.il = "0m0s0"
     [[groups.mm.splits]]
         name = "Metallic Madness 3"
-        records.il = "0m0s0"
 
 [categories.btg]
 name = "Beat the Game"

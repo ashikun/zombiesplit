@@ -10,9 +10,11 @@ edition = "2018"
 anyhow = "1.0.40"
 clap = "2.33.0"
 css-color-parser = "0.1.2"
+env_logger = "0.8.3"
+log = { version = "0.4", features = ["serde", "std"] }
 rusqlite = "0.25.0"
 sdl2 = { version = "0.34.4", features = ["image"] }
 serde = { version = "1.0.125", features = ["derive"] }
-serde_with = "1.8.0" 
+serde_with = "1.8.0"
 thiserror = "1.0.24"
 toml = "0.5.8"

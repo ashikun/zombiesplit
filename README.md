@@ -5,10 +5,36 @@ don't have enough side projects already.
 
 Licenced under MIT.
 
+## Initialisation
+
+_NOTE:_ zombiesplit currently looks in `.` for pretty much everything - config,
+database, game files.  This might be fixed later, but for now the easiest way to
+try zombiesplit is `cargo run`ning it out of a working copy.
+
+zombiesplit uses a SQLite database to store game and (eventually) run data;
+before using zombiesplit you'll need to run:
+
+```
+# or `zombiesplit init`
+$ cargo run -- init
+```
+
+To teach zombiesplit about a game, use
+
+```
+$ cargo run -- add soniccd
+```
+
+where `soniccd.toml` is a game specification file (conveniently, this is the
+one pre-packed with zombiesplit as an example).
+
 ## Operation
 
-_Note:_ a lot of the setup is hardcoded atm, so this is likely not useful
-for anything other than timing Sonic CD BTG.
+Supposing we've added a game `soniccd` with a category `btg`, run:
+
+```
+$ cargo run -- run soniccd btg
+```
 
 zombiesplit has a semi-modal, vi-style user interface.  It has three modes:
 
@@ -27,17 +53,18 @@ Its main keybindings are:
   right-padded by 0, eg `5` = `500`).
 
 
-## Current Features
+## Current features
 
 - Edit manual IGT splits
 - Multiple times per split (useful for tracking deaths/resets)
 - Track total time across splits
 
-## Intended Design
+## Planned features
 
-Note that none of this is implemented yet.
+Note that none of this is implemented yet.  Also see the GitHub issues page.
 
-- Program games by TOML configuration
+- Program games by easily shareable TOML configuration
+  - Rudimentary access for editing, removing, and backing up game data
 - Emphasis (initially at least) on manual IGT entry, maybe RTA later
 - Save splits to a local SQLite file
   - Use saved splits for pacing

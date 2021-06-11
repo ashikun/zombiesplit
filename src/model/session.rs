@@ -96,6 +96,8 @@ impl Set for Session {
 
 /// Metadata in a run.
 pub struct Metadata {
+    /// The numeric ID of the category in the database.
+    pub category_id: i64,
     /// The name of the game.
     pub game: String,
     /// The name of the category.

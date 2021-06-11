@@ -1,5 +1,6 @@
-//! Configuration structs for games, split groups, splits, records, and categories.
-use crate::model::{split, time, Metadata, Run, Session};
+//! Models for defining games.
+
+use super::time;
 
 use serde::{Deserialize, Serialize};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
@@ -36,59 +37,6 @@ impl Game {
         file.read_to_string(&mut contents)?;
         Ok(toml::from_str(&contents)?)
     }
-
-    /// Creates a new session using the game as a template.
-    ///
-    /// This is a temporary function that will likely go away once we implement
-    /// sqlite integration.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the configuration references a category or group
-    /// that is not available elsewhere in the configuration.
-    pub fn to_run(&self, category: &str) -> Result<Session> {
-        let cat = self.expand_category(category)?;
-        // TODO(@MattWindsor91): check groups are valid
-
-        Ok(Session::new(
-            self.to_metadata(&cat),
-            Run {
-                attempt: 0,
-                splits: self.to_splits(&cat)?,
-            },
-        ))
-        // TODO(@MattWindsor91): add comparisons
-    }
-
-    fn expand_category(&self, category: &str) -> Result<&Category> {
-        self.categories
-            .get(category)
-            .ok_or_else(|| Error::MissingCategory(category.to_owned()))
-    }
-
-    fn to_metadata(&self, category: &Category) -> Metadata {
-        Metadata {
-            game: self.name.clone(),
-            category: category.name.clone(),
-        }
-    }
-
-    fn to_splits(&self, category: &Category) -> Result<Vec<split::Split>> {
-        let mut splits = vec![];
-        for groupid in &category.groups {
-            let group = self
-                .groups
-                .get(groupid)
-                .ok_or_else(|| Error::MissingGroup(groupid.clone()))?;
-            splits.extend(
-                group
-                    .splits
-                    .iter()
-                    .map(|split| split::Split::new(&split.name)),
-            )
-        }
-        Ok(splits)
-    }
 }
 
 /// A run category.
@@ -116,6 +64,7 @@ pub struct Split {
     /// The split name.
     pub name: String,
     /// The set of records configured for this split.
+    #[serde(default)]
     pub records: HashMap<CategoryId, Record>,
 }
 
