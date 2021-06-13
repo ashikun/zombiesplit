@@ -21,9 +21,23 @@ impl Db {
     /// Returns errors from the underlying database library if the connection
     /// opening failed.
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
-        Ok(Self {
-            conn: rusqlite::Connection::open(path)?,
-        })
+        Ok(Self::from_sqlite(rusqlite::Connection::open(path)?))
+    }
+
+    /// Opens a database connection in memory.
+    ///
+    /// Useful for testing, mainly.
+    ///
+    /// # Errors
+    ///
+    /// Returns errors from the underlying database library if the connection
+    /// opening failed.
+    pub fn in_memory() -> Result<Self> {
+        Ok(Self::from_sqlite(rusqlite::Connection::open_in_memory()?))
+    }
+
+    fn from_sqlite(conn: rusqlite::Connection) -> Self {
+        Self { conn }
     }
 
     /// Initialises the database for first use.
