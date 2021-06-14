@@ -59,6 +59,6 @@ impl Set for Run {
     }
 
     fn name_at(&self, split: usize) -> &str {
-        self.splits.get(split).map_or("Unknown", |s| &s.name)
+        self.splits.get(split).map_or("Unknown", |s| &s.name())
     }
 }

@@ -2,7 +2,11 @@
 
 pub mod error;
 mod init;
-use crate::model::{game, split::Split, Metadata, Run, Session};
+use crate::model::{
+    game,
+    split::{self, Split},
+    Metadata, Run, Session,
+};
 use rusqlite::params;
 use std::{collections::HashMap, path::Path};
 
@@ -212,7 +216,7 @@ impl Db {
         self.conn
             .prepare(
                 "
-        SELECT split.name
+        SELECT split.id, split.name
         FROM       split
         INNER JOIN segment_split    ON (split.id                = segment_split.splitid     )
         INNER JOIN category_segment ON (segment_split.segmentid = category_segment.segmentid)
@@ -222,7 +226,11 @@ impl Db {
         ;",
             )?
             .query_and_then(params![category_id], |row| {
-                Ok(Split::new(&row.get::<_, String>(0)?))
+                let meta = split::Metadata {
+                    id: row.get(0)?,
+                    name: row.get(1)?,
+                };
+                Ok(Split::new(meta))
             })?
             .collect()
     }

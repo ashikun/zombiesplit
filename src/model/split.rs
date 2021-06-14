@@ -1,24 +1,31 @@
 //! Splits and related items.
 
 use super::time::Time;
+use std::rc::Rc;
 
 /// A split in a run.
 pub struct Split {
-    /// The name of the split.
-    pub name: String,
+    /// A reference to the metadata for this split.
+    pub metadata: Rc<Metadata>,
     /// The entered times.
     /// Invariant: none of the times are zero.
     times: Vec<Time>,
 }
 
-impl Split {
-    /// Creates a new split with the given name and an empty time.
+impl<'a> Split {
+    /// Creates a new split with the given metadata and an empty time.
     #[must_use]
-    pub fn new(name: &str) -> Self {
+    pub fn new<T: Into<Rc<Metadata>>>(metadata: T) -> Self {
         Self {
-            name: name.to_owned(),
+            metadata: metadata.into(),
             times: Vec::new(),
         }
+    }
+
+    /// Borrows this split's name.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        &self.metadata.name
     }
 
     /// Calculates the summed time of the split.
@@ -86,4 +93,15 @@ pub trait Set {
     /// Gets the number of splits in this set.
     #[must_use]
     fn num_splits(&self) -> usize;
+}
+
+/// Metadata about a split.
+///
+/// Records here correspond to entries in the `split` table.
+pub struct Metadata {
+    /// The ID of this split in the table.
+    pub id: i64,
+    /// The display name of this split.
+    pub name: String,
+    // TODO(@MattWindsor91): segments
 }
