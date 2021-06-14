@@ -73,7 +73,7 @@ impl Db {
     ///
     /// Raises an error if any of the SQL queries relating to inserting a game
     /// fail.
-    pub fn add_game(&self, short: &str, game: &game::Game) -> Result<()> {
+    pub fn add_game(&self, short: &str, game: &game::Config) -> Result<()> {
         log::info!("adding game {}", short);
 
         self.conn.execute(
@@ -97,7 +97,7 @@ impl Db {
         &self,
         gameid: i64,
         short: &str,
-        cat: &game::Category,
+        cat: &game::config::Category,
         segment_ids: &HashMap<String, i64>,
     ) -> Result<()> {
         log::info!("adding category {} for game ID {}", short, gameid);
@@ -124,14 +124,14 @@ impl Db {
         Ok(())
     }
 
-    fn add_segments(&self, game: &game::Game) -> Result<HashMap<String, i64>> {
-        game.groups
+    fn add_segments(&self, game: &game::Config) -> Result<HashMap<String, i64>> {
+        game.segments
             .iter()
             .map(|(short, segment)| Ok((short.clone(), self.add_segment(short, segment)?)))
             .collect()
     }
 
-    fn add_segment(&self, short: &str, seg: &game::Group) -> Result<i64> {
+    fn add_segment(&self, short: &str, seg: &game::config::Segment) -> Result<i64> {
         log::info!("adding segment {} ('{}')", short, seg.name);
 
         self.conn.execute(
@@ -149,7 +149,7 @@ impl Db {
         Ok(segid)
     }
 
-    fn add_split(&self, segid: i64, position: usize, split: &game::Split) -> Result<()> {
+    fn add_split(&self, segid: i64, position: usize, split: &game::config::Split) -> Result<()> {
         log::info!("adding split '{}' for segment ID {}", split.name, segid);
 
         self.conn
@@ -237,10 +237,10 @@ impl Db {
 }
 
 fn category_segment_ids(
-    cat: &game::Category,
+    cat: &game::config::Category,
     segment_ids: &HashMap<String, i64>,
 ) -> Result<Vec<i64>> {
-    cat.groups
+    cat.segments
         .iter()
         .map(|short| {
             segment_ids

@@ -1,6 +1,6 @@
 //! Tests the database functionality on an in-memory database.
 
-use zombiesplit::{model::Game, Db};
+use zombiesplit::{model::game, Db};
 
 /// Tests initialising the database and inserting the sample game.
 #[test]
@@ -8,7 +8,7 @@ fn test_sample_session() {
     let db = Db::in_memory().expect("couldn't open db in memory");
     db.init().expect("couldn't initialise database");
 
-    let game = Game::load("soniccd.toml").expect("couldn't load sample game");
+    let game = game::Config::load("soniccd.toml").expect("couldn't load sample game");
     db.add_game("soniccd", &game)
         .expect("couldn't add game to database");
 
