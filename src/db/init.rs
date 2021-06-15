@@ -57,6 +57,7 @@ pub(super) const SPLIT_SQL: &str = "
 CREATE TABLE IF NOT EXISTS
     split
         ( id    INTEGER PRIMARY KEY
+        , short TEXT
         , name  TEXT
         );
 ";

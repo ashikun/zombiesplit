@@ -1,20 +1,21 @@
 //! Top-level module for the model's sqlite database.
 
 pub mod error;
+pub mod game;
 mod init;
 use crate::model::{
-    game,
+    game::Config,
     split::{self, Split},
     Metadata, Run, Session,
 };
 use rusqlite::params;
-use std::{collections::HashMap, path::Path};
+use std::path::Path;
 
 pub use error::{Error, Result};
 
 /// A connection to zombiesplit's database.
 pub struct Db {
-    conn: rusqlite::Connection,
+    pub(super) conn: rusqlite::Connection,
 }
 
 impl Db {
@@ -73,95 +74,8 @@ impl Db {
     ///
     /// Raises an error if any of the SQL queries relating to inserting a game
     /// fail.
-    pub fn add_game(&self, short: &str, game: &game::Config) -> Result<()> {
-        log::info!("adding game {}", short);
-
-        self.conn.execute(
-            "INSERT INTO game (short, name) VALUES (?1, ?2);",
-            params![short, game.name],
-        )?;
-        let gameid = self.conn.last_insert_rowid();
-
-        log::info!("game {} -> ID {}", short, gameid);
-
-        let segment_ids = self.add_segments(game)?;
-
-        for (short, category) in &game.categories {
-            self.add_category(gameid, short, category, &segment_ids)?;
-        }
-
-        Ok(())
-    }
-
-    fn add_category(
-        &self,
-        gameid: i64,
-        short: &str,
-        cat: &game::config::Category,
-        segment_ids: &HashMap<String, i64>,
-    ) -> Result<()> {
-        log::info!("adding category {} for game ID {}", short, gameid);
-
-        self.conn.execute(
-            "INSERT INTO category (short, name) VALUES (?1, ?2);",
-            params![short, cat.name],
-        )?;
-        let catid = self.conn.last_insert_rowid();
-
-        log::info!("category {} -> ID {}", short, catid);
-
-        self.conn.execute(
-            "INSERT INTO game_category (gameid, categoryid) VALUES (?1, ?2);",
-            params![gameid, catid],
-        )?;
-
-        for (position, segid) in category_segment_ids(cat, segment_ids)?.iter().enumerate() {
-            self.conn.execute(
-                "INSERT INTO category_segment (categoryid, segmentid, position) VALUES (?1, ?2, ?3);"
-            , params![catid, segid, position])?;
-        }
-
-        Ok(())
-    }
-
-    fn add_segments(&self, game: &game::Config) -> Result<HashMap<String, i64>> {
-        game.segments
-            .iter()
-            .map(|(short, segment)| Ok((short.clone(), self.add_segment(short, segment)?)))
-            .collect()
-    }
-
-    fn add_segment(&self, short: &str, seg: &game::config::Segment) -> Result<i64> {
-        log::info!("adding segment {} ('{}')", short, seg.name);
-
-        self.conn.execute(
-            "INSERT INTO segment (short, name) VALUES (?1, ?2);",
-            params![short, seg.name],
-        )?;
-        let segid = self.conn.last_insert_rowid();
-
-        log::info!("segment {} -> ID {}", short, segid);
-
-        for (position, split) in seg.splits.iter().enumerate() {
-            self.add_split(segid, position, split)?;
-        }
-
-        Ok(segid)
-    }
-
-    fn add_split(&self, segid: i64, position: usize, split: &game::config::Split) -> Result<()> {
-        log::info!("adding split '{}' for segment ID {}", split.name, segid);
-
-        self.conn
-            .execute("INSERT INTO split (name) VALUES (?1);", params![split.name])?;
-        let splitid = self.conn.last_insert_rowid();
-
-        self.conn.execute(
-            "INSERT INTO segment_split (segmentid, splitid, position) VALUES (?1, ?2, ?3);",
-            params![segid, splitid, position],
-        )?;
-
-        Ok(())
+    pub fn add_game(&self, short: &str, game: &Config) -> Result<()> {
+        game::Inserter::new(self)?.add_game(short, game)
     }
 
     /// Initialises a session for the short-named `game` and `category`.
@@ -234,19 +148,4 @@ impl Db {
             })?
             .collect()
     }
-}
-
-fn category_segment_ids(
-    cat: &game::config::Category,
-    segment_ids: &HashMap<String, i64>,
-) -> Result<Vec<i64>> {
-    cat.segments
-        .iter()
-        .map(|short| {
-            segment_ids
-                .get(short)
-                .copied()
-                .ok_or_else(|| Error::NoPrimaryKey(short.clone()))
-        })
-        .collect()
 }

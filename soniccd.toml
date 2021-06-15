@@ -1,65 +1,79 @@
 name = "Sonic CD (2011)"
 
-[groups.pp]
+[segments.pp]
     name = "Palmtree Panic"
-    [[groups.pp.splits]]
-        name = "Palmtree Panic 1"
-    [[groups.pp.splits]]
-        name = "Palmtree Panic 2"
-    [[groups.pp.splits]]
-        name = "Palmtree Panic 3"
-[groups.cc]
+    splits = ["pp1", "pp2", "pp3"]
+[segments.cc]
     name = "Collision Chaos"
-    [[groups.cc.splits]]
-        name = "Collision Chaos 1"
-    [[groups.cc.splits]]
-        name = "Collision Chaos 2"
-    [[groups.cc.splits]]
-        name = "Collision Chaos 3"
-[groups.tt]
+    splits = ["cc1", "cc2", "cc3"]
+[segments.tt]
     name = "Tidal Tempest"
-    [[groups.tt.splits]]
-        name = "Tidal Tempest 1"
-    [[groups.tt.splits]]
-        name = "Tidal Tempest 2"
-    [[groups.tt.splits]]
-        name = "Tidal Tempest 3"
-[groups.qq]
+    splits = ["tt1", "tt2", "tt3"]
+[segments.qq]
     name = "Quartz Quadrant"
-    [[groups.qq.splits]]
-        name = "Quartz Quadrant 1"
-    [[groups.qq.splits]]
-        name = "Quartz Quadrant 2"
-    [[groups.qq.splits]]
-        name = "Quartz Quadrant 3"
-[groups.ww]
+    splits = ["qq1", "qq2", "qq3"]
+[segments.ww]
     name = "Wacky Workbench"
-    [[groups.ww.splits]]
-        name = "Wacky Workbench 1"
-    [[groups.ww.splits]]
-        name = "Wacky Workbench 2"
-    [[groups.ww.splits]]
-        name = "Wacky Workbench 3"
-[groups.ss]
+    splits = ["ww1", "ww2", "ww3"]
+[segments.ss]
     name = "Stardust Speedway"
-    [[groups.ss.splits]]
-        name = "Stardust Speedway 1"
-    [[groups.ss.splits]]
-        name = "Stardust Speedway 2"
-    [[groups.ss.splits]]
-        name = "Stardust Speedway 3"
-[groups.mm]
+    splits = ["ss1", "ss2", "ss3"]
+[segments.mm]
     name = "Metallic Madness"
-    [[groups.mm.splits]]
-        name = "Metallic Madness 1"
-    [[groups.mm.splits]]
-        name = "Metallic Madness 2"
-    [[groups.mm.splits]]
-        name = "Metallic Madness 3"
+    splits = ["mm1", "mm2", "mm3"]
 
-[categories.btg]
-name = "Beat the Game"
-groups = ["pp", "cc", "tt", "qq", "ww", "ss", "mm"]
+[splits.pp1]
+    name = "Palmtree Panic 1"
+[splits.pp2]
+    name = "Palmtree Panic 2"
+[splits.pp3]
+    name = "Palmtree Panic 3"
+
+[splits.cc1]
+    name = "Collision Chaos 1"
+[splits.cc2]
+    name = "Collision Chaos 2"
+[splits.cc3]
+    name = "Collision Chaos 3"
+
+[splits.tt1]
+    name = "Tidal Tempest 1"
+[splits.tt2]
+    name = "Tidal Tempest 2"
+[splits.tt3]
+    name = "Tidal Tempest 3"
+
+[splits.qq1]
+    name = "Quartz Quadrant 1"
+[splits.qq2]
+    name = "Quartz Quadrant 2"
+[splits.qq3]
+    name = "Quartz Quadrant 3"
+
+[splits.ww1]
+    name = "Wacky Workbench 1"
+[splits.ww2]
+    name = "Wacky Workbench 2"
+[splits.ww3]
+    name = "Wacky Workbench 3"
+
+[splits.ss1]
+    name = "Stardust Speedway 1"
+[splits.ss2]
+    name = "Stardust Speedway 2"
+[splits.ss3]
+    name = "Stardust Speedway 3"
+
+[splits.mm1]
+    name = "Metallic Madness 1"
+[splits.mm2]
+    name = "Metallic Madness 2"
+[splits.mm3]
+    name = "Metallic Madness 3"
+
+[categories.btgs]
+name = "Beat the Game (Sonic)"
+segments = ["pp", "cc", "tt", "qq", "ww", "ss", "mm"]
 
 [categories.il]
 name = "Individual Levels"

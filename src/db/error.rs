@@ -9,10 +9,13 @@ pub enum Error {
     #[error("SQLite error: {0}")]
     SQLite(#[from] rusqlite::Error),
 
-    /// Couldn't find a primary key for something that should have been added
-    /// to the database.
-    #[error("Internal error: can't find primary key for {0}")]
-    NoPrimaryKey(String),
+    /// A category referenced a segment not inserted in the database yet.
+    #[error("Couldn't find segment {short} requested by category {in_category}")]
+    MissingSegment { short: String, in_category: String },
+
+    /// A segment referenced a split not inserted in the database yet.
+    #[error("Couldn't find split {short} requested by segment {in_segment}")]
+    MissingSplit { short: String, in_segment: String },
 }
 
 /// Shorthand for a result over [Error].

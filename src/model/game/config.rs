@@ -24,9 +24,11 @@ pub struct Config {
     /// The name of the game.
     pub name: String,
     /// Map of split segments for the game.
-    pub segments: HashMap<SegmentId, Segment>,
+    pub segments: ShortNameMap<Segment>,
+    /// Map of split configurations for the game.
+    pub splits: ShortNameMap<Split>,
     /// Map of categories for the game.
-    pub categories: HashMap<CategoryId, Category>,
+    pub categories: ShortNameMap<Category>,
 }
 
 impl Config {
@@ -51,7 +53,7 @@ pub struct Category {
     pub name: String,
     /// The list of segments that make up the category.
     #[serde(default)]
-    pub segments: Vec<SegmentId>,
+    pub segments: Vec<ShortName>,
 }
 
 /// A configured split segment.
@@ -59,8 +61,9 @@ pub struct Category {
 pub struct Segment {
     /// The name of the segment.
     pub name: String,
+    #[serde(default)]
     /// The splits inhabiting the segment.
-    pub splits: Vec<Split>,
+    pub splits: Vec<ShortName>,
 }
 
 /// A configured split.
@@ -70,7 +73,7 @@ pub struct Split {
     pub name: String,
     /// The set of records configured for this split.
     #[serde(default)]
-    pub records: HashMap<CategoryId, Record>,
+    pub records: ShortNameMap<Record>,
 }
 
 /// A configured record.
@@ -94,11 +97,10 @@ impl FromStr for Record {
     }
 }
 
-/// A segment ID.
-pub type SegmentId = String;
-
-/// A category ID.
-pub type CategoryId = String;
+/// A short name, used to look up items in the game database.
+pub type ShortName = String;
+/// A map from short names to some type.
+pub type ShortNameMap<T> = HashMap<ShortName, T>;
 
 /// Enumeration of errors occurring when interpreting game config.
 #[derive(Debug, Error)]
@@ -107,14 +109,6 @@ pub enum Error {
     Io(#[from] std::io::Error),
     #[error("Error parsing game config from TOML")]
     Toml(#[from] toml::de::Error),
-
-    /// Something referenced a missing category.
-    #[error("Missing category: {0}")]
-    MissingCategory(CategoryId),
-
-    /// Something referenced a missing segment.
-    #[error("Missing segment: {0}")]
-    Missingsegment(SegmentId),
 }
 
 /// Shorthand for results over [Error].
