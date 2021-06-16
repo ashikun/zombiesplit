@@ -51,20 +51,7 @@ impl Db {
     ///
     /// Propagates errors from the database if anything goes wrong.
     pub fn init(&self) -> Result<()> {
-        for (name, ddl) in &[
-            ("game", init::GAME_SQL),
-            ("category", init::CATEGORY_SQL),
-            ("game_category", init::GAME_CATEGORY_SQL),
-            ("segment", init::SEGMENT_SQL),
-            ("category_segment", init::CATEGORY_SEGMENT_SQL),
-            ("split", init::SPLIT_SQL),
-            ("segment_split", init::SEGMENT_SPLIT_SQL),
-            ("run", init::RUN_SQL),
-            ("run_split", init::RUN_SPLIT_SQL),
-        ] {
-            log::info!("creating table {}", name);
-            let _ = self.conn.execute(ddl, [])?;
-        }
+        self.conn.execute_batch(init::SCHEMA)?;
         Ok(())
     }
 
@@ -93,10 +80,10 @@ impl Db {
     fn get_metadata(&self, game: &str, cat: &str) -> Result<Metadata> {
         self.conn.query_row_and_then(
             "
-            SELECT category.id, game.name, category.name
-            FROM       game
-            INNER JOIN game_category ON (game.id                  = game_category.gameid)
-            INNER JOIN category      ON (game_category.categoryid = category.id         )
+            SELECT category_id, game.name, category.name
+            FROM game
+                 INNER JOIN game_category USING(game_id)
+                 INNER JOIN category      USING(category_id)
             WHERE game.short     = ?1
               AND category.short = ?2
         ;",
@@ -114,9 +101,9 @@ impl Db {
     fn init_run(&self, category_id: i64) -> Result<Run> {
         let attempt = self.conn.query_row(
             "
-        SELECT count(id)
+        SELECT count(category_id)
         FROM run
-        WHERE categoryid = ?1
+        WHERE category_id = ?1
         ;",
             params![category_id],
             |row| row.get(0),
@@ -130,11 +117,11 @@ impl Db {
         self.conn
             .prepare(
                 "
-        SELECT split.id, split.name
-        FROM       split
-        INNER JOIN segment_split    ON (split.id                = segment_split.splitid     )
-        INNER JOIN category_segment ON (segment_split.segmentid = category_segment.segmentid)
-        WHERE category_segment.categoryid = ?1
+        SELECT split_id, split.name
+        FROM split
+             INNER JOIN segment_split    USING(split_id)
+             INNER JOIN category_segment USING(segment_id)
+        WHERE category_id = ?1
         ORDER BY category_segment.position ASC
                , segment_split.position    ASC
         ;",

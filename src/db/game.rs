@@ -36,9 +36,9 @@ const SQL_CATEGORY: &str = "INSERT INTO category (short, name) VALUES (:short, :
 const SQL_SEGMENT: &str = "INSERT INTO segment (short, name) VALUES (:short, :name);";
 const SQL_SPLIT: &str = "INSERT INTO split (short, name) VALUES (:short, :name);";
 const SQL_GAME_CATEGORY: &str =
-    "INSERT INTO game_category (gameid, categoryid) VALUES (:gameid, :categoryid);";
-const SQL_CATEGORY_SEGMENT: &str = "INSERT INTO category_segment (categoryid, segmentid, position) VALUES (:categoryid, :segmentid, :position);";
-const SQL_SEGMENT_SPLIT: &str = "INSERT INTO segment_split (segmentid, splitid, position) VALUES (:segmentid, :splitid, :position);";
+    "INSERT INTO game_category (game_id, category_id) VALUES (:game_id, :category_id);";
+const SQL_CATEGORY_SEGMENT: &str = "INSERT INTO category_segment (category_id, segment_id, position) VALUES (:category_id, :segment_id, :position);";
+const SQL_SEGMENT_SPLIT: &str = "INSERT INTO segment_split (segment_id, split_id, position) VALUES (:segment_id, :split_id, :position);";
 
 impl<'a> Inserter<'a> {
     pub(super) fn new(db: &'a super::Db) -> Result<Self> {
@@ -134,8 +134,8 @@ impl<'a> Inserter<'a> {
         for (position, split_id) in self.segment_split_ids(segment)?.iter().enumerate() {
             log::info!("adding split ID {} for segment {}", split_id, segment.name);
             self.segment_split_query.execute(named_params![
-                ":segmentid": segment_id,
-                ":splitid": split_id,
+                ":segment_id": segment_id,
+                ":split_id": split_id,
                 ":position": position
             ])?;
         }
@@ -184,7 +184,7 @@ impl<'a> Inserter<'a> {
 
     fn add_category_to_game(&mut self, category_id: i64) -> Result<()> {
         self.game_category_query
-            .execute(named_params![":gameid": self.game_id, ":categoryid": category_id])?;
+            .execute(named_params![":game_id": self.game_id, ":category_id": category_id])?;
         Ok(())
     }
 
@@ -200,8 +200,8 @@ impl<'a> Inserter<'a> {
                 category.name
             );
             self.category_segment_query.execute(named_params![
-                ":categoryid": category_id,
-                ":segmentid": segment_id,
+                ":category_id": category_id,
+                ":segment_id": segment_id,
                 ":position": position
             ])?;
         }

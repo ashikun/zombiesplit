@@ -1,100 +1,71 @@
 //! SQL for initialising the database.
 
-pub(super) const GAME_SQL: &str = "
-CREATE TABLE IF NOT EXISTS
+pub(super) const SCHEMA: &str = "
+BEGIN;
+
+CREATE TABLE
     game
-        ( id    INTEGER PRIMARY KEY
-        , short TEXT UNIQUE
-        , name  TEXT 
+        ( game_id  INTEGER PRIMARY KEY
+        , short    TEXT UNIQUE
+        , name     TEXT 
         );
-";
-
-pub(super) const CATEGORY_SQL: &str = "
-CREATE TABLE IF NOT EXISTS
+CREATE TABLE
     category
-        ( id     INTEGER PRIMARY KEY
-        , short  TEXT
-        , name   TEXT
+        ( category_id  INTEGER PRIMARY KEY
+        , short        TEXT
+        , name         TEXT
         );
-";
-
-pub(super) const GAME_CATEGORY_SQL: &str = "
-CREATE TABLE IF NOT EXISTS
+CREATE TABLE
     game_category
-        ( id          INTEGER PRIMARY KEY
-        , gameid      INTEGER NOT NULL
-        , categoryid  INTEGER NOT NULL
-        , FOREIGN KEY(gameid)     REFERENCES game(id)
-        , FOREIGN KEY(categoryid) REFERENCES category(id)
-        , UNIQUE(gameid, categoryid)
+        ( game_category_id  INTEGER PRIMARY KEY
+        , game_id           INTEGER NOT NULL REFERENCES game
+        , category_id       INTEGER NOT NULL REFERENCES category
+        , UNIQUE(game_id, category_id)
         );
-";
-
-pub(super) const SEGMENT_SQL: &str = "
-CREATE TABLE IF NOT EXISTS
+CREATE TABLE
     segment
-        ( id     INTEGER PRIMARY KEY
-        , short  TEXT
-        , name   TEXT
+        ( segment_id  INTEGER PRIMARY KEY
+        , short       TEXT
+        , name        TEXT
         );
-";
-
-pub(super) const CATEGORY_SEGMENT_SQL: &str = "
-CREATE TABLE IF NOT EXISTS
+CREATE TABLE
     category_segment
-        ( id          INTEGER PRIMARY KEY
-        , categoryid  INTEGER NOT NULL
-        , segmentid   INTEGER NOT NULL
-        , position    INTEGER
-        , FOREIGN KEY(categoryid) REFERENCES category(id)
-        , FOREIGN KEY(segmentid)  REFERENCES segment(id)
-        , UNIQUE(categoryid, segmentid)
-        , UNIQUE(categoryid, position)
+        ( category_segment_id  INTEGER PRIMARY KEY
+        , category_id          INTEGER NOT NULL REFERENCES category
+        , segment_id           INTEGER NOT NULL REFERENCES segment
+        , position             INTEGER
+        , UNIQUE(category_id, segment_id)
+        , UNIQUE(category_id, position)
         );
-";
-
-pub(super) const SPLIT_SQL: &str = "
-CREATE TABLE IF NOT EXISTS
+CREATE TABLE
     split
-        ( id    INTEGER PRIMARY KEY
-        , short TEXT
-        , name  TEXT
+        ( split_id  INTEGER PRIMARY KEY
+        , short     TEXT
+        , name      TEXT
         );
-";
-
-pub(super) const SEGMENT_SPLIT_SQL: &str = "
-CREATE TABLE IF NOT EXISTS
+CREATE TABLE
     segment_split
-        ( id         INTEGER PRIMARY KEY
-        , segmentid  INTEGER NOT NULL
-        , splitid    INTEGER NOT NULL
-        , position   INTEGER
-        , FOREIGN KEY(segmentid) REFERENCES segment(id)
-        , FOREIGN KEY(splitid)   REFERENCES split(id)
-        , UNIQUE(segmentid, splitid)
-        , UNIQUE(segmentid, position)
+        ( segment_split_id  INTEGER PRIMARY KEY
+        , segment_id        INTEGER NOT NULL REFERENCES segment
+        , split_id          INTEGER NOT NULL REFERENCES split
+        , position          INTEGER
+        , UNIQUE(segment_id, split_id)
+        , UNIQUE(segment_id, position)
         );
-";
-
-pub(super) const RUN_SQL: &str = "
-CREATE TABLE IF NOT EXISTS
+CREATE TABLE
     run
-        ( id          INTEGER PRIMARY KEY
-        , timestamp   INTEGER
-        , categoryid  INTEGER
-        , FOREIGN KEY(categoryid) REFERENCES category(id)
+        ( run_id       INTEGER PRIMARY KEY
+        , timestamp    INTEGER
+        , category_id  INTEGER REFERENCES category
         );
-";
-
-pub(super) const RUN_SPLIT_SQL: &str = "
-CREATE TABLE IF NOT EXISTS
+CREATE TABLE
     run_split
-        ( id       INTEGER PRIMARY KEY
-        , runid    INTEGER
-        , splitid  INTEGER
-        , time     INTEGER
-        , FOREIGN KEY(runid)   REFERENCES run(id)
-        , FOREIGN KEY(splitid) REFERENCES split(id)
-        , UNIQUE(runid, splitid)
+        ( run_split_id  INTEGER PRIMARY KEY
+        , run_id        INTEGER NOT NULL REFERENCES run
+        , split_id      INTEGER NOT NULL REFERENCES split
+        , time_ms       INTEGER
+        , UNIQUE(run_id, split_id)
         );
+
+COMMIT;
 ";

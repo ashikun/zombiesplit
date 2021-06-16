@@ -13,11 +13,11 @@ fn test_sample_session() {
         .expect("couldn't add game to database");
 
     let session = db
-        .init_session("soniccd", "btg")
+        .init_session("soniccd", "btgs")
         .expect("couldn't init session");
     assert_eq!(game.name, session.metadata.game);
     assert_eq!(
-        game.categories.get("btg").map(|x| x.name.to_owned()),
+        game.categories.get("btgs").map(|x| x.name.to_owned()),
         Some(session.metadata.category)
     );
 
