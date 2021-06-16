@@ -1,34 +1,24 @@
 //! Database functionality for loading and storing games.
 
-use rusqlite::named_params;
+use std::collections::HashMap;
+
+use rusqlite::{named_params, Transaction};
 
 use super::error::{Error, Result};
 use crate::model::game;
 
 /// Inserts one or more games into the database.
-pub struct Inserter<'a> {
-    /// The underlying database.
-    db: &'a super::Db,
+pub struct Inserter<'conn, 'tx> {
+    /// The underlying database transaction.
+    tx: &'tx Transaction<'conn>,
     /// The ID of the current game.
     game_id: i64,
     /// Maps every split shortname stored into the database to its primary key.
     split_ids: game::config::ShortNameMap<i64>,
     /// Maps every segment shortname stored into the database to its primary key.
     segment_ids: game::config::ShortNameMap<i64>,
-    /// Prepared query used to insert games.
-    game_query: rusqlite::Statement<'a>,
-    /// Prepared query used to insert categories.
-    category_query: rusqlite::Statement<'a>,
-    /// Prepared query used to insert games.
-    segment_query: rusqlite::Statement<'a>,
-    /// Prepared query used to insert games.
-    split_query: rusqlite::Statement<'a>,
-    /// Prepared query used to link categories to games.
-    game_category_query: rusqlite::Statement<'a>,
-    /// Prepared query used to link segments to categories.
-    category_segment_query: rusqlite::Statement<'a>,
-    /// Prepared query used to link splits to segments.
-    segment_split_query: rusqlite::Statement<'a>,
+    /// Prepared queries.
+    queries: HashMap<Query, rusqlite::Statement<'tx>>,
 }
 
 const SQL_GAME: &str = "INSERT INTO game (short, name) VALUES (:short, :name);";
@@ -40,22 +30,52 @@ const SQL_GAME_CATEGORY: &str =
 const SQL_CATEGORY_SEGMENT: &str = "INSERT INTO category_segment (category_id, segment_id, position) VALUES (:category_id, :segment_id, :position);";
 const SQL_SEGMENT_SPLIT: &str = "INSERT INTO segment_split (segment_id, split_id, position) VALUES (:segment_id, :split_id, :position);";
 
-impl<'a> Inserter<'a> {
-    pub(super) fn new(db: &'a super::Db) -> Result<Self> {
-        Ok(Self {
-            db,
+#[derive(PartialEq, Eq, Hash, Debug, Copy, Clone)]
+enum Query {
+    Game,
+    Category,
+    Segment,
+    Split,
+    GameCategory,
+    CategorySegment,
+    SegmentSplit,
+}
+
+const SQL: &[(Query, &str)] = &[
+    (Query::Game, SQL_GAME),
+    (Query::Category, SQL_CATEGORY),
+    (Query::Segment, SQL_SEGMENT),
+    (Query::Split, SQL_SPLIT),
+    (Query::GameCategory, SQL_GAME_CATEGORY),
+    (Query::CategorySegment, SQL_CATEGORY_SEGMENT),
+    (Query::SegmentSplit, SQL_SEGMENT_SPLIT),
+];
+
+/// A transaction that is inserting one or more games into the database.
+impl<'conn, 'tx> Inserter<'conn, 'tx> {
+    /// Constructs an inserting transation.
+    ///
+    /// # Errors
+    ///
+    /// Raises an error if preparing the transaction or its queries fails.
+    pub(super) fn new(tx: &'tx rusqlite::Transaction<'conn>) -> Result<Self> {
+        let mut result = Self {
+            tx,
             game_id: 0,
             split_ids: game::config::ShortNameMap::new(),
             segment_ids: game::config::ShortNameMap::new(),
+            queries: HashMap::new(),
+        };
+        result.prepare_queries()?;
+        Ok(result)
+    }
 
-            game_query: db.conn.prepare(SQL_GAME)?,
-            category_query: db.conn.prepare(SQL_CATEGORY)?,
-            segment_query: db.conn.prepare(SQL_SEGMENT)?,
-            split_query: db.conn.prepare(SQL_SPLIT)?,
-            game_category_query: db.conn.prepare(SQL_GAME_CATEGORY)?,
-            category_segment_query: db.conn.prepare(SQL_CATEGORY_SEGMENT)?,
-            segment_split_query: db.conn.prepare(SQL_SEGMENT_SPLIT)?,
-        })
+    fn prepare_queries(&mut self) -> Result<()> {
+        for (key, sql) in SQL {
+            let value = self.tx.prepare(sql)?;
+            self.queries.insert(*key, value);
+        }
+        Ok(())
     }
 
     /// Adds the game `game` to the database, assigning it shortname `short`.
@@ -71,12 +91,18 @@ impl<'a> Inserter<'a> {
         self.add_categories(game)
     }
 
+    fn query(&mut self, query: Query) -> &mut rusqlite::Statement<'tx> {
+        self.queries
+            .get_mut(&query)
+            .expect("internal error: query missing")
+    }
+
     fn add_main(&mut self, short: &str, game: &game::Config) -> Result<()> {
         log::info!("adding game {}", short);
 
-        self.game_query
+        self.query(Query::Game)
             .execute(named_params![":short": short, ":name": game.name])?;
-        self.game_id = self.db.conn.last_insert_rowid();
+        self.game_id = self.tx.last_insert_rowid();
 
         log::info!("game {} -> ID {}", short, self.game_id);
         Ok(())
@@ -92,10 +118,10 @@ impl<'a> Inserter<'a> {
     fn add_split(&mut self, short: &str, split: &game::config::Split) -> Result<()> {
         log::info!("adding split {} ('{}')", short, split.name);
 
-        self.split_query
+        self.query(Query::Split)
             .execute(named_params![":short": short, ":name": split.name])?;
 
-        let split_id = self.db.conn.last_insert_rowid();
+        let split_id = self.tx.last_insert_rowid();
         log::info!("split {} -> ID {}", short, split_id);
         self.split_ids.insert(short.to_owned(), split_id);
 
@@ -116,10 +142,10 @@ impl<'a> Inserter<'a> {
 
     fn add_segment_main(&mut self, short: &str, segment: &game::config::Segment) -> Result<i64> {
         log::info!("adding segment {} ('{}')", short, segment.name);
-        self.segment_query
+        self.query(Query::Segment)
             .execute(named_params![":short": short, ":name": segment.name])?;
 
-        let segment_id = self.db.conn.last_insert_rowid();
+        let segment_id = self.tx.last_insert_rowid();
         log::info!("segment {} -> ID {}", short, segment_id);
         self.segment_ids.insert(short.to_owned(), segment_id);
 
@@ -133,7 +159,7 @@ impl<'a> Inserter<'a> {
     ) -> Result<()> {
         for (position, split_id) in self.segment_split_ids(segment)?.iter().enumerate() {
             log::info!("adding split ID {} for segment {}", split_id, segment.name);
-            self.segment_split_query.execute(named_params![
+            self.query(Query::SegmentSplit).execute(named_params![
                 ":segment_id": segment_id,
                 ":split_id": split_id,
                 ":position": position
@@ -174,17 +200,20 @@ impl<'a> Inserter<'a> {
 
     fn add_category_main(&mut self, short: &str, category: &game::config::Category) -> Result<i64> {
         log::info!("adding category {} for game ID {}", short, self.game_id);
-        self.category_query
+        self.query(Query::Category)
             .execute(named_params![":short": short, ":name": category.name])?;
 
-        let categoryid = self.db.conn.last_insert_rowid();
+        let categoryid = self.tx.last_insert_rowid();
         log::info!("category {} -> ID {}", short, categoryid);
         Ok(categoryid)
     }
 
     fn add_category_to_game(&mut self, category_id: i64) -> Result<()> {
-        self.game_category_query
-            .execute(named_params![":game_id": self.game_id, ":category_id": category_id])?;
+        let game_id = self.game_id;
+        self.query(Query::GameCategory).execute(named_params![
+            ":game_id": game_id,
+            ":category_id": category_id
+        ])?;
         Ok(())
     }
 
@@ -199,7 +228,7 @@ impl<'a> Inserter<'a> {
                 segment_id,
                 category.name
             );
-            self.category_segment_query.execute(named_params![
+            self.query(Query::CategorySegment).execute(named_params![
                 ":category_id": category_id,
                 ":segment_id": segment_id,
                 ":position": position

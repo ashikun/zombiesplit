@@ -61,8 +61,10 @@ impl Db {
     ///
     /// Raises an error if any of the SQL queries relating to inserting a game
     /// fail.
-    pub fn add_game(&self, short: &str, game: &Config) -> Result<()> {
-        game::Inserter::new(self)?.add_game(short, game)
+    pub fn add_game(&mut self, short: &str, game: &Config) -> Result<()> {
+        let tx = self.conn.transaction()?;
+        game::Inserter::new(&tx)?.add_game(short, game)?;
+        Ok(tx.commit()?)
     }
 
     /// Initialises a session for the short-named `game` and `category`.

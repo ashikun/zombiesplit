@@ -5,7 +5,7 @@ use zombiesplit::{model::game, Db};
 /// Tests initialising the database and inserting the sample game.
 #[test]
 fn test_sample_session() {
-    let db = Db::in_memory().expect("couldn't open db in memory");
+    let mut db = Db::in_memory().expect("couldn't open db in memory");
     db.init().expect("couldn't initialise database");
 
     let game = game::Config::load("soniccd.toml").expect("couldn't load sample game");

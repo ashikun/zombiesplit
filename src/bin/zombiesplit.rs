@@ -24,7 +24,7 @@ fn run_add(_cfg: config::System, matches: &ArgMatches) -> anyhow::Result<()> {
     let short = matches.value_of("game").ok_or(Error::NoGameProvided)?;
     let game = model::game::Config::load(format!("{}.toml", short))?;
 
-    let db = Db::new("zombiesplit.db")?;
+    let mut db = Db::new("zombiesplit.db")?;
     db.add_game(short, &game)?;
     Ok(())
 }
