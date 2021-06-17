@@ -89,7 +89,7 @@ impl X {
         match self {
             Self::Left(k) => Self::Left(rect.x + k),
             Self::Right(k) => Self::Left(rect.x2() - k),
-            x => x,
+            x @ Self::Rel(_) => x,
         }
     }
 
@@ -123,7 +123,7 @@ impl Y {
         match self {
             Self::Top(k) => Self::Top(rect.y + k),
             Self::Bottom(k) => Self::Top(rect.y2() - k),
-            x => x,
+            x @ Self::Rel(_) => x,
         }
     }
 

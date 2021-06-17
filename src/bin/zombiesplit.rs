@@ -1,6 +1,6 @@
 use clap::{crate_authors, crate_version, App, Arg, ArgMatches, SubCommand};
 use thiserror::Error;
-use zombiesplit::{config, model, Db, View};
+use zombiesplit::{config, Zombie};
 
 fn main() {
     run().unwrap()
@@ -11,42 +11,33 @@ fn run() -> anyhow::Result<()> {
 
     let matches = app().get_matches();
     let cfg = config::System::load(matches.value_of("config").unwrap())?;
+    let zombie = Zombie::new(cfg)?;
 
     match matches.subcommand() {
-        ("add", Some(sub_m)) => run_add(cfg, sub_m),
-        ("init", Some(sub_m)) => run_init(cfg, sub_m),
-        ("run", Some(sub_m)) => run_run(cfg, sub_m),
+        ("add", Some(sub_m)) => run_add(zombie, sub_m),
+        ("init", Some(sub_m)) => run_init(zombie, sub_m),
+        ("run", Some(sub_m)) => run_run(zombie, sub_m),
         _ => Ok(()),
     }
 }
 
-fn run_add(_cfg: config::System, matches: &ArgMatches) -> anyhow::Result<()> {
-    let short = matches.value_of("game").ok_or(Error::NoGameProvided)?;
-    let game = model::game::Config::load(format!("{}.toml", short))?;
-
-    let mut db = Db::new("zombiesplit.db")?;
-    db.add_game(short, &game)?;
+fn run_add(mut zombie: Zombie, matches: &ArgMatches) -> anyhow::Result<()> {
+    let path = matches.value_of("game").ok_or(Error::NoGameProvided)?;
+    zombie.add_game(path)?;
     Ok(())
 }
 
-fn run_init(_cfg: config::System, _matches: &ArgMatches) -> anyhow::Result<()> {
-    let db = Db::new("zombiesplit.db")?;
-    db.init()?;
+fn run_init(zombie: Zombie, _matches: &ArgMatches) -> anyhow::Result<()> {
+    zombie.init_db()?;
     Ok(())
 }
 
-fn run_run(cfg: config::System, matches: &ArgMatches) -> anyhow::Result<()> {
+fn run_run(zombie: Zombie, matches: &ArgMatches) -> anyhow::Result<()> {
     let game = matches.value_of("game").ok_or(Error::NoGameProvided)?;
     let category = matches
         .value_of("category")
         .ok_or(Error::NoCategoryProvided)?;
-
-    let db = Db::new("zombiesplit.db")?;
-
-    let run = db.init_session(game, category)?;
-    let p = zombiesplit::Presenter::new(run);
-    View::new(cfg.ui)?.spawn(p)?.run()?;
-
+    zombie.run(game, category)?;
     Ok(())
 }
 

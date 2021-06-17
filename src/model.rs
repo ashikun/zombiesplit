@@ -3,6 +3,7 @@ pub mod comparison;
 pub mod game;
 pub mod run;
 pub mod session;
+pub mod short;
 pub mod split;
 pub mod time;
 

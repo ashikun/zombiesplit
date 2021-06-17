@@ -3,6 +3,7 @@
 pub mod error;
 pub mod game;
 mod init;
+pub mod run;
 use crate::model::{
     game::Config,
     split::{self, Split},

@@ -3,6 +3,8 @@
 # You may edit this, but there isn't any way to override parts of the config
 # yet, so be careful!
 
+db_path = "zombiesplit.db"
+
 # Window metrics
 [ui.window]
 	# Window width and height.

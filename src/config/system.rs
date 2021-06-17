@@ -2,12 +2,17 @@
 
 use crate::view;
 use serde::{Deserialize, Serialize};
-use std::{io::Read, path::Path};
+use std::{
+    io::Read,
+    path::{Path, PathBuf},
+};
 use thiserror::Error;
 
 /// System configuration for zombiesplit.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct System {
+    /// Database location.
+    pub db_path: PathBuf,
     /// UI configuration.
     pub ui: view::Config,
 }
