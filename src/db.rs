@@ -5,9 +5,12 @@ pub mod game;
 mod init;
 pub mod run;
 use crate::model::{
+    attempt::{
+        split::{self, Split},
+        Run,
+    },
     game::Config,
-    split::{self, Split},
-    Metadata, Run, Session,
+    Metadata, Session,
 };
 use rusqlite::params;
 use std::path::Path;

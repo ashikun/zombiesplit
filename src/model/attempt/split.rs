@@ -1,6 +1,6 @@
 //! Splits and related items.
 
-use super::time::Time;
+use super::super::time::Time;
 use std::rc::Rc;
 
 /// A split in a run.

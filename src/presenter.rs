@@ -6,7 +6,7 @@ pub mod event;
 pub mod mode;
 pub mod nav;
 
-use crate::model::{comparison::pace, split::Set, Session};
+use crate::model::{attempt::split::Set, comparison::pace, Session};
 pub use editor::Editor;
 
 use self::cursor::SplitPosition;

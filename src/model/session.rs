@@ -1,9 +1,8 @@
 //! The [Session] type and related code.
 
 use super::{
+    attempt::{split::Set, Run},
     comparison::{pace, Comparison},
-    run::Run,
-    split::Set,
     time::Time,
 };
 

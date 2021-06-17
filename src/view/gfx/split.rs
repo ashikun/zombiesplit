@@ -10,7 +10,7 @@ use super::{
     render::{Region, Renderer},
 };
 use crate::{
-    model::{self, split::Set},
+    model::{self, attempt::split::Set},
     presenter::{cursor, Presenter},
     view::error::Result,
 };

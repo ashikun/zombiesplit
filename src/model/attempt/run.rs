@@ -1,9 +1,8 @@
 //! Models relating to runs.
 
 use super::{
-    short,
+    super::{short, time::Time},
     split::{Set, Split},
-    time::Time,
 };
 
 use serde::{Deserialize, Serialize};
@@ -68,7 +67,7 @@ impl Set for Run {
 
 /// A summary of an archived run.
 ///
-/// This structure is mainly used to serialise and deserialise runs.
+/// This structure is mainly used to serialise and deserialise runs,
 #[derive(Serialize, Deserialize)]
 pub struct Summary {
     /// The shortname of the game.
@@ -82,3 +81,5 @@ pub struct Summary {
     /// Map from split shortnames to times.
     pub times: short::Map<Time>,
 }
+
+impl Summary {}
