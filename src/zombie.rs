@@ -2,6 +2,8 @@
 
 use std::path::Path;
 
+use crate::model::game::category::ShortDescriptor;
+
 use super::{config, db, model, presenter::Presenter, view};
 use thiserror::Error;
 
@@ -52,13 +54,13 @@ impl Zombie {
         Ok(())
     }
 
-    /// Opens a split UI session for the given game and category.
+    /// Opens a split UI session for the given game/category descriptor.
     ///
     /// # Errors
     ///
     /// Returns any database or UI errors caught during the session.
-    pub fn run(self, game: &str, category: &str) -> Result<()> {
-        let session = self.db.init_session(game, category)?;
+    pub fn run(self, desc: &ShortDescriptor) -> Result<()> {
+        let session = self.db.init_session(&desc)?;
         let p = Presenter::new(session);
         view::View::new(self.cfg.ui)?.spawn(p)?.run()?;
         Ok(())

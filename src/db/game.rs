@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use rusqlite::{named_params, Transaction};
 
 use super::error::{Error, Result};
-use crate::model::game;
+use crate::model::{game, short};
 
 /// Inserts one or more games into the database.
 pub struct Inserter<'conn, 'tx> {
@@ -14,9 +14,9 @@ pub struct Inserter<'conn, 'tx> {
     /// The ID of the current game.
     game_id: i64,
     /// Maps every split shortname stored into the database to its primary key.
-    split_ids: game::config::ShortNameMap<i64>,
+    split_ids: short::Map<i64>,
     /// Maps every segment shortname stored into the database to its primary key.
-    segment_ids: game::config::ShortNameMap<i64>,
+    segment_ids: short::Map<i64>,
     /// Prepared queries.
     queries: HashMap<Query, rusqlite::Statement<'tx>>,
 }
@@ -62,8 +62,8 @@ impl<'conn, 'tx> Inserter<'conn, 'tx> {
         let mut result = Self {
             tx,
             game_id: 0,
-            split_ids: game::config::ShortNameMap::new(),
-            segment_ids: game::config::ShortNameMap::new(),
+            split_ids: short::Map::new(),
+            segment_ids: short::Map::new(),
             queries: HashMap::new(),
         };
         result.prepare_queries()?;

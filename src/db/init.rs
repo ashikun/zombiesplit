@@ -54,16 +54,17 @@ CREATE TABLE
         );
 CREATE TABLE
     run
-        ( run_id       INTEGER PRIMARY KEY
-        , timestamp    INTEGER
-        , category_id  INTEGER REFERENCES category
+        ( run_id            INTEGER PRIMARY KEY
+        , is_completed      INTEGER  -- 0 = not completed, 1 = completed
+        , timestamp         INTEGER  -- UNIX timestamp
+        , game_category_id  INTEGER REFERENCES game_category
         );
 CREATE TABLE
     run_split
         ( run_split_id  INTEGER PRIMARY KEY
         , run_id        INTEGER NOT NULL REFERENCES run
         , split_id      INTEGER NOT NULL REFERENCES split
-        , time_ms       INTEGER
+        , time_ms       INTEGER  -- sum of all times logged for the split
         , UNIQUE(run_id, split_id)
         );
 

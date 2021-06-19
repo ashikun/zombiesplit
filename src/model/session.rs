@@ -3,13 +3,14 @@
 use super::{
     attempt::{split::Set, Run},
     comparison::{pace, Comparison},
+    game::category,
     time::Time,
 };
 
 /// Model data for a running session.
 pub struct Session {
     /// Metadata for the game/category currently being run.
-    pub metadata: Metadata,
+    pub metadata: category::Info,
     /// The current run.
     run: Run,
     /// Comparison data for the game/category currently being run.
@@ -19,7 +20,7 @@ pub struct Session {
 impl Session {
     /// Starts a new session with a given set of metadata and starting run.
     #[must_use]
-    pub fn new(metadata: Metadata, run: Run) -> Self {
+    pub fn new(metadata: category::Info, run: Run) -> Self {
         Self {
             metadata,
             run,
@@ -91,14 +92,4 @@ impl Set for Session {
     fn name_at(&self, split: usize) -> &str {
         self.run.name_at(split)
     }
-}
-
-/// Metadata in a run.
-pub struct Metadata {
-    /// The numeric ID of the category in the database.
-    pub category_id: i64,
-    /// The name of the game.
-    pub game: String,
-    /// The name of the category.
-    pub category: String,
 }

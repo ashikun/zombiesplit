@@ -1,6 +1,9 @@
 //! Tests the database functionality on an in-memory database.
 
-use zombiesplit::{model::game, Db};
+use zombiesplit::{
+    model::game::{self, category::ShortDescriptor},
+    Db,
+};
 
 /// Tests initialising the database and inserting the sample game.
 #[test]
@@ -13,7 +16,7 @@ fn test_sample_session() {
         .expect("couldn't add game to database");
 
     let session = db
-        .init_session("soniccd", "btgs")
+        .init_session(&ShortDescriptor::new("soniccd", "btgs"))
         .expect("couldn't init session");
     assert_eq!(game.name, session.metadata.game);
     assert_eq!(

@@ -6,7 +6,7 @@ use super::{
     render::{Region, Renderer},
     widget,
 };
-use crate::{model::Metadata, presenter::Presenter, view::error::Result};
+use crate::{model::game::category::Info, presenter::Presenter, view::error::Result};
 
 /// Views information about the run in the form of a header.
 pub struct Widget {
@@ -26,7 +26,7 @@ impl widget::Widget for Widget {
     }
 }
 
-fn render_meta(r: &mut dyn Renderer, meta: &Metadata) -> Result<()> {
+fn render_meta(r: &mut dyn Renderer, meta: &Info) -> Result<()> {
     r.set_pos(Position::top_left(0, 0));
     r.set_font(font::Id::Large);
     r.put_str(&meta.game)?;

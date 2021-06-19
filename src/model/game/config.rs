@@ -5,12 +5,11 @@ These models represent the way in which zombiesplit is fed new games to track
 (not to be confused with the models that represent in-database game data).
 */
 
-use super::super::time;
+use super::super::{short, time};
 
 use serde::{Deserialize, Serialize};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 use std::{
-    collections::HashMap,
     fmt::{self, Display},
     io::Read,
     path::Path,
@@ -24,11 +23,11 @@ pub struct Config {
     /// The name of the game.
     pub name: String,
     /// Map of split segments for the game.
-    pub segments: ShortNameMap<Segment>,
+    pub segments: short::Map<Segment>,
     /// Map of split configurations for the game.
-    pub splits: ShortNameMap<Split>,
+    pub splits: short::Map<Split>,
     /// Map of categories for the game.
-    pub categories: ShortNameMap<Category>,
+    pub categories: short::Map<Category>,
 }
 
 impl Config {
@@ -53,7 +52,7 @@ pub struct Category {
     pub name: String,
     /// The list of segments that make up the category.
     #[serde(default)]
-    pub segments: Vec<ShortName>,
+    pub segments: Vec<short::Name>,
 }
 
 /// A configured split segment.
@@ -63,7 +62,7 @@ pub struct Segment {
     pub name: String,
     #[serde(default)]
     /// The splits inhabiting the segment.
-    pub splits: Vec<ShortName>,
+    pub splits: Vec<short::Name>,
 }
 
 /// A configured split.
@@ -73,7 +72,7 @@ pub struct Split {
     pub name: String,
     /// The set of records configured for this split.
     #[serde(default)]
-    pub records: ShortNameMap<Record>,
+    pub records: short::Map<Record>,
 }
 
 /// A configured record.
@@ -96,11 +95,6 @@ impl FromStr for Record {
         Ok(Record { time: s.parse()? })
     }
 }
-
-/// A short name, used to look up items in the game database.
-pub type ShortName = String;
-/// A map from short names to some type.
-pub type ShortNameMap<T> = HashMap<ShortName, T>;
 
 /// Enumeration of errors occurring when interpreting game config.
 #[derive(Debug, Error)]

@@ -1,6 +1,6 @@
 use clap::{crate_authors, crate_version, App, Arg, ArgMatches, SubCommand};
 use thiserror::Error;
-use zombiesplit::{config, Zombie};
+use zombiesplit::{config, model::game::category::ShortDescriptor, Zombie};
 
 fn main() {
     run().unwrap()
@@ -37,7 +37,7 @@ fn run_run(zombie: Zombie, matches: &ArgMatches) -> anyhow::Result<()> {
     let category = matches
         .value_of("category")
         .ok_or(Error::NoCategoryProvided)?;
-    zombie.run(game, category)?;
+    zombie.run(&ShortDescriptor::new(game, category))?;
     Ok(())
 }
 

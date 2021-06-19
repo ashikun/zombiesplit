@@ -1,11 +1,9 @@
 //! Models relating to runs.
 
 use super::{
-    super::{short, time::Time},
+    super::time::Time,
     split::{Set, Split},
 };
-
-use serde::{Deserialize, Serialize};
 
 /// An in-progress run.
 pub struct Run {
@@ -64,22 +62,3 @@ impl Set for Run {
         self.splits.get(split).map_or("Unknown", |s| &s.name())
     }
 }
-
-/// A summary of an archived run.
-///
-/// This structure is mainly used to serialise and deserialise runs,
-#[derive(Serialize, Deserialize)]
-pub struct Summary {
-    /// The shortname of the game.
-    pub game: short::Name,
-    /// The shortname of the category.
-    pub category: short::Name,
-    /// Whether the run was completed.
-    pub was_completed: bool,
-    /// The date at which this run was archived.
-    pub date: chrono::DateTime<chrono::Utc>,
-    /// Map from split shortnames to times.
-    pub times: short::Map<Time>,
-}
-
-impl Summary {}
