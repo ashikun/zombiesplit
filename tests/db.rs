@@ -1,6 +1,12 @@
 //! Tests the database functionality on an in-memory database.
 
-use zombiesplit::{Db, model::{Loadable, history, game::{self, category::ShortDescriptor}}};
+use zombiesplit::{
+    model::{
+        game::{self, category::ShortDescriptor},
+        history, Loadable,
+    },
+    Db,
+};
 
 const SAMPLE_GAME_PATH: &str = "soniccd.toml";
 const SAMPLE_GAME_NAME: &str = "soniccd";
@@ -16,7 +22,7 @@ fn setup_db(game: &game::Config) -> Db {
 
     db.add_game(SAMPLE_GAME_NAME, game)
         .expect("couldn't add game to database");
-    
+
     db
 }
 
@@ -27,7 +33,10 @@ fn test_sample_session() {
     let db = setup_db(&game);
 
     let session = db
-        .init_session(&ShortDescriptor::new(SAMPLE_GAME_NAME, SAMPLE_CATEGORY_NAME))
+        .init_session(&ShortDescriptor::new(
+            SAMPLE_GAME_NAME,
+            SAMPLE_CATEGORY_NAME,
+        ))
         .expect("couldn't init session");
     assert_eq!(game.name, session.metadata.game);
     assert_eq!(
@@ -42,7 +51,8 @@ fn test_sample_add_run() {
     let game = load_game();
     let mut db = setup_db(&game);
 
-    let run = history::Run::<ShortDescriptor>::from_toml_file("soniccd-pb.toml").expect("couldn't load run");
+    let run = history::Run::<ShortDescriptor>::from_toml_file("soniccd-pb.toml")
+        .expect("couldn't load run");
 
     db.add_run(&run).expect("couldn't insert run")
 

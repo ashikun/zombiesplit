@@ -18,14 +18,14 @@ pub struct Run<D> {
     pub was_completed: bool,
     /// The date at which this run was archived.
     pub date: chrono::DateTime<chrono::Utc>,
-    /// Map from split shortnames to times.
-    pub times: short::Map<Time>,
+    /// Map from split shortnames to vectors of times.
+    pub times: short::Map<Vec<Time>>,
 }
 
 impl<D> Run<D> {
     /// Creates a new run with the same contents as this one, but a new locator.
     pub fn with_locator<D2>(&self, category_locator: D2) -> Run<D2> {
-        Run{
+        Run {
             category_locator,
             was_completed: self.was_completed,
             date: self.date,

@@ -4,7 +4,12 @@ use std::path::Path;
 
 use crate::model::game::category::ShortDescriptor;
 
-use super::{config, db, model::{self, load::Loadable}, presenter::Presenter, view};
+use super::{
+    config, db,
+    model::{self, load::Loadable},
+    presenter::Presenter,
+    view,
+};
 use thiserror::Error;
 
 /// High-level interface to zombiesplit.

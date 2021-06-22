@@ -97,15 +97,12 @@ impl<'conn> Getter<'conn> {
         let game_category = locator.locate(self)?;
         // TODO(@MattWindsor91): get the segments too.
         self.query_splits
-            .query_and_then(
-                named_params![":game_category": game_category],
-                |row| {
-                    Ok(Split {
-                        id: row.get(0)?,
-                        name: row.get(1)?,
-                    })
-                },
-            )?
+            .query_and_then(named_params![":game_category": game_category], |row| {
+                Ok(Split {
+                    id: row.get(0)?,
+                    name: row.get(1)?,
+                })
+            })?
             .collect()
     }
 }

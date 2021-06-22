@@ -3,10 +3,13 @@
 mod category;
 pub mod error;
 mod game;
-mod run;
 mod init;
-use crate::model::{Session, game::{category::ShortDescriptor, Config}, history};
-use std::{path::Path};
+mod run;
+use crate::model::{
+    game::{category::ShortDescriptor, Config},
+    history, Session,
+};
+use std::path::Path;
 
 pub use error::{Error, Result};
 
@@ -50,8 +53,7 @@ impl Db {
     ///
     /// Propagates errors from the database if anything goes wrong.
     pub fn init(&self) -> Result<()> {
-        self.conn.execute_batch(init::SCHEMA)?;
-        Ok(())
+        init::on_db(&self.conn)
     }
 
     /// Adds the game `game` to the database, assigning it shortname `short`.
@@ -88,7 +90,6 @@ impl Db {
             run.category_locator.locate(&mut self.category_getter()?)
         }
     }
-
 
     /// Initialises a session for the game/category described by the given
     /// short descriptor.
