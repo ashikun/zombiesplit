@@ -8,7 +8,7 @@ use super::error::{Error, Result};
 use crate::model::{game, short};
 
 /// Inserts one or more games into the database.
-pub struct Inserter<'conn, 'tx> {
+pub(super) struct Inserter<'conn, 'tx> {
     /// The underlying database transaction.
     tx: &'tx Transaction<'conn>,
     /// The ID of the current game.

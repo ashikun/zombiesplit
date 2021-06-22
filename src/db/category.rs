@@ -120,20 +120,40 @@ pub trait Locator {
     /// # Errors
     ///
     /// Typically, errors returned will be database errors.
-    fn locate(&self, getter: &Getter) -> Result<i64>;
+    fn locate(&self, getter: &mut Getter) -> Result<i64>;
+
+    /// Tries to extract a game-category ID directly from this locator.
+    fn as_game_category_id(&self) -> Option<i64> {
+        None
+    }
 }
 
 /// Signed 64-bit integers are treated as game-category IDs natively.
 impl Locator for i64 {
-    fn locate(&self, _: &Getter) -> Result<i64> {
+    fn locate(&self, _: &mut Getter) -> Result<i64> {
         Ok(*self)
+    }
+
+    fn as_game_category_id(&self) -> Option<i64> {
+        Some(*self)
     }
 }
 
 /// Category info implicitly contains a game-category ID.
 impl Locator for Info {
-    fn locate(&self, getter: &Getter) -> Result<i64> {
+    fn locate(&self, getter: &mut Getter) -> Result<i64> {
         self.game_category_id.locate(getter)
+    }
+
+    fn as_game_category_id(&self) -> Option<i64> {
+        self.game_category_id.as_game_category_id()
+    }
+}
+
+impl Locator for ShortDescriptor {
+    fn locate(&self, getter: &mut Getter) -> Result<i64> {
+        // TODO(@MattWindsor91): make this a bit more optimal?
+        Ok(getter.game_category_info(self)?.game_category_id)
     }
 }
 

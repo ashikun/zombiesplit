@@ -11,11 +11,8 @@ use serde::{Deserialize, Serialize};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 use std::{
     fmt::{self, Display},
-    io::Read,
-    path::Path,
     str::FromStr,
 };
-use thiserror::Error;
 
 /// Configuration for a game.
 #[derive(Serialize, Deserialize, Debug)]
@@ -28,21 +25,6 @@ pub struct Config {
     pub splits: short::Map<Split>,
     /// Map of categories for the game.
     pub categories: short::Map<Category>,
-}
-
-impl Config {
-    /// Loads a game config from TOML.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if `path` does not exist, is not readable, or does
-    /// not contain valid TOML.
-    pub fn load<P: AsRef<Path>>(path: P) -> Result<Self> {
-        let mut file = std::fs::File::open(path)?;
-        let mut contents = String::new();
-        file.read_to_string(&mut contents)?;
-        Ok(toml::from_str(&contents)?)
-    }
 }
 
 /// A run category.
@@ -95,15 +77,3 @@ impl FromStr for Record {
         Ok(Record { time: s.parse()? })
     }
 }
-
-/// Enumeration of errors occurring when interpreting game config.
-#[derive(Debug, Error)]
-pub enum Error {
-    #[error("IO error reading game config")]
-    Io(#[from] std::io::Error),
-    #[error("Error parsing game config from TOML")]
-    Toml(#[from] toml::de::Error),
-}
-
-/// Shorthand for results over [Error].
-type Result<T> = std::result::Result<T, Error>;

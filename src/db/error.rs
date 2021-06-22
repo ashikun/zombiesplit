@@ -16,6 +16,10 @@ pub enum Error {
     /// A segment referenced a split not inserted in the database yet.
     #[error("Couldn't find split {short} requested by segment {in_segment}")]
     MissingSplit { short: String, in_segment: String },
+
+    /// A run referenced a split not inserted in the database yet.
+    #[error("Couldn't find split {short} requested by run")]
+    MissingRunSplit { short: String },
 }
 
 /// Shorthand for a result over [Error].

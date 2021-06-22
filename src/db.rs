@@ -1,16 +1,16 @@
 //! Top-level module for the model's sqlite database.
 
-pub mod category;
+mod category;
 pub mod error;
-pub mod game;
+mod game;
+mod run;
 mod init;
-use crate::model::{
-    game::{category::ShortDescriptor, Config},
-    Session,
-};
-use std::path::Path;
+use crate::model::{Session, game::{category::ShortDescriptor, Config}, history};
+use std::{path::Path};
 
 pub use error::{Error, Result};
+
+use self::category::Locator;
 
 /// A connection to zombiesplit's database.
 pub struct Db {
@@ -66,6 +66,30 @@ impl Db {
         Ok(tx.commit()?)
     }
 
+    /// Adds the historic run `run` to the database.
+    ///
+    /// # Errors
+    ///
+    /// Raises an error if any of the SQL queries relating to inserting a run
+    /// fail.
+    pub fn add_run<L: Locator>(&mut self, run: &history::Run<L>) -> Result<()> {
+        let run = run.with_locator(self.resolve_run(run)?);
+
+        let tx = self.conn.transaction()?;
+        run::Inserter::new(&tx)?.add(&run)?;
+        Ok(tx.commit()?)
+    }
+
+    fn resolve_run<L: Locator>(&self, run: &history::Run<L>) -> Result<i64> {
+        // TODO(@MattWindsor91): this is horrible.
+        if let Some(x) = run.category_locator.as_game_category_id() {
+            Ok(x)
+        } else {
+            run.category_locator.locate(&mut self.category_getter()?)
+        }
+    }
+
+
     /// Initialises a session for the game/category described by the given
     /// short descriptor.
     ///
@@ -74,6 +98,10 @@ impl Db {
     /// Fails if there is no such category for the given game in the database,
     /// or the game doesn't exist, or any other database error occurs.
     pub fn init_session(&self, desc: &ShortDescriptor) -> Result<Session> {
-        category::Getter::new(&self.conn)?.init_session(&desc)
+        self.category_getter()?.init_session(&desc)
+    }
+
+    fn category_getter(&self) -> Result<category::Getter> {
+        category::Getter::new(&self.conn)
     }
 }

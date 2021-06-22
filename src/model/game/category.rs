@@ -1,7 +1,9 @@
 //! Models relating to the set of categories attached to a game.
+use serde::{Serialize, Deserialize};
 use super::super::short;
 
 /// A reference to the category of a game using a pair of short names.
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct ShortDescriptor {
     /// The shortname of the game.
     pub game: short::Name,

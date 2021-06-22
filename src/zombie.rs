@@ -4,7 +4,7 @@ use std::path::Path;
 
 use crate::model::game::category::ShortDescriptor;
 
-use super::{config, db, model, presenter::Presenter, view};
+use super::{config, db, model::{self, load::Loadable}, presenter::Presenter, view};
 use thiserror::Error;
 
 /// High-level interface to zombiesplit.
@@ -49,7 +49,7 @@ impl Zombie {
             .ok_or(Error::MissingShort)?
             .to_string_lossy()
             .into_owned();
-        let game = model::game::Config::load(pbuf)?;
+        let game = model::game::Config::from_toml_file(pbuf)?;
         self.db.add_game(&short, &game)?;
         Ok(())
     }
@@ -74,8 +74,8 @@ pub enum Error {
     Db(#[from] db::Error),
     #[error("UI error")]
     View(#[from] view::Error),
-    #[error("error loading game from file")]
-    GameLoad(#[from] model::game::config::Error),
+    #[error("error loading data from file")]
+    GameLoad(#[from] model::load::Error),
     #[error("couldn't deduce game short-name")]
     MissingShort,
 }
