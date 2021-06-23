@@ -1,6 +1,6 @@
 //! High-level interface to zombiesplit.
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use crate::model::game::category::ShortDescriptor;
 
@@ -48,14 +48,23 @@ impl Zombie {
     /// Returns any errors from the database, or if the given path is
     /// ill-formed.
     pub fn add_game<P: AsRef<Path>>(&mut self, path: P) -> Result<()> {
-        let pbuf = path.as_ref().with_extension("toml");
-        let short = pbuf
-            .file_stem()
-            .ok_or(Error::MissingShort)?
-            .to_string_lossy()
-            .into_owned();
+        let pbuf = ensure_toml(path);
+        let short = deduce_short(&pbuf)?;
         let game = model::game::Config::from_toml_file(pbuf)?;
         self.db.add_game(&short, &game)?;
+        Ok(())
+    }
+
+    /// Adds the run with the given path to the zombiesplit database.
+    ///
+    /// # Errors
+    ///
+    /// Returns any errors from the database, or if the given path is
+    /// ill-formed.
+    pub fn add_run<P: AsRef<Path>>(&mut self, path: P) -> Result<()> {
+        let pbuf = ensure_toml(path);
+        let run = model::history::Run::<ShortDescriptor>::from_toml_file(pbuf)?;
+        self.db.add_run(&run)?;
         Ok(())
     }
 
@@ -70,6 +79,23 @@ impl Zombie {
         view::View::new(self.cfg.ui)?.spawn(p)?.run()?;
         Ok(())
     }
+}
+
+fn ensure_toml<P: AsRef<Path>>(path: P) -> PathBuf {
+    let path = path.as_ref();
+    if path.extension().is_none() {
+        path.with_extension("toml")
+    } else {
+        path.to_owned()
+    }
+}
+
+fn deduce_short(path: &Path) -> Result<String> {
+    Ok(path
+        .file_stem()
+        .ok_or(Error::MissingShort)?
+        .to_string_lossy()
+        .into_owned())
 }
 
 /// The top-level zombiesplit error type.

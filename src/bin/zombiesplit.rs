@@ -14,17 +14,12 @@ fn run() -> anyhow::Result<()> {
     let zombie = Zombie::new(cfg)?;
 
     match matches.subcommand() {
-        ("add", Some(sub_m)) => run_add(zombie, sub_m),
         ("init", Some(sub_m)) => run_init(zombie, sub_m),
+        ("add-game", Some(sub_m)) => run_add_game(zombie, sub_m),
+        ("add-run", Some(sub_m)) => run_add_run(zombie, sub_m),
         ("run", Some(sub_m)) => run_run(zombie, sub_m),
         _ => Ok(()),
     }
-}
-
-fn run_add(mut zombie: Zombie, matches: &ArgMatches) -> anyhow::Result<()> {
-    let path = matches.value_of("game").ok_or(Error::NoGameProvided)?;
-    zombie.add_game(path)?;
-    Ok(())
 }
 
 fn run_init(zombie: Zombie, _matches: &ArgMatches) -> anyhow::Result<()> {
@@ -32,11 +27,21 @@ fn run_init(zombie: Zombie, _matches: &ArgMatches) -> anyhow::Result<()> {
     Ok(())
 }
 
+fn run_add_game(mut zombie: Zombie, matches: &ArgMatches) -> anyhow::Result<()> {
+    let path = matches.value_of("game").ok_or(Error::Game)?;
+    zombie.add_game(path)?;
+    Ok(())
+}
+
+fn run_add_run(mut zombie: Zombie, matches: &ArgMatches) -> anyhow::Result<()> {
+    let path = matches.value_of("run").ok_or(Error::Run)?;
+    zombie.add_run(path)?;
+    Ok(())
+}
+
 fn run_run(zombie: Zombie, matches: &ArgMatches) -> anyhow::Result<()> {
-    let game = matches.value_of("game").ok_or(Error::NoGameProvided)?;
-    let category = matches
-        .value_of("category")
-        .ok_or(Error::NoCategoryProvided)?;
+    let game = matches.value_of("game").ok_or(Error::Game)?;
+    let category = matches.value_of("category").ok_or(Error::Category)?;
     zombie.run(&ShortDescriptor::new(game, category))?;
     Ok(())
 }
@@ -51,8 +56,9 @@ fn app<'a, 'b>() -> App<'a, 'b> {
                 .long("config")
                 .default_value("sys.toml"),
         )
-        .subcommand(add_subcommand())
         .subcommand(init_subcommand())
+        .subcommand(add_game_subcommand())
+        .subcommand(add_run_subcommand())
         .subcommand(run_subcommand())
 }
 
@@ -71,20 +77,35 @@ fn run_subcommand<'a, 'b>() -> App<'a, 'b> {
         )
 }
 
-fn add_subcommand<'a, 'b>() -> App<'a, 'b> {
-    SubCommand::with_name("add")
+fn add_game_subcommand<'a, 'b>() -> App<'a, 'b> {
+    SubCommand::with_name("add-game")
         .about("adds a game from its TOML description")
         .arg(
             Arg::with_name("game")
-                .help("The game ID to add (TOML filename less .toml)")
+                .help("Path to game file to load")
+                .index(1),
+        )
+}
+
+fn add_run_subcommand<'a, 'b>() -> App<'a, 'b> {
+    SubCommand::with_name("add-run")
+        .about("adds a run from its TOML description")
+        .arg(
+            Arg::with_name("run")
+                .help("Path to run file to load")
                 .index(1),
         )
 }
 
 #[derive(Debug, Error)]
 enum Error {
-    #[error("no game provided")]
-    NoGameProvided,
+    /// Error getting a category from the command line.
     #[error("no category provided")]
-    NoCategoryProvided,
+    Category,
+    /// Error getting a game from the command line.
+    #[error("no game provided")]
+    Game,
+    /// Error getting a run from the command line.
+    #[error("no run provided")]
+    Run,
 }
