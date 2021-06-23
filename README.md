@@ -22,18 +22,19 @@ $ cargo run -- init
 To teach zombiesplit about a game, use
 
 ```
-$ cargo run -- add soniccd
+$ cargo run -- add-game scd11.toml
 ```
 
-where `soniccd.toml` is a game specification file (conveniently, this is the
-one pre-packed with zombiesplit as an example).
+where `scd11.toml` is a game specification file (conveniently, this is the
+one pre-packed with zombiesplit as an example).  The game will be stored into
+the database as the filename less its extension (so `scd11`.)
 
 ## Operation
 
-Supposing we've added a game `soniccd` with a category `btg`, run:
+Supposing we've added a game `scd11` with a category `btg-sonic`, run:
 
 ```
-$ cargo run -- run soniccd btg
+$ cargo run -- run scd11 btg-sonic
 ```
 
 zombiesplit has a semi-modal, vi-style user interface.  It has three modes:

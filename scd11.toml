@@ -71,8 +71,12 @@ name = "Sonic CD (2011)"
 [splits.mm3]
     name = "Metallic Madness 3"
 
-[categories.btgs]
+[categories.btg-sonic]
 name = "Beat the Game (Sonic)"
+segments = ["pp", "cc", "tt", "qq", "ww", "ss", "mm"]
+
+[categories.btg-tails]
+name = "Beat the Game (Tails)"
 segments = ["pp", "cc", "tt", "qq", "ww", "ss", "mm"]
 
 [categories.il]
