@@ -1,6 +1,10 @@
 //! Module for database activities related to storing and querying categories.
 
-use rusqlite::named_params;
+use rusqlite::{
+    named_params,
+    types::{FromSql, FromSqlResult, ToSqlOutput},
+    ToSql,
+};
 
 use super::error::Result;
 use crate::model::{
@@ -11,6 +15,22 @@ use crate::model::{
     },
     Session,
 };
+
+/// A game-category ID.
+#[derive(Copy, Clone, Debug)]
+pub struct GcID(pub i64);
+
+impl ToSql for GcID {
+    fn to_sql(&self) -> rusqlite::Result<ToSqlOutput<'_>> {
+        self.0.to_sql()
+    }
+}
+
+impl FromSql for GcID {
+    fn column_result(value: rusqlite::types::ValueRef<'_>) -> FromSqlResult<Self> {
+        value.as_i64().map(GcID)
+    }
+}
 
 /// Object for getting category information from the database.
 pub struct Getter<'conn> {
@@ -43,7 +63,7 @@ impl<'conn> Getter<'conn> {
             attempt: attempt_info.total + 1,
             splits: splits.into_iter().map(attempt::Split::new).collect(),
         };
-        Ok(Session::new(info, run))
+        Ok(Session::new(info.info, run))
     }
 
     /// Resolves a short descriptor `desc` to a category info record.
@@ -54,14 +74,16 @@ impl<'conn> Getter<'conn> {
     /// # Errors
     ///
     /// Propagates any errors from the database.
-    pub fn game_category_info(&mut self, desc: &ShortDescriptor) -> Result<Info> {
+    pub fn game_category_info(&mut self, desc: &ShortDescriptor) -> Result<InfoWithID> {
         Ok(self.query_game_category_info.query_row(
             named_params![":game": desc.game, ":category": desc.category],
             |row| {
-                Ok(Info {
-                    game_category_id: row.get(0)?,
-                    game: row.get(1)?,
-                    category: row.get(2)?,
+                Ok(InfoWithID {
+                    id: row.get(0)?,
+                    info: Info {
+                        game: row.get(1)?,
+                        category: row.get(2)?,
+                    },
                 })
             },
         )?)
@@ -117,40 +139,46 @@ pub trait Locator {
     /// # Errors
     ///
     /// Typically, errors returned will be database errors.
-    fn locate(&self, getter: &mut Getter) -> Result<i64>;
+    fn locate(&self, getter: &mut Getter) -> Result<GcID>;
 
     /// Tries to extract a game-category ID directly from this locator.
-    fn as_game_category_id(&self) -> Option<i64> {
+    fn as_game_category_id(&self) -> Option<GcID> {
         None
     }
 }
 
 /// Signed 64-bit integers are treated as game-category IDs natively.
-impl Locator for i64 {
-    fn locate(&self, _: &mut Getter) -> Result<i64> {
+impl Locator for GcID {
+    fn locate(&self, _: &mut Getter) -> Result<GcID> {
         Ok(*self)
     }
 
-    fn as_game_category_id(&self) -> Option<i64> {
+    fn as_game_category_id(&self) -> Option<GcID> {
         Some(*self)
     }
 }
 
+/// An information record with an attached game-category ID.
+pub struct InfoWithID {
+    pub id: GcID,
+    pub info: Info,
+}
+
 /// Category info implicitly contains a game-category ID.
-impl Locator for Info {
-    fn locate(&self, getter: &mut Getter) -> Result<i64> {
-        self.game_category_id.locate(getter)
+impl Locator for InfoWithID {
+    fn locate(&self, getter: &mut Getter) -> Result<GcID> {
+        self.id.locate(getter)
     }
 
-    fn as_game_category_id(&self) -> Option<i64> {
-        self.game_category_id.as_game_category_id()
+    fn as_game_category_id(&self) -> Option<GcID> {
+        self.id.as_game_category_id()
     }
 }
 
 impl Locator for ShortDescriptor {
-    fn locate(&self, getter: &mut Getter) -> Result<i64> {
+    fn locate(&self, getter: &mut Getter) -> Result<GcID> {
         // TODO(@MattWindsor91): make this a bit more optimal?
-        Ok(getter.game_category_info(self)?.game_category_id)
+        Ok(getter.game_category_info(self)?.id)
     }
 }
 

@@ -24,8 +24,6 @@ impl ShortDescriptor {
 
 /// Full, displayable metadata about a category of a game.
 pub struct Info {
-    /// The numeric ID of the (game, category) pair in the database.
-    pub game_category_id: i64,
     /// The name of the game.
     pub game: String,
     /// The name of the category.

@@ -8,12 +8,13 @@ edition = "2018"
 
 [dependencies]
 anyhow = "1.0.40"
+colored = "2"
 chrono = { version = "0.4", features = ["serde"] }
 clap = "2.33.0"
 css-color-parser = "0.1.2"
 env_logger = "0.8.3"
 log = { version = "0.4", features = ["serde", "std"] }
-rusqlite = "0.25.0"
+rusqlite = { version = "0.25.0", features = ["chrono"] }
 sdl2 = { version = "0.34.4", features = ["image"] }
 serde = { version = "1.0.125", features = ["derive"] }
 serde_with = "1.8.0"

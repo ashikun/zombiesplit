@@ -2,7 +2,10 @@
 
 use std::path::{Path, PathBuf};
 
-use crate::model::game::category::ShortDescriptor;
+use crate::{
+    db::category::Locator,
+    model::{game::category::ShortDescriptor, history::FullTiming},
+};
 
 use super::{
     config, db,
@@ -63,8 +66,30 @@ impl Zombie {
     /// ill-formed.
     pub fn add_run<P: AsRef<Path>>(&mut self, path: P) -> Result<()> {
         let pbuf = ensure_toml(path);
-        let run = model::history::Run::<ShortDescriptor>::from_toml_file(pbuf)?;
+        let run = model::history::Run::<ShortDescriptor, FullTiming>::from_toml_file(pbuf)?;
         self.db.add_run(&run)?;
+        Ok(())
+    }
+
+    /// Lists all runs for the given game/category locator.
+    ///
+    /// # Errors
+    ///
+    /// Returns any database errors occurring during the listing.
+    pub fn list_runs<L: Locator>(&self, loc: &L) -> Result<()> {
+        // TODO(@MattWindsor91): decouple this from Zombie?
+        use colored::Colorize;
+
+        for run in self.db.runs_for(loc)? {
+            let rank = match run.timing.rank {
+                None => "n/a".red(),
+                Some(1) => "1".yellow(),
+                Some(k) => format!("{}", k).green(),
+            };
+
+            println!("{}. {} on {}", rank, run.timing.total, run.date)
+        }
+
         Ok(())
     }
 

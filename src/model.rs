@@ -8,6 +8,6 @@ pub mod session;
 pub mod short;
 pub mod time;
 
+pub use self::time::Time;
 pub use load::Loadable;
 pub use session::Session;
-pub use time::Time;

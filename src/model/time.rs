@@ -166,6 +166,22 @@ impl FromStr for Time {
     }
 }
 
+impl rusqlite::types::FromSql for Time {
+    fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
+        u32::column_result(value).and_then(|x| {
+            Self::try_from(x).map_err(|e| rusqlite::types::FromSqlError::Other(Box::new(e)))
+        })
+    }
+}
+
+impl rusqlite::ToSql for Time {
+    fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
+        Ok(rusqlite::types::ToSqlOutput::Owned(
+            rusqlite::types::Value::Integer(i64::from(u32::from(*self))),
+        ))
+    }
+}
+
 mod tests {
     #[test]
     fn time_from_str_empty() {

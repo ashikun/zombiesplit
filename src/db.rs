@@ -1,6 +1,6 @@
 //! Top-level module for the model's sqlite database.
 
-mod category;
+pub mod category;
 pub mod error;
 mod game;
 mod init;
@@ -13,7 +13,7 @@ use std::path::Path;
 
 pub use error::{Error, Result};
 
-use self::category::Locator;
+use self::category::{GcID, Locator};
 
 /// A connection to zombiesplit's database.
 pub struct Db {
@@ -74,21 +74,24 @@ impl Db {
     ///
     /// Raises an error if any of the SQL queries relating to inserting a run
     /// fail.
-    pub fn add_run<L: Locator>(&mut self, run: &history::Run<L>) -> Result<()> {
-        let run = run.with_locator(self.resolve_run(run)?);
+    pub fn add_run<L: Locator>(&mut self, run: &history::TimedRun<L>) -> Result<()> {
+        let run = run.with_locator(self.resolve_gcid(&run.category_locator)?);
 
         let tx = self.conn.transaction()?;
         run::Inserter::new(&tx)?.add(&run)?;
         Ok(tx.commit()?)
     }
 
-    fn resolve_run<L: Locator>(&self, run: &history::Run<L>) -> Result<i64> {
-        // TODO(@MattWindsor91): this is horrible.
-        if let Some(x) = run.category_locator.as_game_category_id() {
-            Ok(x)
-        } else {
-            run.category_locator.locate(&mut self.category_getter()?)
-        }
+    /// Gets summaries for the runs attached to the game-category located by
+    /// `loc`.
+    ///
+    /// # Errors
+    ///
+    /// Raises an error if any of the SQL queries relating to inserting a run
+    /// fail.
+    pub fn runs_for<L: Locator>(&self, loc: &L) -> Result<Vec<history::RunSummary<GcID>>> {
+        let id = self.resolve_gcid(loc)?;
+        run::Finder::new(&self.conn)?.runs_for(id)
     }
 
     /// Initialises a session for the game/category described by the given
@@ -100,6 +103,15 @@ impl Db {
     /// or the game doesn't exist, or any other database error occurs.
     pub fn init_session(&self, desc: &ShortDescriptor) -> Result<Session> {
         self.category_getter()?.init_session(&desc)
+    }
+
+    fn resolve_gcid<L: Locator>(&self, loc: &L) -> Result<GcID> {
+        // TODO(@MattWindsor91): this is horrible.
+        if let Some(x) = loc.as_game_category_id() {
+            Ok(x)
+        } else {
+            loc.locate(&mut self.category_getter()?)
+        }
     }
 
     fn category_getter(&self) -> Result<category::Getter> {

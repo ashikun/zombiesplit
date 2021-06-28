@@ -3,14 +3,15 @@
 use zombiesplit::{
     model::{
         game::{self, category::ShortDescriptor},
-        history, Loadable,
+        history::{self, FullTiming},
+        Loadable,
     },
     Db,
 };
 
-const SAMPLE_GAME_PATH: &str = "soniccd.toml";
-const SAMPLE_GAME_NAME: &str = "soniccd";
-const SAMPLE_CATEGORY_NAME: &str = "btgs";
+const SAMPLE_GAME_PATH: &str = "scd11.toml";
+const SAMPLE_GAME_NAME: &str = "scd11";
+const SAMPLE_CATEGORY_NAME: &str = "btg-sonic";
 
 fn load_game() -> game::Config {
     game::Config::from_toml_file(SAMPLE_GAME_PATH).expect("couldn't load sample game")
@@ -26,6 +27,10 @@ fn setup_db(game: &game::Config) -> Db {
     db
 }
 
+fn short_descriptor() -> ShortDescriptor {
+    ShortDescriptor::new(SAMPLE_GAME_NAME, SAMPLE_CATEGORY_NAME)
+}
+
 /// Tests initialising the database and getting a session out of it.
 #[test]
 fn test_sample_session() {
@@ -33,14 +38,13 @@ fn test_sample_session() {
     let db = setup_db(&game);
 
     let session = db
-        .init_session(&ShortDescriptor::new(
-            SAMPLE_GAME_NAME,
-            SAMPLE_CATEGORY_NAME,
-        ))
+        .init_session(&short_descriptor())
         .expect("couldn't init session");
     assert_eq!(game.name, session.metadata.game);
     assert_eq!(
-        game.categories.get("btgs").map(|x| x.name.to_owned()),
+        game.categories
+            .get(SAMPLE_CATEGORY_NAME)
+            .map(|x| x.name.to_owned()),
         Some(session.metadata.category)
     );
 }
@@ -51,10 +55,15 @@ fn test_sample_add_run() {
     let game = load_game();
     let mut db = setup_db(&game);
 
-    let run = history::Run::<ShortDescriptor>::from_toml_file("soniccd-pb.toml")
+    let run = history::Run::<ShortDescriptor, FullTiming>::from_toml_file("scd11-pb.toml")
         .expect("couldn't load run");
 
-    db.add_run(&run).expect("couldn't insert run")
+    db.add_run(&run).expect("couldn't insert run");
+
+    let runs = db
+        .runs_for(&short_descriptor())
+        .expect("couldn't get run summaries");
+    assert_eq!(1, runs.len(), "there should only be one run")
 
     // TODO()
 }

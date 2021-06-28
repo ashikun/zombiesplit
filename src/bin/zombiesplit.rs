@@ -17,6 +17,7 @@ fn run() -> anyhow::Result<()> {
         ("init", Some(sub_m)) => run_init(zombie, sub_m),
         ("add-game", Some(sub_m)) => run_add_game(zombie, sub_m),
         ("add-run", Some(sub_m)) => run_add_run(zombie, sub_m),
+        ("list-runs", Some(sub_m)) => run_list_runs(zombie, sub_m),
         ("run", Some(sub_m)) => run_run(zombie, sub_m),
         _ => Ok(()),
     }
@@ -33,6 +34,11 @@ fn run_add_game(mut zombie: Zombie, matches: &ArgMatches) -> anyhow::Result<()> 
     Ok(())
 }
 
+fn run_list_runs(zombie: Zombie, matches: &ArgMatches) -> anyhow::Result<()> {
+    zombie.list_runs(&get_short_descriptor(matches)?)?;
+    Ok(())
+}
+
 fn run_add_run(mut zombie: Zombie, matches: &ArgMatches) -> anyhow::Result<()> {
     let path = matches.value_of("run").ok_or(Error::Run)?;
     zombie.add_run(path)?;
@@ -40,10 +46,14 @@ fn run_add_run(mut zombie: Zombie, matches: &ArgMatches) -> anyhow::Result<()> {
 }
 
 fn run_run(zombie: Zombie, matches: &ArgMatches) -> anyhow::Result<()> {
+    zombie.run(&get_short_descriptor(matches)?)?;
+    Ok(())
+}
+
+fn get_short_descriptor(matches: &ArgMatches) -> Result<ShortDescriptor, Error> {
     let game = matches.value_of("game").ok_or(Error::Game)?;
     let category = matches.value_of("category").ok_or(Error::Category)?;
-    zombie.run(&ShortDescriptor::new(game, category))?;
-    Ok(())
+    Ok(ShortDescriptor::new(game, category))
 }
 
 fn app<'a, 'b>() -> App<'a, 'b> {
@@ -59,11 +69,23 @@ fn app<'a, 'b>() -> App<'a, 'b> {
         .subcommand(init_subcommand())
         .subcommand(add_game_subcommand())
         .subcommand(add_run_subcommand())
+        .subcommand(list_runs_subcommand())
         .subcommand(run_subcommand())
 }
 
 fn init_subcommand<'a, 'b>() -> App<'a, 'b> {
     SubCommand::with_name("init").about("Initialises zombiesplit's database")
+}
+
+fn list_runs_subcommand<'a, 'b>() -> App<'a, 'b> {
+    SubCommand::with_name("list-runs")
+        .about("lists all runs stored for a category")
+        .arg(Arg::with_name("game").help("The game to query").index(1))
+        .arg(
+            Arg::with_name("category")
+                .help("The category to query")
+                .index(2),
+        )
 }
 
 fn run_subcommand<'a, 'b>() -> App<'a, 'b> {
