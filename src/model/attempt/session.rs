@@ -23,6 +23,8 @@ pub struct Session {
     /// Comparison data for the game/category currently being run.
     comparisons: Comparison,
     observers: Vec<Box<dyn Observer>>,
+    /// The function for timestamping outgoing runs.
+    timestamper: fn() -> chrono::DateTime<chrono::Utc>,
 }
 
 impl Session {
@@ -34,7 +36,15 @@ impl Session {
             run,
             comparisons: Comparison { splits: vec![] },
             observers: vec![],
+            timestamper: chrono::Utc::now,
         }
+    }
+
+    /// Replaces the session's timestamper with a different function.
+    ///
+    /// Useful for stubbing out time when testing.
+    pub fn set_timestamper(&mut self, ts: fn() -> chrono::DateTime<chrono::Utc>) {
+        self.timestamper = ts
     }
 
     /// Adds an observer to this session.
@@ -84,7 +94,7 @@ impl Session {
         TimedRun {
             category_locator: self.metadata.short.clone(),
             was_completed,
-            date: chrono::Utc::now(),
+            date: (self.timestamper)(),
             timing: self.run.timing_as_historic(),
         }
     }

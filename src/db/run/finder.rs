@@ -63,7 +63,7 @@ SELECT is_completed
      , SUM(time_ms) total
      , (CASE
         WHEN is_completed = 1
-        THEN (RANK() OVER (PARTITION BY game_category_id ORDER BY SUM(time_ms)))
+        THEN (RANK() OVER (PARTITION BY game_category_id, is_completed ORDER BY SUM(time_ms)))
         ELSE NULL
         END
        ) AS rank
@@ -73,6 +73,9 @@ FROM
     INNER JOIN run_split_time USING (run_split_id)
 WHERE
     game_category_id = :game_category
+GROUP BY
+    run_id
 ORDER BY
-    rank ASC
+    rank ASC NULLS LAST,
+    run.timestamp ASC
 ;";

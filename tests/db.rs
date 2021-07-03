@@ -1,6 +1,6 @@
 //! Tests the database functionality on an in-memory database.
 
-use std::{convert::TryFrom, rc::Rc};
+use std::{convert::TryFrom, ops::Add, rc::Rc};
 use zombiesplit::{
     db::{Db, Observer},
     model::{
@@ -12,6 +12,7 @@ use zombiesplit::{
 };
 
 const SAMPLE_GAME_PATH: &str = "scd11.toml";
+const SAMPLE_RUN_PATH: &str = "scd11-pb.toml";
 const SAMPLE_GAME_NAME: &str = "scd11";
 const SAMPLE_CATEGORY_NAME: &str = "btg-sonic";
 
@@ -57,7 +58,7 @@ fn test_sample_add_run() {
     let game = load_game();
     let db = setup_db(&game);
 
-    let run = history::Run::<ShortDescriptor, FullTiming>::from_toml_file("scd11-pb.toml")
+    let run = history::Run::<ShortDescriptor, FullTiming>::from_toml_file(SAMPLE_RUN_PATH)
         .expect("couldn't load run");
 
     db.add_run(&run).expect("couldn't insert run");
@@ -88,16 +89,27 @@ fn test_sample_observe_run() {
     let time = Time::try_from(8675309).expect("time didn't parse");
 
     // This should.
+    session.set_timestamper(|| chrono::Utc::now());
     session.push_to(0, time);
+    session.reset();
+
+    // As should this.
+    // (We change the timestamp to avoid having the database reject the run as
+    // a duplicate.)
+    session.set_timestamper(|| chrono::Utc::now().add(chrono::Duration::weeks(1)));
+    session.push_to(0, time);
+    session.push_to(1, time);
     session.reset();
 
     let runs = db
         .runs_for(&short_descriptor())
         .expect("couldn't get run summaries");
-    assert_eq!(1, runs.len(), "there should only be one run");
+    assert_eq!(2, runs.len(), "there should be two runs");
 
     let run = &runs[0];
     assert_eq!(run.timing.total, time);
+    let run = &runs[1];
+    assert_eq!(run.timing.total, time + time);
 
     // TODO(MattWindsor91): check run specifics
 }
