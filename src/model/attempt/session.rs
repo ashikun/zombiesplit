@@ -1,13 +1,20 @@
 //! The [Session] type and related code.
 
-use super::{
-    attempt::{split::Set, Run},
+use crate::model::{game::category::ShortDescriptor, history::TimedRun};
+
+use super::super::{
     comparison::{pace, Comparison},
     game::category,
     time::Time,
 };
+use super::{observer::Observer, run::Status, split::Set, Run};
 
-/// Model data for a running session.
+/// Holds all data for an attempt session.
+///
+/// A session consists of category information, the current run being
+/// attempted, and any comparison data being worked against.
+///
+/// It also has zero or more observers attached that can
 pub struct Session {
     /// Metadata for the game/category currently being run.
     pub metadata: category::Info,
@@ -15,6 +22,7 @@ pub struct Session {
     run: Run,
     /// Comparison data for the game/category currently being run.
     comparisons: Comparison,
+    observers: Vec<Box<dyn Observer>>,
 }
 
 impl Session {
@@ -25,7 +33,13 @@ impl Session {
             metadata,
             run,
             comparisons: Comparison { splits: vec![] },
+            observers: vec![],
         }
+    }
+
+    /// Adds an observer to this session.
+    pub fn add_observer(&mut self, o: Box<dyn Observer>) {
+        self.observers.push(o)
     }
 
     /// Gets the paced time for the split at `split`.
@@ -53,11 +67,35 @@ impl Session {
         self.comparisons
             .split_paced_time_at(split, self.time_at(split))
     }
+
+    /// Converts this session's current run, if any, to a historic run.
+    ///
+    /// Returns `None` if there is no started run.
+    #[must_use]
+    pub fn run_as_historic(&self) -> Option<TimedRun<ShortDescriptor>> {
+        match self.run.status() {
+            Status::NotStarted => None,
+            Status::Complete => Some(self.run_as_historic_with_completion(true)),
+            Status::Incomplete => Some(self.run_as_historic_with_completion(false)),
+        }
+    }
+
+    fn run_as_historic_with_completion(&self, was_completed: bool) -> TimedRun<ShortDescriptor> {
+        TimedRun {
+            category_locator: self.metadata.short.clone(),
+            was_completed,
+            date: chrono::Utc::now(),
+            timing: self.run.timing_as_historic(),
+        }
+    }
 }
 
 /// The session exposes its underlying run as a split set.
 impl Set for Session {
     fn reset(&mut self) {
+        for o in &self.observers {
+            o.on_reset(&self)
+        }
         self.run.reset()
     }
 

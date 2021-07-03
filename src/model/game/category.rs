@@ -28,6 +28,8 @@ pub struct Info {
     pub game: String,
     /// The name of the category.
     pub category: String,
+    /// The short descriptor of the category and game.
+    pub short: ShortDescriptor,
 }
 
 /// Information about the number of attempts a game-category has had.

@@ -1,10 +1,13 @@
 //! High-level interface to zombiesplit.
 
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    rc::Rc,
+};
 
 use crate::{
     db::category::Locator,
-    model::{game::category::ShortDescriptor, history::FullTiming},
+    model::{attempt::Observer, game::category::ShortDescriptor, history::FullTiming},
 };
 
 use super::{
@@ -21,7 +24,7 @@ use thiserror::Error;
 /// easy for the command-line app to handle.
 pub struct Zombie {
     cfg: config::System,
-    db: db::Db,
+    db: Rc<db::Db>,
 }
 
 impl Zombie {
@@ -31,7 +34,7 @@ impl Zombie {
     ///
     /// Returns any errors from trying to open the database.
     pub fn new(cfg: config::System) -> Result<Self> {
-        let db = db::Db::new(&cfg.db_path)?;
+        let db = Rc::new(db::Db::new(&cfg.db_path)?);
         Ok(Zombie { cfg, db })
     }
 
@@ -99,10 +102,20 @@ impl Zombie {
     ///
     /// Returns any database or UI errors caught during the session.
     pub fn run(self, desc: &ShortDescriptor) -> Result<()> {
-        let session = self.db.init_session(&desc)?;
+        let session = self.session(desc)?;
         let p = Presenter::new(session);
         view::View::new(self.cfg.ui)?.spawn(p)?.run()?;
         Ok(())
+    }
+
+    fn session(&self, short: &ShortDescriptor) -> Result<model::attempt::Session> {
+        let mut session = self.db.init_session(&short)?;
+        session.add_observer(self.db_observer());
+        Ok(session)
+    }
+
+    fn db_observer(&self) -> Box<dyn Observer> {
+        Box::new(crate::db::Observer::new(self.db.clone()))
     }
 }
 

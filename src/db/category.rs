@@ -13,7 +13,6 @@ use crate::model::{
         category::{AttemptInfo, Info, ShortDescriptor},
         Split,
     },
-    Session,
 };
 
 /// A game-category ID.
@@ -54,7 +53,7 @@ impl<'conn> Getter<'conn> {
     /// # Errors
     ///
     /// Propagates any errors from the database.
-    pub fn init_session(&mut self, desc: &ShortDescriptor) -> Result<Session> {
+    pub fn init_session(&mut self, desc: &ShortDescriptor) -> Result<attempt::Session> {
         let info = self.game_category_info(&desc)?;
         let attempt_info = self.attempt_info(&info)?;
         let splits = self.splits(&info)?;
@@ -63,7 +62,7 @@ impl<'conn> Getter<'conn> {
             attempt: attempt_info.total + 1,
             splits: splits.into_iter().map(attempt::Split::new).collect(),
         };
-        Ok(Session::new(info.info, run))
+        Ok(attempt::Session::new(info.info, run))
     }
 
     /// Resolves a short descriptor `desc` to a category info record.
@@ -74,15 +73,16 @@ impl<'conn> Getter<'conn> {
     /// # Errors
     ///
     /// Propagates any errors from the database.
-    pub fn game_category_info(&mut self, desc: &ShortDescriptor) -> Result<InfoWithID> {
+    pub fn game_category_info(&mut self, short: &ShortDescriptor) -> Result<InfoWithID> {
         Ok(self.query_game_category_info.query_row(
-            named_params![":game": desc.game, ":category": desc.category],
+            named_params![":game": short.game, ":category": short.category],
             |row| {
                 Ok(InfoWithID {
                     id: row.get(0)?,
                     info: Info {
                         game: row.get(1)?,
                         category: row.get(2)?,
+                        short: short.clone(),
                     },
                 })
             },
@@ -122,7 +122,8 @@ impl<'conn> Getter<'conn> {
             .query_and_then(named_params![":game_category": game_category], |row| {
                 Ok(Split {
                     id: row.get(0)?,
-                    name: row.get(1)?,
+                    short: row.get(1)?,
+                    name: row.get(2)?,
                 })
             })?
             .collect()
@@ -196,7 +197,7 @@ const SQL_ATTEMPT_INFO: &str = "
     WHERE game_category_id = :game_category;";
 
 const SQL_SPLITS: &str = "
-    SELECT split_id, split.name
+    SELECT split_id, split.short, split.name
     FROM split
             INNER JOIN segment_split    USING(split_id)
             INNER JOIN category_segment USING(segment_id)

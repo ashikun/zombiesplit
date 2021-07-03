@@ -28,6 +28,12 @@ impl<'a> Split {
         &self.info.name
     }
 
+    /// Clones a copy of the times for this split.
+    #[must_use]
+    pub fn all_times(&self) -> Vec<Time> {
+        self.times.clone()
+    }
+
     /// Calculates the summed time of the split.
     #[must_use]
     pub fn summed_time(&self) -> Time {

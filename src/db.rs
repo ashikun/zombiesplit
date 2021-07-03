@@ -6,18 +6,24 @@ mod game;
 mod init;
 mod run;
 use crate::model::{
+    attempt::Session,
     game::{category::ShortDescriptor, Config},
-    history, Session,
+    history,
 };
-use std::path::Path;
+use std::{
+    path::Path,
+    sync::{RwLock, RwLockReadGuard, RwLockWriteGuard},
+};
 
 pub use error::{Error, Result};
+pub use run::Observer;
+use rusqlite::Connection;
 
 use self::category::{GcID, Locator};
 
 /// A connection to zombiesplit's database.
 pub struct Db {
-    pub(super) conn: rusqlite::Connection,
+    conn: RwLock<rusqlite::Connection>,
 }
 
 impl Db {
@@ -44,7 +50,17 @@ impl Db {
     }
 
     fn from_sqlite(conn: rusqlite::Connection) -> Self {
-        Self { conn }
+        Self {
+            conn: RwLock::new(conn),
+        }
+    }
+
+    fn lock_db_read(&self) -> Result<RwLockReadGuard<Connection>> {
+        self.conn.read().map_err(|_| Error::Lock)
+    }
+
+    fn lock_db_write(&self) -> Result<RwLockWriteGuard<Connection>> {
+        self.conn.write().map_err(|_| Error::Lock)
     }
 
     /// Initialises the database for first use.
@@ -53,7 +69,7 @@ impl Db {
     ///
     /// Propagates errors from the database if anything goes wrong.
     pub fn init(&self) -> Result<()> {
-        init::on_db(&self.conn)
+        init::on_db(self.lock_db_read()?)
     }
 
     /// Adds the game `game` to the database, assigning it shortname `short`.
@@ -62,8 +78,9 @@ impl Db {
     ///
     /// Raises an error if any of the SQL queries relating to inserting a game
     /// fail.
-    pub fn add_game(&mut self, short: &str, game: &Config) -> Result<()> {
-        let tx = self.conn.transaction()?;
+    pub fn add_game(&self, short: &str, game: &Config) -> Result<()> {
+        let mut conn = self.lock_db_write()?;
+        let tx = conn.transaction()?;
         game::Inserter::new(&tx)?.add_game(short, game)?;
         Ok(tx.commit()?)
     }
@@ -74,10 +91,10 @@ impl Db {
     ///
     /// Raises an error if any of the SQL queries relating to inserting a run
     /// fail.
-    pub fn add_run<L: Locator>(&mut self, run: &history::TimedRun<L>) -> Result<()> {
+    pub fn add_run<L: Locator>(&self, run: &history::TimedRun<L>) -> Result<()> {
         let run = run.with_locator(self.resolve_gcid(&run.category_locator)?);
-
-        let tx = self.conn.transaction()?;
+        let mut conn = self.lock_db_write()?;
+        let tx = conn.transaction()?;
         run::Inserter::new(&tx)?.add(&run)?;
         Ok(tx.commit()?)
     }
@@ -91,7 +108,7 @@ impl Db {
     /// fail.
     pub fn runs_for<L: Locator>(&self, loc: &L) -> Result<Vec<history::RunSummary<GcID>>> {
         let id = self.resolve_gcid(loc)?;
-        run::Finder::new(&self.conn)?.runs_for(id)
+        run::Finder::new(&*self.lock_db_read()?)?.runs_for(id)
     }
 
     /// Initialises a session for the game/category described by the given
@@ -102,7 +119,9 @@ impl Db {
     /// Fails if there is no such category for the given game in the database,
     /// or the game doesn't exist, or any other database error occurs.
     pub fn init_session(&self, desc: &ShortDescriptor) -> Result<Session> {
-        self.category_getter()?.init_session(&desc)
+        let conn = self.lock_db_read()?;
+        let mut getter = category::Getter::new(&conn)?;
+        getter.init_session(&desc)
     }
 
     fn resolve_gcid<L: Locator>(&self, loc: &L) -> Result<GcID> {
@@ -110,11 +129,10 @@ impl Db {
         if let Some(x) = loc.as_game_category_id() {
             Ok(x)
         } else {
-            loc.locate(&mut self.category_getter()?)
-        }
-    }
+            let conn = self.lock_db_read()?;
+            let mut getter = category::Getter::new(&conn)?;
 
-    fn category_getter(&self) -> Result<category::Getter> {
-        category::Getter::new(&self.conn)
+            loc.locate(&mut getter)
+        }
     }
 }

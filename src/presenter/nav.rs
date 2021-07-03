@@ -6,7 +6,10 @@ use super::{
     event::Event,
     mode::{EventResult, Mode},
 };
-use crate::model::{attempt::split::Set, time::position, Session};
+use crate::model::{
+    attempt::{split::Set, Session},
+    time::position,
+};
 
 /// Mode for when we are navigating splits.
 pub struct Nav {

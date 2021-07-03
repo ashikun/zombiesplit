@@ -23,6 +23,9 @@ pub enum Error {
 
     #[error("bad run timestamp: {0}")]
     BadRunTimestamp(i64),
+
+    #[error("couldn't get lock on connection")]
+    Lock,
 }
 
 /// Shorthand for a result over [Error].

@@ -9,9 +9,8 @@ use super::{
     nav::Nav,
 };
 use crate::model::{
-    attempt::split::Set,
+    attempt::{split::Set, Session},
     time::{self, position},
-    Session,
 };
 
 /// A split editor.

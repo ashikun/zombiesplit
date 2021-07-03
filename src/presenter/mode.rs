@@ -1,6 +1,6 @@
 //! The Mode trait and associated functionality.
 
-use crate::model::Session;
+use crate::model::attempt::Session;
 
 use super::{cursor::Cursor, editor::Editor, event::Event};
 

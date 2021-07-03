@@ -1,5 +1,7 @@
 //! Models relating to runs.
 
+use crate::model::history::FullTiming;
+
 use super::{
     super::time::Time,
     split::{Set, Split},
@@ -61,4 +63,43 @@ impl Set for Run {
     fn name_at(&self, split: usize) -> &str {
         self.splits.get(split).map_or("Unknown", |s| &s.name())
     }
+}
+
+impl Run {
+    /// Gets the current status of the run, based on how many splits have been
+    /// filled in.
+    #[must_use]
+    pub fn status(&self) -> Status {
+        match self.num_filled_splits() {
+            0 => Status::NotStarted,
+            x if x == self.num_splits() => Status::Complete,
+            _ => Status::Incomplete,
+        }
+    }
+
+    fn num_filled_splits(&self) -> usize {
+        self.splits.iter().filter(|x| 0 < x.num_times()).count()
+    }
+
+    /// Gets a history summary of the timing for this run.
+    #[must_use]
+    pub fn timing_as_historic(&self) -> FullTiming {
+        FullTiming {
+            times: self
+                .splits
+                .iter()
+                .map(|s| (s.info.short.clone(), s.all_times()))
+                .collect(),
+        }
+    }
+}
+
+/// The status of the run.
+pub enum Status {
+    /// The run hasn't been started yet.
+    NotStarted,
+    /// The run appears to be incomplete.
+    Incomplete,
+    /// The run appears to be complete.
+    Complete,
 }
