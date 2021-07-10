@@ -74,6 +74,19 @@ impl Zombie {
         Ok(())
     }
 
+    /// Lists all game-category pairs zombiesplit knows.
+    ///
+    /// # Errors
+    ///
+    /// Returns any database errors occurring during the listing.
+    pub fn list_game_categories(&self) -> Result<()> {
+        for game in self.db.game_categories()? {
+            println!("{} - {}: {}", game.short, game.game, game.category);
+        }
+
+        Ok(())
+    }
+
     /// Lists all runs for the given game/category locator.
     ///
     /// # Errors

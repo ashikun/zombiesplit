@@ -6,6 +6,7 @@ mod game;
 mod init;
 mod run;
 use crate::model::{
+    self,
     attempt::Session,
     game::{category::ShortDescriptor, Config},
     history,
@@ -97,6 +98,17 @@ impl Db {
         let tx = conn.transaction()?;
         run::Inserter::new(&tx)?.add(&run)?;
         Ok(tx.commit()?)
+    }
+
+    /// Gets summaries for all game-category pairs in the database.
+    ///
+    /// # Errors
+    ///
+    /// Raises an error if the underlying SQL query fails.
+    pub fn game_categories(&self) -> Result<Vec<model::game::category::Info>> {
+        let conn = self.lock_db_read()?;
+        let mut getter = category::Getter::new(&conn)?;
+        getter.all_game_category_info()
     }
 
     /// Gets summaries for the runs attached to the game-category located by

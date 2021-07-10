@@ -17,6 +17,7 @@ fn run() -> anyhow::Result<()> {
         ("init", Some(sub_m)) => run_init(zombie, sub_m),
         ("add-game", Some(sub_m)) => run_add_game(zombie, sub_m),
         ("add-run", Some(sub_m)) => run_add_run(zombie, sub_m),
+        ("list-categories", Some(sub_m)) => run_list_categories(zombie, sub_m),
         ("list-runs", Some(sub_m)) => run_list_runs(zombie, sub_m),
         ("run", Some(sub_m)) => run_run(zombie, sub_m),
         _ => Ok(()),
@@ -31,6 +32,11 @@ fn run_init(zombie: Zombie, _matches: &ArgMatches) -> anyhow::Result<()> {
 fn run_add_game(mut zombie: Zombie, matches: &ArgMatches) -> anyhow::Result<()> {
     let path = matches.value_of("game").ok_or(Error::Game)?;
     zombie.add_game(path)?;
+    Ok(())
+}
+
+fn run_list_categories(zombie: Zombie, _matches: &ArgMatches) -> anyhow::Result<()> {
+    zombie.list_game_categories()?;
     Ok(())
 }
 
@@ -69,12 +75,17 @@ fn app<'a, 'b>() -> App<'a, 'b> {
         .subcommand(init_subcommand())
         .subcommand(add_game_subcommand())
         .subcommand(add_run_subcommand())
+        .subcommand(list_categories_subcommand())
         .subcommand(list_runs_subcommand())
         .subcommand(run_subcommand())
 }
 
 fn init_subcommand<'a, 'b>() -> App<'a, 'b> {
     SubCommand::with_name("init").about("Initialises zombiesplit's database")
+}
+
+fn list_categories_subcommand<'a, 'b>() -> App<'a, 'b> {
+    SubCommand::with_name("list-categories").about("lists all game/category pairs")
 }
 
 fn list_runs_subcommand<'a, 'b>() -> App<'a, 'b> {
