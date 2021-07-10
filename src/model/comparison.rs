@@ -73,3 +73,18 @@ impl Split {
         self.split.map_or(false, |pb| split_time < pb)
     }
 }
+
+/// Trait of objects that can provide comparisons.
+pub trait Provider {
+    /// Gets the current comparison for a session.
+    fn comparison(&mut self) -> Option<Comparison>;
+}
+
+/// A provider that never provides comparisons.
+pub struct NullProvider;
+
+impl Provider for NullProvider {
+    fn comparison(&mut self) -> Option<Comparison> {
+        None
+    }
+}

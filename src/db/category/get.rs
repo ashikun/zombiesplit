@@ -104,8 +104,8 @@ impl<'conn> Getter<'conn> {
             named_params![":game_category": game_category],
             |row| {
                 Ok(AttemptInfo {
-                    total: row.get(0)?,
-                    completed: row.get(1)?,
+                    total: row.get("total")?,
+                    completed: row.get("completed")?,
                 })
             },
         )?)

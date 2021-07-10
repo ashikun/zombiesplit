@@ -3,7 +3,7 @@
 use crate::model::{game::category::ShortDescriptor, history::TimedRun};
 
 use super::super::{
-    comparison::{pace, Comparison},
+    comparison::{self, pace, Comparison},
     game::category,
     time::Time,
 };
@@ -21,10 +21,13 @@ pub struct Session {
     /// The current run.
     run: Run,
     /// Comparison data for the game/category currently being run.
-    comparisons: Comparison,
+    comparison: Comparison,
+    /// Any observers attached to the session.
     observers: Vec<Box<dyn Observer>>,
     /// The function for timestamping outgoing runs.
     timestamper: fn() -> chrono::DateTime<chrono::Utc>,
+    /// The comparison provider.
+    comparator: Box<dyn comparison::Provider>,
 }
 
 impl Session {
@@ -34,9 +37,10 @@ impl Session {
         Self {
             metadata,
             run,
-            comparisons: Comparison { splits: vec![] },
+            comparison: Comparison { splits: vec![] },
             observers: vec![],
             timestamper: chrono::Utc::now,
+            comparator: Box::new(comparison::NullProvider),
         }
     }
 
@@ -45,6 +49,17 @@ impl Session {
     /// Useful for stubbing out time when testing.
     pub fn set_timestamper(&mut self, ts: fn() -> chrono::DateTime<chrono::Utc>) {
         self.timestamper = ts
+    }
+
+    /// Replaces the session's comparison provider with a different one.
+    ///
+    /// By default, the session doesn't have comparisons set up, so this will
+    /// need to be done to get comparisons working.
+    ///
+    /// Triggers an immediate comparison reset.
+    pub fn set_comparison_provider(&mut self, p: Box<dyn comparison::Provider>) {
+        self.comparator = p;
+        self.refresh_comparison()
     }
 
     /// Adds an observer to this session.
@@ -69,12 +84,12 @@ impl Session {
     }
 
     fn run_paced_time_at(&self, split: usize) -> pace::PacedTime {
-        self.comparisons
+        self.comparison
             .run_paced_time_at(split, self.total_at(split))
     }
 
     fn split_paced_time_at(&self, split: usize) -> pace::PacedTime {
-        self.comparisons
+        self.comparison
             .split_paced_time_at(split, self.time_at(split))
     }
 
@@ -98,15 +113,30 @@ impl Session {
             timing: self.run.timing_as_historic(),
         }
     }
+
+    fn observe_reset(&self) {
+        for o in &self.observers {
+            o.on_reset(&self)
+        }
+    }
+
+    /// Asks the comparison provider for an updated comparison.
+    ///
+    /// This should occur when the run is reset, in case the outgoing run has
+    /// changed the comparisons.
+    fn refresh_comparison(&mut self) {
+        if let Some(c) = self.comparator.comparison() {
+            self.comparison = c
+        }
+    }
 }
 
 /// The session exposes its underlying run as a split set.
 impl Set for Session {
     fn reset(&mut self) {
-        for o in &self.observers {
-            o.on_reset(&self)
-        }
-        self.run.reset()
+        self.observe_reset();
+        self.run.reset();
+        self.refresh_comparison()
     }
 
     fn clear_at(&mut self, split: usize) {
