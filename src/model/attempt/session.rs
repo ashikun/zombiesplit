@@ -125,7 +125,7 @@ impl Session {
     /// This should occur when the run is reset, in case the outgoing run has
     /// changed the comparisons.
     fn refresh_comparison(&mut self) {
-        if let Some(c) = self.comparator.comparison() {
+        if let Some(c) = self.comparator.comparison(&self.metadata.short) {
             self.comparison = c
         }
     }

@@ -109,6 +109,22 @@ impl Zombie {
         Ok(())
     }
 
+    /// Lists all PBs for splits in the given game/category locator.
+    ///
+    /// # Errors
+    ///
+    /// Returns any database errors occurring during the listing.
+    pub fn split_pbs<L: Locator>(&self, loc: &L) -> Result<()> {
+        // TODO(@MattWindsor91): decouple this from Zombie?
+
+        for (short, time) in self.db.split_pbs_for(loc)? {
+            println!("{}: {}", short, time);
+        }
+
+        Ok(())
+
+    }
+
     /// Opens a split UI session for the given game/category descriptor.
     ///
     /// # Errors

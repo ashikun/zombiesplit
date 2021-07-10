@@ -7,6 +7,8 @@ pub use pace::Pace;
 
 use self::pace::PacedTime;
 
+use super::game::category::ShortDescriptor;
+
 /// A comparison set.
 pub struct Comparison {
     pub splits: Vec<Split>,
@@ -76,15 +78,15 @@ impl Split {
 
 /// Trait of objects that can provide comparisons.
 pub trait Provider {
-    /// Gets the current comparison for a session.
-    fn comparison(&mut self) -> Option<Comparison>;
+    /// Gets the current comparison for a game-category.
+    fn comparison(&mut self, short: &ShortDescriptor) -> Option<Comparison>;
 }
 
 /// A provider that never provides comparisons.
 pub struct NullProvider;
 
 impl Provider for NullProvider {
-    fn comparison(&mut self) -> Option<Comparison> {
+    fn comparison(&mut self, _short: &ShortDescriptor) -> Option<Comparison> {
         None
     }
 }

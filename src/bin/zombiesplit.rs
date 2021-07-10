@@ -19,6 +19,7 @@ fn run() -> anyhow::Result<()> {
         ("add-run", Some(sub_m)) => run_add_run(zombie, sub_m),
         ("list-categories", Some(sub_m)) => run_list_categories(zombie, sub_m),
         ("list-runs", Some(sub_m)) => run_list_runs(zombie, sub_m),
+        ("split-pbs", Some(sub_m)) => run_split_pbs(zombie, sub_m),
         ("run", Some(sub_m)) => run_run(zombie, sub_m),
         _ => Ok(()),
     }
@@ -42,6 +43,11 @@ fn run_list_categories(zombie: Zombie, _matches: &ArgMatches) -> anyhow::Result<
 
 fn run_list_runs(zombie: Zombie, matches: &ArgMatches) -> anyhow::Result<()> {
     zombie.list_runs(&get_short_descriptor(matches)?)?;
+    Ok(())
+}
+
+fn run_split_pbs(zombie: Zombie, matches: &ArgMatches) -> anyhow::Result<()> {
+    zombie.split_pbs(&get_short_descriptor(matches)?)?;
     Ok(())
 }
 
@@ -77,6 +83,7 @@ fn app<'a, 'b>() -> App<'a, 'b> {
         .subcommand(add_run_subcommand())
         .subcommand(list_categories_subcommand())
         .subcommand(list_runs_subcommand())
+        .subcommand(split_pbs_subcommand())
         .subcommand(run_subcommand())
 }
 
@@ -91,6 +98,17 @@ fn list_categories_subcommand<'a, 'b>() -> App<'a, 'b> {
 fn list_runs_subcommand<'a, 'b>() -> App<'a, 'b> {
     SubCommand::with_name("list-runs")
         .about("lists all runs stored for a category")
+        .arg(Arg::with_name("game").help("The game to query").index(1))
+        .arg(
+            Arg::with_name("category")
+                .help("The category to query")
+                .index(2),
+        )
+}
+
+fn split_pbs_subcommand<'a, 'b>() -> App<'a, 'b> {
+    SubCommand::with_name("split-pbs")
+        .about("lists all split PBs for a category")
         .arg(Arg::with_name("game").help("The game to query").index(1))
         .arg(
             Arg::with_name("category")

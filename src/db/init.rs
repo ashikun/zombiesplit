@@ -96,5 +96,12 @@ CREATE TABLE
         , UNIQUE(run_split_id, position)      -- each split can have multiple times entered for the run, but they must be totally ordered
         );
 
+CREATE VIEW run_split_total (run_split_id, total) AS
+    SELECT run_split_id
+         , SUM(time_ms) AS total
+      FROM run_split_time
+           INNER JOIN run_split USING (run_split_id)
+     GROUP BY run_split_id;
+
 COMMIT;
 ";
