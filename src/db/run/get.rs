@@ -3,12 +3,18 @@
 use chrono::TimeZone;
 use rusqlite::{named_params, Connection, Statement};
 
-use crate::{db::category::GcID, model::{Time, history::{self, RunSummary, TimeSummary}, short::Name}};
+use crate::{
+    db::category::GcID,
+    model::{
+        history::{RunSummary, TimeSummary},
+        Time,
+    },
+};
 
 use super::super::error::{Error, Result};
 
 /// Object for finding historic runs of interest in the database.
-pub struct Finder<'conn> {
+pub struct Getter<'conn> {
     /// Query used for summarising all runs logged on a game-category.
     query_all_runs: Statement<'conn>,
     /// Query used for finding the personal-best run for a game-category.
@@ -16,10 +22,10 @@ pub struct Finder<'conn> {
     /// Query used for finding the personal-best splits for a game-category.
     query_comparison_split_pbs: Statement<'conn>,
     /// Query used for finding all split totals for a run.
-    query_splits_for_run: Statement<'conn>
+    query_splits_for_run: Statement<'conn>,
 }
 
-impl<'conn> Finder<'conn> {
+impl<'conn> Getter<'conn> {
     /// Constructs a run finder.
     ///
     /// # Errors
@@ -30,7 +36,7 @@ impl<'conn> Finder<'conn> {
             query_all_runs: conn.prepare(SQL_ALL_RUNS)?,
             query_comparison_run_pb: conn.prepare(SQL_COMPARISON_RUN_PB)?,
             query_comparison_split_pbs: conn.prepare(SQL_COMPARISON_SPLIT_PBS)?,
-            query_splits_for_run: conn.prepare(SQL_SPLITS_FOR_RUN)?
+            query_splits_for_run: conn.prepare(SQL_SPLITS_FOR_RUN)?,
         })
     }
 
@@ -39,20 +45,26 @@ impl<'conn> Finder<'conn> {
     /// # Errors
     ///
     /// Errors if the database query fails.
-    pub fn runs_for(&mut self, id: GcID) -> Result<Vec<history::RunSummary<GcID>>> {
+    pub fn runs_for(&mut self, id: GcID) -> Result<Vec<SummaryWithID>> {
         self.query_all_runs
-            .query_and_then(named_params![":game_category": id], |row| {
-                Ok(RunSummary::<GcID> {
-                    category_locator: id,
-                    was_completed: row.get(0)?,
-                    date: date_from_timestamp(row.get(1)?)?,
-                    timing: TimeSummary {
-                        total: row.get(2)?,
-                        rank: row.get(3)?,
-                    },
-                })
+            .query_and_then(named_params![":game_category": id], |r| {
+                SummaryWithID::from_row(id, r)
             })?
             .collect()
+    }
+
+    /// Gets the PB run for a game-category ID, if one exists.
+    ///
+    /// # Errors
+    ///
+    /// Errors if the database query fails.
+    pub fn run_pb_for(&mut self, id: GcID) -> Result<Option<SummaryWithID>> {
+        self.query_comparison_run_pb
+            .query_and_then(named_params![":game_category": id], |r| {
+                SummaryWithID::from_row(id, r)
+            })?
+            .next()
+            .transpose()
     }
 
     /// Gets PBs for each split on a given game-category ID.
@@ -60,13 +72,13 @@ impl<'conn> Finder<'conn> {
     /// # Errors
     ///
     /// Errors if the database query fails.
-    pub fn split_pbs_for(&mut self, id: GcID) -> Result<Vec<(i64, Time)>> {
+    pub fn split_pbs_for(&mut self, id: GcID) -> Result<Vec<SplitTimeWithID>> {
         self.query_comparison_split_pbs
             .query_and_then(named_params![":game_category": id], |row| {
-                Ok((
-                    row.get("split_id")?,
-                    row.get("total")?,
-                ))
+                Ok(SplitTimeWithID {
+                    id: row.get("split_id")?,
+                    time: row.get("total")?,
+                })
             })?
             .collect()
     }
@@ -79,10 +91,50 @@ fn date_from_timestamp(timestamp: i64) -> Result<chrono::DateTime<chrono::Utc>> 
         .ok_or(Error::BadRunTimestamp(timestamp))
 }
 
+/// A split time with an attached split ID.
+pub struct SplitTimeWithID {
+    /// The split ID.
+    pub id: i64,
+    /// The split time.
+    pub time: Time,
+}
+
+/// A run summary with an attached ID.
+pub struct SummaryWithID {
+    /// The run ID.
+    pub id: i64,
+    /// The run summary.
+    pub run: RunSummary<GcID>,
+}
+
+impl SummaryWithID {
+    /// Constructs a summary from a row of one of the run-summary queries.
+    ///
+    /// This depends on the queries returning the same thing.
+    ///
+    /// # Errors
+    ///
+    /// Errors if any of the fields are missing or inconvertible.
+    fn from_row(gcid: GcID, r: &rusqlite::Row) -> Result<Self> {
+        Ok(Self {
+            id: r.get("run_id")?,
+            run: RunSummary {
+                category_locator: gcid,
+                date: date_from_timestamp(r.get("date")?)?,
+                was_completed: r.get("is_completed")?,
+                timing: TimeSummary {
+                    total: r.get("total")?,
+                    rank: r.get("rank")?,
+                },
+            },
+        })
+    }
+}
+
 const SQL_ALL_RUNS: &str = "
 SELECT is_completed
-     , run.timestamp
-     , SUM(time_ms) total
+     , run.timestamp AS date
+     , SUM(time_ms)  AS total
      , (CASE
         WHEN is_completed = 1
         THEN (RANK() OVER (PARTITION BY game_category_id, is_completed ORDER BY SUM(time_ms)))
@@ -99,7 +151,12 @@ ORDER BY rank ASC NULLS LAST, run.timestamp ASC
 
 const SQL_COMPARISON_RUN_PB: &str = "
 SELECT run_id
-     , SUM(time_ms) AS total
+     , run.timestamp AS date
+     , SUM(time_ms)  AS total
+     -- These bits exist to fill in parts of the run summary that are implicit
+     -- in the fact we're looking for a PB.
+     , 1 AS rank
+     , 1 AS is_completed
   FROM run
        INNER JOIN run_split      USING (run_id)
        INNER JOIN run_split_time USING (run_split_id)

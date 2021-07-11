@@ -122,7 +122,21 @@ impl Zombie {
         }
 
         Ok(())
+    }
 
+    /// Gets the run for the given game/category locator.
+    ///
+    /// # Errors
+    ///
+    /// Returns any database errors occurring during the listing.
+    pub fn run_pb<L: Locator>(&self, loc: &L) -> Result<()> {
+        // TODO(@MattWindsor91): decouple this from Zombie?
+
+        if let Some(pb) = self.db.run_pb_for(loc)? {
+            println!("PB is {} on {}", pb.timing.total, pb.date);
+        }
+
+        Ok(())
     }
 
     /// Opens a split UI session for the given game/category descriptor.

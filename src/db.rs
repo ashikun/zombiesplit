@@ -5,8 +5,19 @@ pub mod error;
 mod game;
 mod init;
 mod run;
-use crate::model::{self, Time, attempt::Session, game::{category::ShortDescriptor, Config}, history, short::Name};
-use std::{collections::HashMap, path::Path, sync::{RwLock, RwLockReadGuard, RwLockWriteGuard}};
+use crate::model::{
+    self,
+    attempt::Session,
+    game::{category::ShortDescriptor, Config},
+    history::{self, RunSummary},
+    short::Name,
+    Time,
+};
+use std::{
+    collections::HashMap,
+    path::Path,
+    sync::{RwLock, RwLockReadGuard, RwLockWriteGuard},
+};
 
 pub use error::{Error, Result};
 pub use run::Observer;
@@ -108,29 +119,59 @@ impl Db {
     ///
     /// # Errors
     ///
-    /// Raises an error if any of the SQL queries relating to inserting a run
+    /// Raises an error if any of the SQL queries relating to getting a run
     /// fail.
-    pub fn runs_for<L: Locator>(&self, loc: &L) -> Result<Vec<history::RunSummary<GcID>>> {
+    pub fn runs_for<L: Locator>(&self, loc: &L) -> Result<Vec<RunSummary<GcID>>> {
         let id = self.resolve_gcid(loc)?;
-        run::Finder::new(&*self.lock_db_read()?)?.runs_for(id)
+        let runs = run::Getter::new(&*self.lock_db_read()?)?.runs_for(id)?;
+        Ok(runs.into_iter().map(|x| x.run).collect())
     }
 
+    /// Gets the PB run for the game-category located by `loc`.
+    ///
+    /// # Errors
+    ///
+    /// Raises an error if any of the SQL queries relating to getting a run
+    /// fail.
+    pub fn run_pb_for<L: Locator>(&self, loc: &L) -> Result<Option<RunSummary<GcID>>> {
+        let id = self.resolve_gcid(loc)?;
+        Ok(run::Getter::new(&*self.lock_db_read()?)?
+            .run_pb_for(id)?
+            .map(|x| x.run))
+    }
+
+    /// Gets split PBs for the game-category located by `loc`.
+    ///
+    /// # Errors
+    ///
+    /// Raises an error if any of the SQL queries relating to getting a run
+    /// fail.
     pub fn split_pbs_for<L: Locator>(&self, loc: &L) -> Result<Vec<(Name, Time)>> {
         // TODO(@MattWindsor91): collate by segment
         let id = self.resolve_gcid(loc)?;
         let splits = self.split_id_map(id)?;
 
-        Ok(
-        run::Finder::new(&*self.lock_db_read()?)?.split_pbs_for(id)?.into_iter().map(
-            |(id, x)| {
-                (splits.get(&id).map(|x| x.to_owned()).unwrap_or_else(|| "??".to_owned()), x)
-            }
-        ).collect())
+        Ok(run::Getter::new(&*self.lock_db_read()?)?
+            .split_pbs_for(id)?
+            .into_iter()
+            .map(|s| {
+                (
+                    splits
+                        .get(&s.id)
+                        .map_or_else(|| "??".to_owned(), String::clone),
+                    s.time,
+                )
+            })
+            .collect())
     }
 
     fn split_id_map(&self, gcid: GcID) -> Result<HashMap<i64, String>> {
         // TODO(@MattWindsor91): move this elsewhere?
-        Ok(category::Getter::new(&*self.lock_db_read()?)?.splits(&gcid)?.into_iter().map(|s| (s.id, s.short)).collect())
+        Ok(category::Getter::new(&*self.lock_db_read()?)?
+            .splits(&gcid)?
+            .into_iter()
+            .map(|s| (s.id, s.short))
+            .collect())
     }
 
     /// Initialises a session for the game/category described by the given
