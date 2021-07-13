@@ -4,6 +4,7 @@ pub mod category;
 pub mod error;
 mod game;
 mod init;
+pub mod inspect;
 pub mod run;
 pub mod util;
 use crate::model::{self, game::Config, history, short::Name, Time};
@@ -17,7 +18,10 @@ pub use error::{Error, Result};
 pub use run::Observer;
 use rusqlite::Connection;
 
-use self::category::{GcID, Locator};
+use self::{
+    category::{GcID, Locator},
+    inspect::Inspector,
+};
 
 /// A connection to zombiesplit's database.
 pub struct Db {
@@ -94,31 +98,6 @@ impl Db {
         let tx = conn.transaction()?;
         game::Inserter::new(&tx)?.add_game(short, game)?;
         Ok(tx.commit()?)
-    }
-
-    /// Performs some activity using a run getter.
-    ///
-    /// # Errors
-    ///
-    /// Raises errors on trying to acquire the getter, or when calling `f`.
-    pub fn get_from_runs<T>(&self, f: impl FnOnce(&run::Getter) -> Result<T>) -> Result<T> {
-        let conn = self.lock_db_read()?;
-        let getter = run::Getter::new(&conn)?;
-        f(&getter)
-    }
-
-    /// Performs some activity using a category getter.
-    ///
-    /// # Errors
-    ///
-    /// Raises errors on trying to acquire the getter, or when calling `f`.
-    pub fn get_from_categories<T>(
-        &self,
-        f: impl FnOnce(&category::Getter) -> Result<T>,
-    ) -> Result<T> {
-        let conn = self.lock_db_read()?;
-        let getter = category::Getter::new(&conn)?;
-        f(&getter)
     }
 
     /// Adds the historic run `run` to the database.
@@ -241,5 +220,17 @@ impl<'conn> Reader<'conn> {
     /// Errors if we can't construct the database queries.
     pub fn runs(&self) -> Result<run::Getter> {
         run::Getter::new(&*self.conn)
+    }
+
+    /// Gets an inspector over the database.
+    ///
+    /// # Errors
+    ///
+    /// Errors if we can't construct the low-level getters
+    pub fn inspector(&self) -> Result<Inspector> {
+        Ok(Inspector {
+            run: self.runs()?,
+            cat: self.categories()?,
+        })
     }
 }

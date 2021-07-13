@@ -31,14 +31,20 @@ impl<L, T: Clone> Run<L, T> {
     }
 
     /// Consumes this run and creates a new one with the same contents, but a
-    /// new timing set.
-    pub fn with_timing<T2>(self, timing: T2) -> Run<L, T2> {
+    /// new timing set derived by calling `f` on the existing one.
+    pub fn map_timing<T2>(self, f: impl FnOnce(T) -> T2) -> Run<L, T2> {
         Run {
             category_locator: self.category_locator,
             was_completed: self.was_completed,
             date: self.date,
-            timing,
+            timing: f(self.timing),
         }
+    }
+
+    /// Consumes this run and creates a new one with the same contents, but a
+    /// new timing set.
+    pub fn with_timing<T2>(self, timing: T2) -> Run<L, T2> {
+        self.map_timing(|_| timing)
     }
 }
 
@@ -50,3 +56,6 @@ pub type WithTotals<L> = Run<L, super::timing::Totals>;
 
 /// A run with a summarised time only.
 pub type Summary<L> = Run<L, super::timing::Summary>;
+
+/// A run with a run-time-selected level of timing.
+pub type ForLevel<L> = Run<L, super::timing::ForLevel>;

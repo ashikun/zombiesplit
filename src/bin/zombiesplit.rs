@@ -1,6 +1,10 @@
 use clap::{crate_authors, crate_version, App, Arg, ArgMatches, SubCommand};
 use thiserror::Error;
-use zombiesplit::{Zombie, config, model::{game::category::ShortDescriptor, history::timing::Level}};
+use zombiesplit::{
+    config,
+    model::{game::category::ShortDescriptor, history::timing::Level},
+    Zombie,
+};
 
 fn main() {
     run().unwrap()
@@ -136,12 +140,13 @@ fn split_pbs_subcommand<'a, 'b>() -> App<'a, 'b> {
 fn pb_subcommand<'a, 'b>() -> App<'a, 'b> {
     SubCommand::with_name("pb")
         .about("gets the PB for a category")
-        .arg(Arg::with_name("level").help("The level of timing information to get.")
-        .long("level")
-        .takes_value(true)
-        .possible_values(&["summary", "totals", "full"]
-    )
-    )
+        .arg(
+            Arg::with_name("level")
+                .help("The level of timing information to get.")
+                .long("level")
+                .takes_value(true)
+                .possible_values(&["summary", "totals", "full"]),
+        )
         .arg(Arg::with_name("game").help("The game to query").index(1))
         .arg(
             Arg::with_name("category")

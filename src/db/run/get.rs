@@ -81,20 +81,12 @@ impl<'conn> Getter<'conn> {
             .collect()
     }
 
-    /// Adds split totals to an existing run.
+    /// Gets split totals for the run with the given ID.
     ///
     /// # Errors
     ///
-    /// Returns any errors from querying the split totals.
-    pub fn add_split_totals(
-        &mut self,
-        run: WithID<history::run::Summary<GcID>>,
-    ) -> Result<WithID<history::run::WithTotals<GcID>>> {
-        let totals = self.split_totals_for(run.id)?;
-        Ok(run.map_item(|i| i.with_timing(totals)))
-    }
-
-    fn split_totals_for(&mut self, id: i64) -> Result<history::timing::Totals> {
+    /// Errors if the database query fails.
+    pub fn split_totals_for(&mut self, id: i64) -> Result<history::timing::Totals> {
         let totals = self
             .query_splits_for_run
             .query_and_then(named_params![":run": id], |r| {
@@ -139,7 +131,8 @@ impl WithID<history::run::Summary<GcID>> {
 }
 
 const SQL_ALL_RUNS: &str = "
-SELECT is_completed
+SELECT run_id
+     , is_completed
      , run.timestamp AS date
      , SUM(time_ms)  AS total
      , (CASE

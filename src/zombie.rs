@@ -5,11 +5,15 @@ use std::{
     rc::Rc,
 };
 
-use crate::{db::category::{GcID, Locator}, model::{game::category::ShortDescriptor, history}};
-
 use super::{
-    config, db,
-    model::{self, load::Loadable},
+    config,
+    db::{self, category::Locator},
+    model::{
+        self,
+        game::category::ShortDescriptor,
+        history::{self, timing::Timing},
+        load::Loadable,
+    },
     presenter::Presenter,
     view,
 };
@@ -127,14 +131,18 @@ impl Zombie {
     ///
     /// Returns any database errors occurring during the listing.
     pub fn run_pb<L: Locator>(&self, loc: &L, level: history::timing::Level) -> Result<()> {
-
         let handle = self.db.reader()?;
-        let id = loc.locate(&mut handle.categories()?)?;
+        let mut insp = handle.inspector()?;
+        if let Some(pb) = insp.run_pb(loc, level)? {
+            // TODO(@MattWindsor91): decouple
+            println!("PB is {} on {}", pb.timing.total(), pb.date);
 
-        let mut run = handle.runs()?;
-
-        if let Some(pb) = run.run_pb_for(id)? {
-            handle_run_pb(pb, &mut run, level)?;
+            if let history::timing::ForLevel::Totals(totals) = pb.timing {
+                // TODO(@MattWindsor91): order by position
+                for (split, total) in totals.totals {
+                    println!("{}: {}", split, total)
+                }
+            }
         }
 
         Ok(())
@@ -164,32 +172,6 @@ impl Zombie {
         let session = cat.init_session(&short)?;
         Ok(session)
     }
-}
-
-fn handle_run_pb(pb: db::util::WithID<history::run::Summary<GcID>>, db: &mut db::run::Getter, level: history::timing::Level) -> Result<()> {
-    // TODO(@MattWindsor91): decouple this from Zombie?
-    println!("PB is {} on {}", pb.item.timing.total, pb.item.date);
-
-    match level {
-        history::timing::Level::Summary => (),
-        history::timing::Level::Totals => handle_run_totals(pb, db)?,
-        history::timing::Level::Full => println!("full timing not yet implemented"),
-    }
-
-    Ok(())
-}
-
-fn handle_run_totals(run: db::util::WithID<history::run::Summary<GcID>>, db: &mut db::run::Getter) -> Result<()> {
-    let run = db.add_split_totals(run)?;
-
-    println!("Split totals:");
-
-    // TODO(@MattWindsor91): order these
-    for (short, time) in run.item.timing.totals {
-        println!("{}: {}", short, time);
-    }
-
-    Ok(())
 }
 
 fn ensure_toml<P: AsRef<Path>>(path: P) -> PathBuf {
