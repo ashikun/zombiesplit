@@ -1,6 +1,6 @@
 //! The [Session] type and related code.
 
-use crate::model::{game::category::ShortDescriptor, history::TimedRun};
+use crate::model::{game::category::ShortDescriptor, history};
 
 use super::super::{
     comparison::{self, pace, Comparison},
@@ -97,7 +97,7 @@ impl Session {
     ///
     /// Returns `None` if there is no started run.
     #[must_use]
-    pub fn run_as_historic(&self) -> Option<TimedRun<ShortDescriptor>> {
+    pub fn run_as_historic(&self) -> Option<history::run::FullyTimed<ShortDescriptor>> {
         match self.run.status() {
             Status::NotStarted => None,
             Status::Complete => Some(self.run_as_historic_with_completion(true)),
@@ -105,8 +105,11 @@ impl Session {
         }
     }
 
-    fn run_as_historic_with_completion(&self, was_completed: bool) -> TimedRun<ShortDescriptor> {
-        TimedRun {
+    fn run_as_historic_with_completion(
+        &self,
+        was_completed: bool,
+    ) -> history::run::FullyTimed<ShortDescriptor> {
+        history::run::FullyTimed {
             category_locator: self.metadata.short.clone(),
             was_completed,
             date: (self.timestamper)(),

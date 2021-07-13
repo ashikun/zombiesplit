@@ -1,6 +1,6 @@
 //! Models relating to runs.
 
-use crate::model::history::FullTiming;
+use crate::model::history;
 
 use super::{
     super::time::Time,
@@ -83,8 +83,8 @@ impl Run {
 
     /// Gets a history summary of the timing for this run.
     #[must_use]
-    pub fn timing_as_historic(&self) -> FullTiming {
-        FullTiming {
+    pub fn timing_as_historic(&self) -> history::timing::Full {
+        history::timing::Full {
             times: self
                 .splits
                 .iter()

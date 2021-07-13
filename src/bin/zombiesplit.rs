@@ -1,6 +1,6 @@
 use clap::{crate_authors, crate_version, App, Arg, ArgMatches, SubCommand};
 use thiserror::Error;
-use zombiesplit::{config, model::game::category::ShortDescriptor, Zombie};
+use zombiesplit::{Zombie, config, model::{game::category::ShortDescriptor, history::timing::Level}};
 
 fn main() {
     run().unwrap()
@@ -53,7 +53,7 @@ fn run_split_pbs(zombie: Zombie, matches: &ArgMatches) -> anyhow::Result<()> {
 }
 
 fn run_pb(zombie: Zombie, matches: &ArgMatches) -> anyhow::Result<()> {
-    zombie.run_pb(&get_short_descriptor(matches)?)?;
+    zombie.run_pb(&get_short_descriptor(matches)?, timing_level(matches))?;
     Ok(())
 }
 
@@ -72,6 +72,15 @@ fn get_short_descriptor(matches: &ArgMatches) -> Result<ShortDescriptor, Error> 
     let game = matches.value_of("game").ok_or(Error::Game)?;
     let category = matches.value_of("category").ok_or(Error::Category)?;
     Ok(ShortDescriptor::new(game, category))
+}
+
+fn timing_level(matches: &ArgMatches) -> Level {
+    // TODO(@MattWindsor91): fromstr this
+    match matches.value_of("level") {
+        Some("totals") => Level::Totals,
+        Some("full") => Level::Full,
+        None | Some(/* "summary" */ _) => Level::Summary,
+    }
 }
 
 fn app<'a, 'b>() -> App<'a, 'b> {
@@ -127,6 +136,12 @@ fn split_pbs_subcommand<'a, 'b>() -> App<'a, 'b> {
 fn pb_subcommand<'a, 'b>() -> App<'a, 'b> {
     SubCommand::with_name("pb")
         .about("gets the PB for a category")
+        .arg(Arg::with_name("level").help("The level of timing information to get.")
+        .long("level")
+        .takes_value(true)
+        .possible_values(&["summary", "totals", "full"]
+    )
+    )
         .arg(Arg::with_name("game").help("The game to query").index(1))
         .arg(
             Arg::with_name("category")

@@ -5,10 +5,7 @@ use std::{
     rc::Rc,
 };
 
-use crate::{
-    db::category::Locator,
-    model::{attempt::Observer, game::category::ShortDescriptor, history::FullTiming},
-};
+use crate::{db::category::{GcID, Locator}, model::{game::category::ShortDescriptor, history}};
 
 use super::{
     config, db,
@@ -69,7 +66,7 @@ impl Zombie {
     /// ill-formed.
     pub fn add_run<P: AsRef<Path>>(&mut self, path: P) -> Result<()> {
         let pbuf = ensure_toml(path);
-        let run = model::history::Run::<ShortDescriptor, FullTiming>::from_toml_file(pbuf)?;
+        let run = history::run::FullyTimed::<ShortDescriptor>::from_toml_file(pbuf)?;
         self.db.add_run(&run)?;
         Ok(())
     }
@@ -129,11 +126,15 @@ impl Zombie {
     /// # Errors
     ///
     /// Returns any database errors occurring during the listing.
-    pub fn run_pb<L: Locator>(&self, loc: &L) -> Result<()> {
-        // TODO(@MattWindsor91): decouple this from Zombie?
+    pub fn run_pb<L: Locator>(&self, loc: &L, level: history::timing::Level) -> Result<()> {
 
-        if let Some(pb) = self.db.run_pb_for(loc)? {
-            println!("PB is {} on {}", pb.timing.total, pb.date);
+        let handle = self.db.reader()?;
+        let id = loc.locate(&mut handle.categories()?)?;
+
+        let mut run = handle.runs()?;
+
+        if let Some(pb) = run.run_pb_for(id)? {
+            handle_run_pb(pb, &mut run, level)?;
         }
 
         Ok(())
@@ -152,14 +153,43 @@ impl Zombie {
     }
 
     fn session(&self, short: &ShortDescriptor) -> Result<model::attempt::Session> {
-        let mut session = self.db.init_session(&short)?;
-        session.add_observer(self.db_observer());
+        let mut session = self.session_from_db(short)?;
+        session.add_observer(db::Observer::boxed(self.db.clone()));
         Ok(session)
     }
 
-    fn db_observer(&self) -> Box<dyn Observer> {
-        Box::new(crate::db::Observer::new(self.db.clone()))
+    fn session_from_db(&self, short: &ShortDescriptor) -> Result<model::attempt::Session> {
+        let handle = self.db.reader()?;
+        let mut cat = handle.categories()?;
+        let session = cat.init_session(&short)?;
+        Ok(session)
     }
+}
+
+fn handle_run_pb(pb: db::util::WithID<history::run::Summary<GcID>>, db: &mut db::run::Getter, level: history::timing::Level) -> Result<()> {
+    // TODO(@MattWindsor91): decouple this from Zombie?
+    println!("PB is {} on {}", pb.item.timing.total, pb.item.date);
+
+    match level {
+        history::timing::Level::Summary => (),
+        history::timing::Level::Totals => handle_run_totals(pb, db)?,
+        history::timing::Level::Full => println!("full timing not yet implemented"),
+    }
+
+    Ok(())
+}
+
+fn handle_run_totals(run: db::util::WithID<history::run::Summary<GcID>>, db: &mut db::run::Getter) -> Result<()> {
+    let run = db.add_split_totals(run)?;
+
+    println!("Split totals:");
+
+    // TODO(@MattWindsor91): order these
+    for (short, time) in run.item.timing.totals {
+        println!("{}: {}", short, time);
+    }
+
+    Ok(())
 }
 
 fn ensure_toml<P: AsRef<Path>>(path: P) -> PathBuf {

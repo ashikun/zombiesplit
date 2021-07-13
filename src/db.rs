@@ -4,15 +4,9 @@ pub mod category;
 pub mod error;
 mod game;
 mod init;
-mod run;
-use crate::model::{
-    self,
-    attempt::Session,
-    game::{category::ShortDescriptor, Config},
-    history::{self, RunSummary},
-    short::Name,
-    Time,
-};
+pub mod run;
+pub mod util;
+use crate::model::{self, game::Config, history, short::Name, Time};
 use std::{
     collections::HashMap,
     path::Path,
@@ -59,6 +53,19 @@ impl Db {
         }
     }
 
+    /// Gets a read handle to this database.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if we can't acquire a handle for the database for
+    /// some reason.
+    pub fn reader(&self) -> Result<Reader> {
+        // TODO(@MattWindsor91): refactor all db reads to go through this
+        Ok(Reader {
+            conn: self.lock_db_read()?,
+        })
+    }
+
     fn lock_db_read(&self) -> Result<RwLockReadGuard<Connection>> {
         self.conn.read().map_err(|_| Error::Lock)
     }
@@ -89,13 +96,38 @@ impl Db {
         Ok(tx.commit()?)
     }
 
+    /// Performs some activity using a run getter.
+    ///
+    /// # Errors
+    ///
+    /// Raises errors on trying to acquire the getter, or when calling `f`.
+    pub fn get_from_runs<T>(&self, f: impl FnOnce(&run::Getter) -> Result<T>) -> Result<T> {
+        let conn = self.lock_db_read()?;
+        let getter = run::Getter::new(&conn)?;
+        f(&getter)
+    }
+
+    /// Performs some activity using a category getter.
+    ///
+    /// # Errors
+    ///
+    /// Raises errors on trying to acquire the getter, or when calling `f`.
+    pub fn get_from_categories<T>(
+        &self,
+        f: impl FnOnce(&category::Getter) -> Result<T>,
+    ) -> Result<T> {
+        let conn = self.lock_db_read()?;
+        let getter = category::Getter::new(&conn)?;
+        f(&getter)
+    }
+
     /// Adds the historic run `run` to the database.
     ///
     /// # Errors
     ///
     /// Raises an error if any of the SQL queries relating to inserting a run
     /// fail.
-    pub fn add_run<L: Locator>(&self, run: &history::TimedRun<L>) -> Result<()> {
+    pub fn add_run<L: Locator>(&self, run: &history::run::FullyTimed<L>) -> Result<()> {
         let run = run.with_locator(self.resolve_gcid(&run.category_locator)?);
         let mut conn = self.lock_db_write()?;
         let tx = conn.transaction()?;
@@ -121,10 +153,10 @@ impl Db {
     ///
     /// Raises an error if any of the SQL queries relating to getting a run
     /// fail.
-    pub fn runs_for<L: Locator>(&self, loc: &L) -> Result<Vec<RunSummary<GcID>>> {
+    pub fn runs_for<L: Locator>(&self, loc: &L) -> Result<Vec<history::run::Summary<GcID>>> {
         let id = self.resolve_gcid(loc)?;
         let runs = run::Getter::new(&*self.lock_db_read()?)?.runs_for(id)?;
-        Ok(runs.into_iter().map(|x| x.run).collect())
+        Ok(runs.into_iter().map(|x| x.item).collect())
     }
 
     /// Gets the PB run for the game-category located by `loc`.
@@ -133,11 +165,11 @@ impl Db {
     ///
     /// Raises an error if any of the SQL queries relating to getting a run
     /// fail.
-    pub fn run_pb_for<L: Locator>(&self, loc: &L) -> Result<Option<RunSummary<GcID>>> {
+    pub fn run_pb_for<L: Locator>(&self, loc: &L) -> Result<Option<history::run::Summary<GcID>>> {
         let id = self.resolve_gcid(loc)?;
         Ok(run::Getter::new(&*self.lock_db_read()?)?
             .run_pb_for(id)?
-            .map(|x| x.run))
+            .map(|x| x.item))
     }
 
     /// Gets split PBs for the game-category located by `loc`.
@@ -159,7 +191,7 @@ impl Db {
                     splits
                         .get(&s.id)
                         .map_or_else(|| "??".to_owned(), String::clone),
-                    s.time,
+                    s.item,
                 )
             })
             .collect())
@@ -174,19 +206,6 @@ impl Db {
             .collect())
     }
 
-    /// Initialises a session for the game/category described by the given
-    /// short descriptor.
-    ///
-    /// # Errors
-    ///
-    /// Fails if there is no such category for the given game in the database,
-    /// or the game doesn't exist, or any other database error occurs.
-    pub fn init_session(&self, desc: &ShortDescriptor) -> Result<Session> {
-        let conn = self.lock_db_read()?;
-        let mut getter = category::Getter::new(&conn)?;
-        getter.init_session(&desc)
-    }
-
     fn resolve_gcid<L: Locator>(&self, loc: &L) -> Result<GcID> {
         // TODO(@MattWindsor91): this is horrible.
         if let Some(x) = loc.as_game_category_id() {
@@ -197,5 +216,30 @@ impl Db {
 
             loc.locate(&mut getter)
         }
+    }
+}
+
+/// A handle used to perform read operations on the database.
+pub struct Reader<'conn> {
+    conn: RwLockReadGuard<'conn, rusqlite::Connection>,
+}
+
+impl<'conn> Reader<'conn> {
+    /// Gets an interface to the category database.
+    ///
+    /// # Errors
+    ///
+    /// Errors if we can't construct the database queries.
+    pub fn categories(&self) -> Result<category::Getter> {
+        category::Getter::new(&*self.conn)
+    }
+
+    /// Gets an interface to the historic runs database.
+    ///
+    /// # Errors
+    ///
+    /// Errors if we can't construct the database queries.
+    pub fn runs(&self) -> Result<run::Getter> {
+        run::Getter::new(&*self.conn)
     }
 }

@@ -8,10 +8,7 @@ use rusqlite::{named_params, Connection, Statement};
 use super::super::error::{Error, Result};
 use crate::{
     db::category::GcID,
-    model::{
-        history::{FullTiming, Run},
-        short, Time,
-    },
+    model::{history, short, Time},
 };
 
 /// Object for inserting historic runs into to the database.
@@ -41,10 +38,13 @@ impl<'conn> Inserter<'conn> {
 
     /// Adds a run to the database.
     ///
-    /// The run must be using a game-category ID to
+    /// The run must be using a game-category ID to identify the game and
+    /// category pair.
     ///
-    /// #
-    pub fn add(&mut self, run: &Run<GcID, FullTiming>) -> Result<()> {
+    /// # Errors
+    ///
+    /// Propagates any errors from the database.
+    pub fn add(&mut self, run: &history::run::FullyTimed<GcID>) -> Result<()> {
         info!(
             "adding run from {} to game-category ID {}",
             run.date, run.category_locator.0
@@ -57,7 +57,7 @@ impl<'conn> Inserter<'conn> {
         Ok(())
     }
 
-    fn add_main<T>(&mut self, run: &Run<GcID, T>) -> Result<i64> {
+    fn add_main<T>(&mut self, run: &history::Run<GcID, T>) -> Result<i64> {
         self.query_add_run.execute(named_params![
             ":is_completed": run.was_completed,
             ":timestamp": run.date.timestamp(),
@@ -78,7 +78,7 @@ impl<'conn> Inserter<'conn> {
     fn add_splits(
         &mut self,
         run_id: i64,
-        timing: &FullTiming,
+        timing: &history::timing::Full,
         split_map: &short::Map<i64>,
     ) -> Result<()> {
         for (short, times) in &timing.times {

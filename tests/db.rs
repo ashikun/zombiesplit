@@ -4,10 +4,9 @@ use std::{convert::TryFrom, ops::Add, rc::Rc};
 use zombiesplit::{
     db::{Db, Observer},
     model::{
-        attempt::split::Set,
+        attempt::{split::Set, Session},
         game::{self, category::ShortDescriptor},
-        history::{self, FullTiming},
-        Loadable, Time,
+        history, Loadable, Time,
     },
 };
 
@@ -34,15 +33,20 @@ fn short_descriptor() -> ShortDescriptor {
     ShortDescriptor::new(SAMPLE_GAME_NAME, SAMPLE_CATEGORY_NAME)
 }
 
+fn init_session(db: &Db) -> Session {
+    let handle = db.reader().expect("couldn't open reader");
+    let mut cat = handle.categories().expect("couldn't open category db");
+    cat.init_session(&short_descriptor())
+        .expect("couldn't init session")
+}
+
 /// Tests initialising the database and getting a session out of it.
 #[test]
 fn test_sample_session() {
     let game = load_game();
     let db = setup_db(&game);
 
-    let session = db
-        .init_session(&short_descriptor())
-        .expect("couldn't init session");
+    let session = init_session(&db);
     assert_eq!(game.name, session.metadata.game);
     assert_eq!(
         game.categories
@@ -58,7 +62,7 @@ fn test_sample_add_run() {
     let game = load_game();
     let db = setup_db(&game);
 
-    let run = history::Run::<ShortDescriptor, FullTiming>::from_toml_file(SAMPLE_RUN_PATH)
+    let run = history::run::FullyTimed::<ShortDescriptor>::from_toml_file(SAMPLE_RUN_PATH)
         .expect("couldn't load run");
 
     db.add_run(&run).expect("couldn't insert run");
@@ -77,11 +81,9 @@ fn test_sample_observe_run() {
     let game = load_game();
     let db = Rc::new(setup_db(&game));
 
-    let mut session = db
-        .init_session(&short_descriptor())
-        .expect("couldn't init session");
+    let mut session = init_session(&db);
 
-    session.add_observer(Box::new(Observer::new(db.clone())));
+    session.add_observer(Observer::boxed(db.clone()));
 
     // This shouldn't insert a run.
     session.reset();

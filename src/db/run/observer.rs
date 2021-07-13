@@ -24,6 +24,12 @@ impl Observer {
         Observer { db }
     }
 
+    /// Shortcut for creating a boxed database observer.
+    #[must_use]
+    pub fn boxed(db: Rc<Db>) -> Box<dyn crate::model::attempt::Observer> {
+        Box::new(Self::new(db))
+    }
+
     fn try_save_run(&self, session: &crate::model::attempt::Session) -> Result<()> {
         if let Some(run) = session.run_as_historic() {
             self.db.add_run(&run)?;
