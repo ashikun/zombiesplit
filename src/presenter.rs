@@ -53,7 +53,7 @@ impl<'a> Presenter<'a> {
         self.mode.editor()
     }
 
-    /// Gets the run pace up to the cursor, if any.
+    /// Gets the run pace up to and excluding the cursor, if any.
     #[must_use]
     pub fn run_pace(&self) -> pace::Pair {
         self.mode.cursor().map_or(pace::Pair::default(), |c| {

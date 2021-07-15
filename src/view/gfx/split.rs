@@ -94,7 +94,15 @@ impl<'r, 'g, 'p> SplitDrawer<'r, 'g, 'p> {
     fn draw_time_placeholder(&mut self) -> Result<()> {
         self.r.set_font(font::Id::Normal);
         self.r.set_fg_colour(colour::fg::Id::NoTime);
-        self.r.put_str_r("--'--\"---")
+        // TODO(@MattWindsor91): tidy this up.
+        self.r.put_str_r(&self.time_placeholder())
+    }
+
+    fn time_placeholder(&self) -> String {
+        self.p
+            .session
+            .comparison_time_at(self.index)
+            .map_or_else(|| "--'--\"---".to_owned(), time_str)
     }
 
     /// Draws a representation of the number of times this split has logged.

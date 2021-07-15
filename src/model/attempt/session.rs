@@ -93,6 +93,12 @@ impl<'a> Session<'a> {
         self.comparison.split_paced_time(split, self.time_at(split))
     }
 
+    /// Gets the comparison time at `split`.
+    #[must_use]
+    pub fn comparison_time_at(&self, split: usize) -> Option<Time> {
+        self.comparison.split_comparison_time(split)
+    }
+
     /// Converts this session's current run, if any, to a historic run.
     ///
     /// Returns `None` if there is no started run.

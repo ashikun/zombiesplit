@@ -74,8 +74,8 @@ impl Set {
     fn by_pace(&self, pace: Pace) -> Colour {
         match pace {
             Pace::PersonalBest => self.time_split_ahead,
-            Pace::Behind => self.time_run_ahead,
-            Pace::Ahead => self.time_run_behind,
+            Pace::Behind => self.time_run_behind,
+            Pace::Ahead => self.time_run_ahead,
             Pace::Inconclusive => self.normal,
         }
     }

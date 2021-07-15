@@ -31,6 +31,12 @@ impl Comparison {
             })
     }
 
+    /// Gets the comparison time for `split`.
+    #[must_use]
+    pub fn split_comparison_time(&self, split: usize) -> Option<Time> {
+        self.split(split).and_then(|f| f.in_run.map(|x| x.time))
+    }
+
     fn split(&self, index: usize) -> Option<&Split> {
         // TODO(@MattWindsor91): this is O(n), don't.
         self.splits.values().nth(index)
