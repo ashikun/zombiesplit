@@ -44,7 +44,7 @@ impl View {
     /// # Errors
     ///
     /// Returns an error if SDL can't spawn an event pump.
-    pub fn spawn(&self, presenter: presenter::Presenter) -> Result<Instance> {
+    pub fn spawn<'p>(&self, presenter: presenter::Presenter<'p>) -> Result<Instance<'_, 'p>> {
         let font_manager =
             gfx::font::Manager::new(&self.textures, &self.cfg.fonts, &self.cfg.colours.fg);
         let renderer = gfx::render::Window::new(
@@ -66,13 +66,13 @@ impl View {
 }
 
 /// An instance of the view for a particular presenter.
-pub struct Instance<'a> {
+pub struct Instance<'c, 'p> {
     events: sdl2::EventPump,
-    gfx: gfx::Core<'a>,
-    presenter: presenter::Presenter,
+    gfx: gfx::Core<'c>,
+    presenter: presenter::Presenter<'p>,
 }
 
-impl<'a> Instance<'a> {
+impl<'c, 'p> Instance<'c, 'p> {
     /// Runs the UI loop.
     ///
     /// # Errors

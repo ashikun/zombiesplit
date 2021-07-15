@@ -1,8 +1,9 @@
 //! Tests the database functionality on an in-memory database.
 
 use std::{convert::TryFrom, ops::Add, rc::Rc};
+use tempfile::{tempdir, TempDir};
 use zombiesplit::{
-    db::{Db, Observer},
+    db::{Db, Observer, Reader},
     model::{
         attempt::{split::Set, Session},
         game::{self, category::ShortDescriptor},
@@ -19,8 +20,11 @@ fn load_game() -> game::Config {
     game::Config::from_toml_file(SAMPLE_GAME_PATH).expect("couldn't load sample game")
 }
 
-fn setup_db(game: &game::Config) -> Db {
-    let db = Db::in_memory().expect("couldn't open db in memory");
+fn setup_db(game: &game::Config, in_dir: &TempDir) -> Db {
+    let mut file = in_dir.path().to_path_buf();
+    file.push("test.db");
+
+    let db = Db::new(file).expect("couldn't open db in memory");
     db.init().expect("couldn't initialise database");
 
     db.add_game(SAMPLE_GAME_NAME, game)
@@ -33,20 +37,23 @@ fn short_descriptor() -> ShortDescriptor {
     ShortDescriptor::new(SAMPLE_GAME_NAME, SAMPLE_CATEGORY_NAME)
 }
 
-fn init_session(db: &Db) -> Session {
-    let handle = db.reader().expect("couldn't open reader");
-    let mut cat = handle.categories().expect("couldn't open category db");
-    cat.init_session(&short_descriptor())
-        .expect("couldn't init session")
+fn init_session<'a>(handle: &'a Reader) -> Session<'a> {
+    let mut insp = handle
+        .inspect(&short_descriptor())
+        .expect("couldn't open category db");
+    insp.init_session().expect("couldn't init session")
 }
 
 /// Tests initialising the database and getting a session out of it.
 #[test]
 fn test_sample_session() {
-    let game = load_game();
-    let db = setup_db(&game);
+    let tdir = tempdir().expect("can't open dir");
 
-    let session = init_session(&db);
+    let game = load_game();
+    let db = setup_db(&game, &tdir);
+    let handle = db.reader().expect("couldn't open reader");
+
+    let session = init_session(&handle);
     assert_eq!(game.name, session.metadata.game);
     assert_eq!(
         game.categories
@@ -59,8 +66,10 @@ fn test_sample_session() {
 /// Tests initialising the database and adding a run to it.
 #[test]
 fn test_sample_add_run() {
+    let tdir = tempdir().expect("can't open dir");
+
     let game = load_game();
-    let db = setup_db(&game);
+    let db = setup_db(&game, &tdir);
 
     let run = history::run::FullyTimed::<ShortDescriptor>::from_toml_file(SAMPLE_RUN_PATH)
         .expect("couldn't load run");
@@ -78,10 +87,13 @@ fn test_sample_add_run() {
 /// Tests initialising the database and adding a run through observation.
 #[test]
 fn test_sample_observe_run() {
-    let game = load_game();
-    let db = Rc::new(setup_db(&game));
+    let tdir = tempdir().expect("can't open dir");
 
-    let mut session = init_session(&db);
+    let game = load_game();
+    let db = Rc::new(setup_db(&game, &tdir));
+    let handle = db.reader().expect("couldn't open reader");
+
+    let mut session = init_session(&handle);
 
     session.add_observer(Observer::boxed(db.clone()));
 

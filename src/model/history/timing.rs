@@ -30,7 +30,7 @@ impl Timing for Full {
 /// Split-total timing information for a run.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Totals {
-    pub totals: short::Map<Time>,
+    pub totals: short::LinkedMap<Time>,
 }
 
 impl Timing for Totals {

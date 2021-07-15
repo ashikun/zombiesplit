@@ -5,3 +5,6 @@ pub type Name = String;
 
 /// Type alias for maps from short names to items.
 pub type Map<T> = std::collections::HashMap<Name, T>;
+
+/// Type alias for insertion-ordered maps from short names to items.
+pub type LinkedMap<T> = linked_hash_map::LinkedHashMap<Name, T>;

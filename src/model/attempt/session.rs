@@ -14,8 +14,10 @@ use super::{observer::Observer, run::Status, split::Set, Run};
 /// A session consists of category information, the current run being
 /// attempted, and any comparison data being worked against.
 ///
-/// It also has zero or more observers attached that can
-pub struct Session {
+/// It also has zero or more observers attached that can be sent information
+/// about the run's progress, and a comparison provider.  Both feed into the
+/// session's lifetime.
+pub struct Session<'a> {
     /// Metadata for the game/category currently being run.
     pub metadata: category::Info,
     /// The current run.
@@ -23,21 +25,21 @@ pub struct Session {
     /// Comparison data for the game/category currently being run.
     comparison: Comparison,
     /// Any observers attached to the session.
-    observers: Vec<Box<dyn Observer>>,
+    observers: Vec<Box<dyn Observer + 'a>>,
     /// The function for timestamping outgoing runs.
     timestamper: fn() -> chrono::DateTime<chrono::Utc>,
     /// The comparison provider.
-    comparator: Box<dyn comparison::Provider>,
+    comparator: Box<dyn comparison::Provider + 'a>,
 }
 
-impl Session {
+impl<'a> Session<'a> {
     /// Starts a new session with a given set of metadata and starting run.
     #[must_use]
     pub fn new(metadata: category::Info, run: Run) -> Self {
         Self {
             metadata,
             run,
-            comparison: Comparison { splits: vec![] },
+            comparison: Comparison::default(),
             observers: vec![],
             timestamper: chrono::Utc::now,
             comparator: Box::new(comparison::NullProvider),
@@ -57,13 +59,13 @@ impl Session {
     /// need to be done to get comparisons working.
     ///
     /// Triggers an immediate comparison reset.
-    pub fn set_comparison_provider(&mut self, p: Box<dyn comparison::Provider>) {
+    pub fn set_comparison_provider(&mut self, p: Box<dyn comparison::Provider + 'a>) {
         self.comparator = p;
         self.refresh_comparison()
     }
 
     /// Adds an observer to this session.
-    pub fn add_observer(&mut self, o: Box<dyn Observer>) {
+    pub fn add_observer(&mut self, o: Box<dyn Observer + 'a>) {
         self.observers.push(o)
     }
 
@@ -84,13 +86,11 @@ impl Session {
     }
 
     fn run_paced_time_at(&self, split: usize) -> pace::PacedTime {
-        self.comparison
-            .run_paced_time_at(split, self.total_at(split))
+        self.comparison.run_paced_time(split, self.total_at(split))
     }
 
     fn split_paced_time_at(&self, split: usize) -> pace::PacedTime {
-        self.comparison
-            .split_paced_time_at(split, self.time_at(split))
+        self.comparison.split_paced_time(split, self.time_at(split))
     }
 
     /// Converts this session's current run, if any, to a historic run.
@@ -128,14 +128,14 @@ impl Session {
     /// This should occur when the run is reset, in case the outgoing run has
     /// changed the comparisons.
     fn refresh_comparison(&mut self) {
-        if let Some(c) = self.comparator.comparison(&self.metadata.short) {
+        if let Some(c) = self.comparator.comparison() {
             self.comparison = c
         }
     }
 }
 
 /// The session exposes its underlying run as a split set.
-impl Set for Session {
+impl<'a> Set for Session<'a> {
     fn reset(&mut self) {
         self.observe_reset();
         self.run.reset();

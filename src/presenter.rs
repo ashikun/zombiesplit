@@ -16,17 +16,17 @@ use self::cursor::SplitPosition;
 
 /// The part of zombiesplit that displays and manipulates a model, exposing it
 /// to the view.
-pub struct Presenter {
+pub struct Presenter<'a> {
     /// The current mode.
-    pub mode: Box<dyn mode::Mode>,
+    pub mode: Box<dyn mode::Mode + 'a>,
     /// The current run.
-    pub session: Session,
+    pub session: Session<'a>,
 }
 
-impl Presenter {
+impl<'a> Presenter<'a> {
     /// Constructs a new initial state for a given session.
     #[must_use]
-    pub fn new(session: Session) -> Self {
+    pub fn new(session: Session<'a>) -> Self {
         Self {
             mode: Box::new(mode::Inactive),
             session,

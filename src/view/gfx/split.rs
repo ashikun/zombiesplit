@@ -55,7 +55,7 @@ impl Widget {
 struct SplitDrawer<'r, 'g, 'p> {
     index: usize,
     r: &'r mut Region<'g>,
-    p: &'p Presenter,
+    p: &'p Presenter<'p>,
 }
 
 impl<'r, 'g, 'p> SplitDrawer<'r, 'g, 'p> {

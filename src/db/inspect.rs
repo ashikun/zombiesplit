@@ -1,13 +1,20 @@
 //! High-level database inspection queries.
 
-use super::{category, run, util::WithID, Result};
-use crate::model::history;
+use std::iter::repeat;
 
-/// A zombiesplit database inspector.
-///
-/// This combines the various low-level database getters, and adds high-level
-///
+use super::{
+    category::{self, id::InfoWithID},
+    run,
+    util::WithID,
+    Result,
+};
+use crate::model::{attempt, comparison, game::Split, history, short, Time};
+
+/// Inspects various aspects of the database for a given game-category ID.
 pub struct Inspector<'db> {
+    /// The game-category being inspected.
+    pub info: InfoWithID,
+
     // TODO(@MattWindsor91): abstract the getters into traits, so we can mock
     // the inspector logic.
     /// The run getter.
@@ -16,24 +23,49 @@ pub struct Inspector<'db> {
     pub cat: category::Getter<'db>,
 }
 
+impl<'db> AsMut<run::Getter<'db>> for Inspector<'db> {
+    fn as_mut(&mut self) -> &mut run::Getter<'db> {
+        &mut self.run
+    }
+}
+
+impl<'db> AsMut<category::Getter<'db>> for Inspector<'db> {
+    fn as_mut(&mut self) -> &mut category::Getter<'db> {
+        &mut self.cat
+    }
+}
+
+impl<'db> comparison::Provider for Inspector<'db> {
+    fn comparison(&mut self) -> Option<comparison::Comparison> {
+        // TODO(@MattWindsor91): do something with these errors.
+        self.comparison_inner().ok()
+    }
+}
+
 impl<'db> Inspector<'db> {
-    /// Gets the run for the given game/category locator.
+    /// Initialises an attempt session for the game/category referred to by
+    /// `desc`.
+    ///
+    /// # Errors
+    ///
+    /// Propagates any errors from the database.
+    pub fn init_session(&mut self) -> Result<attempt::Session<'db>> {
+        self.cat.init_session(self.info.clone())
+    }
+
+    /// Gets the run for this game-category pair.
     ///
     /// # Errors
     ///
     /// Returns any database errors occurring during the listing.
     pub fn run_pb(
         &mut self,
-        loc: &impl category::Locator,
         level: history::timing::Level,
     ) -> Result<Option<history::run::ForLevel<category::GcID>>> {
-        let id = loc.locate(&mut self.cat)?;
-
-        if let Some(pb) = self.run.run_pb_for(id)? {
-            Ok(Some(self.add_timing(pb, level)?))
-        } else {
-            Ok(None)
-        }
+        self.run
+            .run_pb_for(self.info.id)?
+            .map(|x| self.add_timing(x, level))
+            .transpose()
     }
 
     fn add_timing(
@@ -58,11 +90,69 @@ impl<'db> Inspector<'db> {
     /// # Errors
     ///
     /// Returns any errors from querying the split totals.
-    pub fn add_split_totals(
+    fn add_split_totals(
         &mut self,
         run: WithID<history::run::Summary<category::GcID>>,
     ) -> Result<WithID<history::run::WithTotals<category::GcID>>> {
         let totals = self.run.split_totals_for(run.id)?;
         Ok(run.map_item(|i| i.with_timing(totals)))
     }
+
+    fn comparison_inner(&mut self) -> Result<comparison::Comparison> {
+        let split_pbs = self.run.split_pbs_for(self.info.id)?;
+        let run_pb = self.run_pb_with_totals()?;
+
+        let splits = self.cat.splits(&self.info.id)?;
+        let split_pbs = all_splits_with_pbs(&split_pbs, &splits);
+        let run_pbs = in_run_iter(run_pb, &splits);
+
+        Ok(comparison::Comparison {
+            splits: split_pbs
+                .zip(run_pbs)
+                .map(|((short, split), in_run)| (short, comparison::Split { split, in_run }))
+                .collect(),
+        })
+    }
+
+    fn run_pb_with_totals(&mut self) -> Result<Option<history::run::WithTotals<category::GcID>>> {
+        self.run
+            .run_pb_for(self.info.id)?
+            .map(|x| self.add_split_totals(x).map(|x| x.item))
+            .transpose()
+    }
+}
+
+fn all_splits_with_pbs<'a>(
+    pbs: &'a short::Map<Time>,
+    splits: &'a [Split],
+) -> impl Iterator<Item = (String, Option<Time>)> + 'a {
+    splits
+        .iter()
+        .map(move |s| (s.short.clone(), pbs.get(&s.short).copied()))
+}
+
+/// Gets an iterator over all of the in-run comparisons in a PB.
+fn in_run_iter<'a>(
+    pb: Option<history::run::WithTotals<category::GcID>>,
+    splits: &'a [Split],
+) -> Box<dyn Iterator<Item = Option<comparison::InRun>> + 'a> {
+    // TODO(@MattWindsor91): decouple this for testing.
+    pb.map_or_else(
+        || empty_splits(splits),
+        |pb| {
+            Box::new(splits.iter().scan(Time::default(), move |cumulative, s| {
+                Some(pb.timing.totals.get(&s.short).map(|time| {
+                    *cumulative += *time;
+                    comparison::InRun {
+                        time: *time,
+                        cumulative: *cumulative,
+                    }
+                }))
+            }))
+        },
+    )
+}
+
+fn empty_splits(splits: &[Split]) -> Box<dyn Iterator<Item = Option<comparison::InRun>>> {
+    Box::new(repeat(None).take(splits.len()))
 }

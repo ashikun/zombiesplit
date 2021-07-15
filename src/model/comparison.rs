@@ -2,24 +2,21 @@
 
 pub mod pace;
 
-use crate::model::Time;
-pub use pace::Pace;
+pub use pace::{Pace, PacedTime};
 
-use self::pace::PacedTime;
-
-use super::game::category::ShortDescriptor;
+use super::{short::LinkedMap, Time};
 
 /// A comparison set.
+#[derive(Clone, Debug, Default)]
 pub struct Comparison {
-    pub splits: Vec<Split>,
+    pub splits: LinkedMap<Split>,
 }
 
 impl Comparison {
     /// Compares `run_time` against the cumulative time at `split`.
     #[must_use]
-    pub fn run_paced_time_at(&self, split: usize, run_time: Time) -> PacedTime {
-        self.splits
-            .get(split)
+    pub fn run_paced_time(&self, split: usize, run_time: Time) -> PacedTime {
+        self.split(split)
             .map_or(PacedTime::inconclusive(run_time), |x| {
                 x.run_paced_time(run_time)
             })
@@ -27,37 +24,36 @@ impl Comparison {
 
     /// Compares `split_time` against the split data at `split`.
     #[must_use]
-    pub fn split_paced_time_at(&self, split: usize, split_time: Time) -> PacedTime {
-        self.splits
-            .get(split)
+    pub fn split_paced_time(&self, split: usize, split_time: Time) -> PacedTime {
+        self.split(split)
             .map_or(PacedTime::inconclusive(split_time), |x| {
                 x.split_paced_time(split_time)
             })
     }
+
+    fn split(&self, index: usize) -> Option<&Split> {
+        // TODO(@MattWindsor91): this is O(n), don't.
+        self.splits.values().nth(index)
+    }
 }
 
 /// Split comparisons.
+#[derive(Clone, Copy, Debug, Default)]
 pub struct Split {
     /// The personal best for this split, if any.
     ///
     /// Any splits that compare quicker than this time get the `PersonalBest`
     /// pace.
     pub split: Option<Time>,
-    /// The time for this split in the comparison run, if any.
-    ///
-    /// This feeds into the split-by-split part of a split's in-run pacing.
-    pub in_run: Option<Time>,
-    /// The cumulative time for this split in the comparison run, if any.
-    ///
-    /// This feeds into the run-so-far part of a split's in-run pacing.
-    pub in_run_cumulative: Option<Time>,
+    /// Thiming information for this split in the comparison run, if any.
+    pub in_run: Option<InRun>,
 }
 
 impl Split {
     /// Compares `run_time` against the cumulative time at this split.
     #[must_use]
     pub fn run_paced_time(&self, run_time: Time) -> PacedTime {
-        PacedTime::of_comparison(run_time, self.in_run_cumulative)
+        PacedTime::of_comparison(run_time, self.in_run.map(|x| x.cumulative))
     }
 
     /// Compares `split_time` against the split data for this comparison.
@@ -66,7 +62,7 @@ impl Split {
         if self.is_personal_best(split_time) {
             PacedTime::personal_best(split_time)
         } else {
-            PacedTime::of_comparison(split_time, self.in_run)
+            PacedTime::of_comparison(split_time, self.in_run.map(|x| x.time))
         }
     }
 
@@ -76,17 +72,30 @@ impl Split {
     }
 }
 
+/// Holds information about a split's comparisons within a particular run.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct InRun {
+    /// The time for this split in the comparison run, if any.
+    ///
+    /// This feeds into the split-by-split part of a split's in-run pacing.
+    pub time: Time,
+    /// The cumulative time for this split in the comparison run, if any.
+    ///
+    /// This feeds into the run-so-far part of a split's in-run pacing.
+    pub cumulative: Time,
+}
+
 /// Trait of objects that can provide comparisons.
 pub trait Provider {
     /// Gets the current comparison for a game-category.
-    fn comparison(&mut self, short: &ShortDescriptor) -> Option<Comparison>;
+    fn comparison(&mut self) -> Option<Comparison>;
 }
 
 /// A provider that never provides comparisons.
 pub struct NullProvider;
 
 impl Provider for NullProvider {
-    fn comparison(&mut self, _short: &ShortDescriptor) -> Option<Comparison> {
+    fn comparison(&mut self) -> Option<Comparison> {
         None
     }
 }

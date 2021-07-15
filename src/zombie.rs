@@ -1,8 +1,17 @@
 //! High-level interface to zombiesplit.
 
 use std::{
+    io::Write,
     path::{Path, PathBuf},
     rc::Rc,
+};
+
+use crate::{
+    db::inspect::Inspector,
+    model::{
+        comparison::{self, Provider},
+        Time,
+    },
 };
 
 use super::{
@@ -17,6 +26,7 @@ use super::{
     presenter::Presenter,
     view,
 };
+use tabwriter::TabWriter;
 use thiserror::Error;
 
 /// High-level interface to zombiesplit.
@@ -115,12 +125,18 @@ impl Zombie {
     /// # Errors
     ///
     /// Returns any database errors occurring during the listing.
-    pub fn split_pbs<L: Locator>(&self, loc: &L) -> Result<()> {
+    pub fn split_pbs(&self, loc: &impl Locator) -> Result<()> {
         // TODO(@MattWindsor91): decouple this from Zombie?
+        let handle = self.db.reader()?;
+        let mut insp = handle.inspect(loc)?;
 
-        for (short, time) in self.db.split_pbs_for(loc)? {
-            println!("{}: {}", short, time);
+        // TODO(@MattWindsor91): decouple this from Zombie?
+        let mut tw = TabWriter::new(std::io::stdout());
+        writeln!(tw, "SPLIT\tSPLIT PB\tIN-RUN PB")?;
+        for (short, split) in insp.comparison().into_iter().flat_map(|x| x.splits) {
+            output_split_pb(&mut tw, &short, split)?;
         }
+        tw.flush()?;
 
         Ok(())
     }
@@ -132,8 +148,8 @@ impl Zombie {
     /// Returns any database errors occurring during the listing.
     pub fn run_pb<L: Locator>(&self, loc: &L, level: history::timing::Level) -> Result<()> {
         let handle = self.db.reader()?;
-        let mut insp = handle.inspector()?;
-        if let Some(pb) = insp.run_pb(loc, level)? {
+        let mut insp = handle.inspect(loc)?;
+        if let Some(pb) = insp.run_pb(level)? {
             // TODO(@MattWindsor91): decouple
             println!("PB is {} on {}", pb.timing.total(), pb.date);
 
@@ -154,22 +170,19 @@ impl Zombie {
     ///
     /// Returns any database or UI errors caught during the session.
     pub fn run(self, desc: &ShortDescriptor) -> Result<()> {
-        let session = self.session(desc)?;
+        let handle = self.db.reader()?;
+        let insp = handle.inspect(desc)?;
+
+        let session = self.session(insp)?;
         let p = Presenter::new(session);
         view::View::new(self.cfg.ui)?.spawn(p)?.run()?;
         Ok(())
     }
 
-    fn session(&self, short: &ShortDescriptor) -> Result<model::attempt::Session> {
-        let mut session = self.session_from_db(short)?;
+    fn session<'a>(&self, mut insp: Inspector<'a>) -> Result<model::attempt::Session<'a>> {
+        let mut session = insp.init_session()?;
         session.add_observer(db::Observer::boxed(self.db.clone()));
-        Ok(session)
-    }
-
-    fn session_from_db(&self, short: &ShortDescriptor) -> Result<model::attempt::Session> {
-        let handle = self.db.reader()?;
-        let mut cat = handle.categories()?;
-        let session = cat.init_session(&short)?;
+        session.set_comparison_provider(Box::new(insp));
         Ok(session)
     }
 }
@@ -196,6 +209,8 @@ fn deduce_short(path: &Path) -> Result<String> {
 pub enum Error {
     #[error("database error")]
     Db(#[from] db::Error),
+    #[error("IO error")]
+    Io(#[from] std::io::Error),
     #[error("UI error")]
     View(#[from] view::Error),
     #[error("error loading data from file")]
@@ -206,3 +221,22 @@ pub enum Error {
 
 /// The top-level zombiesplit result type.
 pub type Result<T> = std::result::Result<T, Error>;
+
+fn output_split_pb(tw: &mut impl Write, short: &str, split: comparison::Split) -> Result<()> {
+    write!(tw, "{}\t", short)?;
+    output_time(tw, split.split)?;
+    write!(tw, "\t")?;
+    output_time(tw, split.in_run.map(|x| x.time))?;
+    writeln!(tw)?;
+
+    Ok(())
+}
+
+fn output_time(tw: &mut impl Write, time: Option<Time>) -> Result<()> {
+    if let Some(t) = time {
+        write!(tw, "{}", t)?;
+    } else {
+        write!(tw, "--")?;
+    }
+    Ok(())
+}

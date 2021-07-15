@@ -28,13 +28,23 @@ impl FromSql for GcID {
 ///
 /// Some locators will result in database queries.
 pub trait Locator {
+    /// Locates the game-category using this locator, potentially using
+    /// the given `getter` to resolve database queries.
+    ///
+    /// # Errors
+    ///
+    /// Typically, errors returned will be database errors.
+    fn locate<'a>(&self, getter: &mut impl AsMut<Getter<'a>>) -> Result<InfoWithID>;
+
     /// Locates the game-category ID using this locator, potentially using
     /// the given `getter` to resolve database queries.
     ///
     /// # Errors
     ///
     /// Typically, errors returned will be database errors.
-    fn locate(&self, getter: &mut Getter) -> Result<GcID>;
+    fn locate_gcid<'a>(&self, getter: &mut impl AsMut<Getter<'a>>) -> Result<GcID> {
+        self.locate(getter).map(|x| x.id)
+    }
 
     /// Tries to extract a game-category ID directly from this locator.
     fn as_game_category_id(&self) -> Option<GcID> {
@@ -44,7 +54,11 @@ pub trait Locator {
 
 /// Signed 64-bit integers are treated as game-category IDs natively.
 impl Locator for GcID {
-    fn locate(&self, _: &mut Getter) -> Result<GcID> {
+    fn locate<'a>(&self, getter: &mut impl AsMut<Getter<'a>>) -> Result<InfoWithID> {
+        getter.as_mut().info_from_id(*self)
+    }
+
+    fn locate_gcid<'a>(&self, _: &mut impl AsMut<Getter<'a>>) -> Result<GcID> {
         Ok(*self)
     }
 
@@ -54,6 +68,7 @@ impl Locator for GcID {
 }
 
 /// An information record with an attached game-category ID.
+#[derive(Debug, Clone)]
 pub struct InfoWithID {
     pub id: GcID,
     pub info: Info,
@@ -61,8 +76,12 @@ pub struct InfoWithID {
 
 /// Category info implicitly contains a game-category ID.
 impl Locator for InfoWithID {
-    fn locate(&self, getter: &mut Getter) -> Result<GcID> {
-        self.id.locate(getter)
+    fn locate<'a>(&self, _: &mut impl AsMut<Getter<'a>>) -> Result<InfoWithID> {
+        Ok(self.clone())
+    }
+
+    fn locate_gcid<'a>(&self, _: &mut impl AsMut<Getter<'a>>) -> Result<GcID> {
+        Ok(self.id)
     }
 
     fn as_game_category_id(&self) -> Option<GcID> {
@@ -71,8 +90,7 @@ impl Locator for InfoWithID {
 }
 
 impl Locator for ShortDescriptor {
-    fn locate(&self, getter: &mut Getter) -> Result<GcID> {
-        // TODO(@MattWindsor91): make this a bit more optimal?
-        Ok(getter.game_category_info(self)?.id)
+    fn locate<'a>(&self, getter: &mut impl AsMut<Getter<'a>>) -> Result<InfoWithID> {
+        getter.as_mut().info_from_short(self)
     }
 }

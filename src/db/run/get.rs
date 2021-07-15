@@ -1,9 +1,15 @@
 //! The [Finder] struct and related data.
 
+use std::collections::HashMap;
+
 use chrono::TimeZone;
 use rusqlite::{named_params, Connection, Statement};
 
-use crate::model::{history, Time};
+use crate::model::{
+    history,
+    short::{LinkedMap, Name},
+    Time,
+};
 
 use super::super::{
     category::GcID,
@@ -70,13 +76,10 @@ impl<'conn> Getter<'conn> {
     /// # Errors
     ///
     /// Errors if the database query fails.
-    pub fn split_pbs_for(&mut self, id: GcID) -> Result<Vec<WithID<Time>>> {
+    pub fn split_pbs_for(&mut self, id: GcID) -> Result<HashMap<Name, Time>> {
         self.query_comparison_split_pbs
             .query_and_then(named_params![":game_category": id], |row| {
-                Ok(WithID {
-                    id: row.get("split_id")?,
-                    item: row.get("total")?,
-                })
+                Ok((row.get("short")?, row.get("total")?))
             })?
             .collect()
     }
@@ -94,7 +97,7 @@ impl<'conn> Getter<'conn> {
                 let total: Time = r.get("total")?;
                 Ok((short, total))
             })?
-            .collect::<Result<std::collections::HashMap<String, Time>>>()?;
+            .collect::<Result<LinkedMap<Time>>>()?;
         Ok(history::timing::Totals { totals })
     }
 }
@@ -167,16 +170,16 @@ SELECT run_id
  LIMIT 1;";
 
 const SQL_COMPARISON_SPLIT_PBS: &str = "
-SELECT split_id
-     , MIN(total) AS total
+SELECT s.short AS short, MIN(total) AS total
   FROM run_split_total
-       INNER JOIN run_split        USING (run_split_id)
-       INNER JOIN segment_split    USING (split_id)
-       INNER JOIN category_segment USING (segment_id)
-       INNER JOIN game_category    USING (category_id)
- WHERE game_category_id = :game_category
+       INNER JOIN run_split              USING (run_split_id)
+       INNER JOIN segment_split          USING (split_id)
+       INNER JOIN category_segment AS cs USING (segment_id)
+       INNER JOIN game_category    AS gc USING (category_id)
+       INNER JOIN split            AS s  USING (split_id)
+ WHERE gc.game_category_id = :game_category
  GROUP BY split_id
- ORDER BY category_segment.position ASC, segment_split.position ASC;";
+ ORDER BY cs.position ASC, segment_split.position ASC;";
 
 const SQL_SPLITS_FOR_RUN: &str = "
 SELECT s.short AS short, total

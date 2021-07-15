@@ -7,25 +7,22 @@ mod init;
 pub mod inspect;
 pub mod run;
 pub mod util;
-use crate::model::{self, game::Config, history, short::Name, Time};
-use std::{
-    collections::HashMap,
-    path::Path,
-    sync::{RwLock, RwLockReadGuard, RwLockWriteGuard},
-};
+use crate::model::{self, game::Config, history};
+use std::path::Path;
 
 pub use error::{Error, Result};
+use r2d2::ManageConnection;
+use r2d2_sqlite::SqliteConnectionManager;
 pub use run::Observer;
-use rusqlite::Connection;
 
 use self::{
     category::{GcID, Locator},
     inspect::Inspector,
 };
 
-/// A connection to zombiesplit's database.
+/// A root connection to zombiesplit's database.
 pub struct Db {
-    conn: RwLock<rusqlite::Connection>,
+    manager: r2d2_sqlite::SqliteConnectionManager,
 }
 
 impl Db {
@@ -36,25 +33,9 @@ impl Db {
     /// Returns errors from the underlying database library if the connection
     /// opening failed.
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
-        Ok(Self::from_sqlite(rusqlite::Connection::open(path)?))
-    }
-
-    /// Opens a database connection in memory.
-    ///
-    /// Useful for testing, mainly.
-    ///
-    /// # Errors
-    ///
-    /// Returns errors from the underlying database library if the connection
-    /// opening failed.
-    pub fn in_memory() -> Result<Self> {
-        Ok(Self::from_sqlite(rusqlite::Connection::open_in_memory()?))
-    }
-
-    fn from_sqlite(conn: rusqlite::Connection) -> Self {
-        Self {
-            conn: RwLock::new(conn),
-        }
+        Ok(Self {
+            manager: SqliteConnectionManager::file(path), // TODO(@MattWindsor91): r2d2 connection pool
+        })
     }
 
     /// Gets a read handle to this database.
@@ -66,16 +47,8 @@ impl Db {
     pub fn reader(&self) -> Result<Reader> {
         // TODO(@MattWindsor91): refactor all db reads to go through this
         Ok(Reader {
-            conn: self.lock_db_read()?,
+            conn: self.manager.connect()?,
         })
-    }
-
-    fn lock_db_read(&self) -> Result<RwLockReadGuard<Connection>> {
-        self.conn.read().map_err(|_| Error::Lock)
-    }
-
-    fn lock_db_write(&self) -> Result<RwLockWriteGuard<Connection>> {
-        self.conn.write().map_err(|_| Error::Lock)
     }
 
     /// Initialises the database for first use.
@@ -84,7 +57,7 @@ impl Db {
     ///
     /// Propagates errors from the database if anything goes wrong.
     pub fn init(&self) -> Result<()> {
-        init::on_db(self.lock_db_read()?)
+        init::on_db(&self.manager.connect()?)
     }
 
     /// Adds the game `game` to the database, assigning it shortname `short`.
@@ -94,7 +67,7 @@ impl Db {
     /// Raises an error if any of the SQL queries relating to inserting a game
     /// fail.
     pub fn add_game(&self, short: &str, game: &Config) -> Result<()> {
-        let mut conn = self.lock_db_write()?;
+        let mut conn = self.manager.connect()?;
         let tx = conn.transaction()?;
         game::Inserter::new(&tx)?.add_game(short, game)?;
         Ok(tx.commit()?)
@@ -108,7 +81,7 @@ impl Db {
     /// fail.
     pub fn add_run<L: Locator>(&self, run: &history::run::FullyTimed<L>) -> Result<()> {
         let run = run.with_locator(self.resolve_gcid(&run.category_locator)?);
-        let mut conn = self.lock_db_write()?;
+        let mut conn = self.manager.connect()?;
         let tx = conn.transaction()?;
         run::Inserter::new(&tx)?.add(&run)?;
         Ok(tx.commit()?)
@@ -120,7 +93,7 @@ impl Db {
     ///
     /// Raises an error if the underlying SQL query fails.
     pub fn game_categories(&self) -> Result<Vec<model::game::category::Info>> {
-        let conn = self.lock_db_read()?;
+        let conn = self.manager.connect()?;
         let mut getter = category::Getter::new(&conn)?;
         getter.all_game_category_info()
     }
@@ -134,7 +107,7 @@ impl Db {
     /// fail.
     pub fn runs_for<L: Locator>(&self, loc: &L) -> Result<Vec<history::run::Summary<GcID>>> {
         let id = self.resolve_gcid(loc)?;
-        let runs = run::Getter::new(&*self.lock_db_read()?)?.runs_for(id)?;
+        let runs = run::Getter::new(&self.manager.connect()?)?.runs_for(id)?;
         Ok(runs.into_iter().map(|x| x.item).collect())
     }
 
@@ -146,43 +119,9 @@ impl Db {
     /// fail.
     pub fn run_pb_for<L: Locator>(&self, loc: &L) -> Result<Option<history::run::Summary<GcID>>> {
         let id = self.resolve_gcid(loc)?;
-        Ok(run::Getter::new(&*self.lock_db_read()?)?
+        Ok(run::Getter::new(&self.manager.connect()?)?
             .run_pb_for(id)?
             .map(|x| x.item))
-    }
-
-    /// Gets split PBs for the game-category located by `loc`.
-    ///
-    /// # Errors
-    ///
-    /// Raises an error if any of the SQL queries relating to getting a run
-    /// fail.
-    pub fn split_pbs_for<L: Locator>(&self, loc: &L) -> Result<Vec<(Name, Time)>> {
-        // TODO(@MattWindsor91): collate by segment
-        let id = self.resolve_gcid(loc)?;
-        let splits = self.split_id_map(id)?;
-
-        Ok(run::Getter::new(&*self.lock_db_read()?)?
-            .split_pbs_for(id)?
-            .into_iter()
-            .map(|s| {
-                (
-                    splits
-                        .get(&s.id)
-                        .map_or_else(|| "??".to_owned(), String::clone),
-                    s.item,
-                )
-            })
-            .collect())
-    }
-
-    fn split_id_map(&self, gcid: GcID) -> Result<HashMap<i64, String>> {
-        // TODO(@MattWindsor91): move this elsewhere?
-        Ok(category::Getter::new(&*self.lock_db_read()?)?
-            .splits(&gcid)?
-            .into_iter()
-            .map(|s| (s.id, s.short))
-            .collect())
     }
 
     fn resolve_gcid<L: Locator>(&self, loc: &L) -> Result<GcID> {
@@ -190,27 +129,27 @@ impl Db {
         if let Some(x) = loc.as_game_category_id() {
             Ok(x)
         } else {
-            let conn = self.lock_db_read()?;
+            let conn = self.manager.connect()?;
             let mut getter = category::Getter::new(&conn)?;
 
-            loc.locate(&mut getter)
+            loc.locate_gcid(&mut getter)
         }
     }
 }
 
 /// A handle used to perform read operations on the database.
-pub struct Reader<'conn> {
-    conn: RwLockReadGuard<'conn, rusqlite::Connection>,
+pub struct Reader {
+    conn: rusqlite::Connection,
 }
 
-impl<'conn> Reader<'conn> {
+impl Reader {
     /// Gets an interface to the category database.
     ///
     /// # Errors
     ///
     /// Errors if we can't construct the database queries.
     pub fn categories(&self) -> Result<category::Getter> {
-        category::Getter::new(&*self.conn)
+        category::Getter::new(&self.conn)
     }
 
     /// Gets an interface to the historic runs database.
@@ -219,7 +158,7 @@ impl<'conn> Reader<'conn> {
     ///
     /// Errors if we can't construct the database queries.
     pub fn runs(&self) -> Result<run::Getter> {
-        run::Getter::new(&*self.conn)
+        run::Getter::new(&self.conn)
     }
 
     /// Gets an inspector over the database.
@@ -227,10 +166,12 @@ impl<'conn> Reader<'conn> {
     /// # Errors
     ///
     /// Errors if we can't construct the low-level getters
-    pub fn inspector(&self) -> Result<Inspector> {
+    pub fn inspect(&self, loc: &impl Locator) -> Result<Inspector> {
+        let mut cat = self.categories()?;
         Ok(Inspector {
+            info: loc.locate(&mut cat)?,
             run: self.runs()?,
-            cat: self.categories()?,
+            cat,
         })
     }
 }

@@ -8,15 +8,20 @@ edition = "2018"
 
 [dependencies]
 anyhow = "1.0.40"
-colored = "2"
 chrono = { version = "0.4", features = ["serde"] }
 clap = "2.33.0"
+colored = "2"
 css-color-parser = "0.1.2"
 env_logger = "0.8.3"
+linked-hash-map = { version = "0.5.4", features = ["serde_impl"] }
 log = { version = "0.4", features = ["serde", "std"] }
 rusqlite = { version = "0.25.0", features = ["chrono"] }
+r2d2 = "0.8.9"
+r2d2_sqlite = "0.18.0"
 sdl2 = { version = "0.34.4", features = ["image"] }
 serde = { version = "1.0.125", features = ["derive"] }
 serde_with = "1.8.0"
+tabwriter = { version = "1", features = [ "ansi_formatting" ] }
+tempfile = "3"
 thiserror = "1.0.24"
 toml = "0.5.8"

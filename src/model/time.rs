@@ -134,8 +134,17 @@ impl std::ops::Add for Time {
     type Output = Time;
 
     fn add(self, rhs: Self) -> Self::Output {
+        // TODO(@MattWindsor91): make this more efficient?
         let raw: u32 = u32::from(self) + u32::from(rhs);
         Self::try_from(raw).unwrap_or_default()
+    }
+}
+
+impl std::ops::AddAssign for Time {
+    fn add_assign(&mut self, rhs: Self) {
+        // TODO(@MattWindsor91): make this more efficient?
+        let raw: u32 = u32::from(*self) + u32::from(rhs);
+        *self = Self::try_from(raw).unwrap_or_default()
     }
 }
 
