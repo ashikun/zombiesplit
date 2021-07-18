@@ -86,9 +86,10 @@ impl<'r, 'g, 'p> SplitDrawer<'r, 'g, 'p> {
         // TODO(@MattWindsor91): hours?
         self.r.set_font(font::Id::Normal);
         // TODO(@MattWindsor91): use both dimensions of pace.
-        let model::comparison::pace::Pair { split, .. } = self.paced_time();
-        self.r.set_fg_colour(colour::fg::Id::Pace(split.pace));
-        self.r.put_str_r(&time_str(split.time))
+        let pair = self.paced_time();
+        self.r
+            .set_fg_colour(colour::fg::Id::SplitInRunPace(pair.split_in_run_pace()));
+        self.r.put_str_r(&time_str(pair.split.time))
     }
 
     fn draw_time_placeholder(&mut self) -> Result<()> {

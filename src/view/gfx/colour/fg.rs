@@ -1,7 +1,10 @@
 //! Foreground colour sets and IDs.
 
 use super::definition::Colour;
-use crate::{model::comparison::Pace, presenter::cursor::SplitPosition};
+use crate::{
+    model::comparison::{pace, Pace},
+    presenter::cursor::SplitPosition,
+};
 use serde::{Deserialize, Serialize};
 
 /// Foreground colour IDs.
@@ -17,6 +20,8 @@ pub enum Id {
     Name(SplitPosition),
     /// A time that hasn't been reported.
     NoTime,
+    /// A split-in-run pacing colour.
+    SplitInRunPace(pace::SplitInRun),
     /// A pacing colour.
     Pace(Pace),
 }
@@ -45,15 +50,24 @@ pub struct Set {
     /// Foreground text for a time when there is no time entered.
     pub time_none: Colour,
 
-    /// Foreground text for a time when the run is ahead of comparison.
-    pub time_run_ahead: Colour,
+    /// Foreground text for a time when the run is ahead of comparison,
+    /// and the split was also ahead.
+    pub time_ahead: Colour,
+
+    /// Foreground text for a time when the run is ahead of comparison,
+    /// but the split was behind.
+    pub time_ahead_losing: Colour,
+
+    /// Foreground text for a time when the run is behind comparison,
+    /// but the split was also ahead.
+    pub time_behind_gaining: Colour,
+
+    /// Foreground text for a time when the run is behind comparison.
+    pub time_behind: Colour,
 
     /// Foreground text for a time when the split is ahead of comparison.
     /// (Often referred to as a 'gold split'.)
     pub time_split_ahead: Colour,
-
-    /// Foreground text for a time when the run is behind comparison.
-    pub time_run_behind: Colour,
 }
 
 impl Set {
@@ -64,6 +78,7 @@ impl Set {
             Id::Header => self.header,
             Id::Name(pos) => self.by_split_position(pos),
             Id::NoTime => self.time_none,
+            Id::SplitInRunPace(pace) => self.by_split_in_run_pace(pace),
             Id::Pace(pace) => self.by_pace(pace),
             Id::Editor => self.editor,
             Id::FieldEditor => self.editor_field,
@@ -71,11 +86,23 @@ impl Set {
     }
 
     #[must_use]
+    fn by_split_in_run_pace(&self, pace: pace::SplitInRun) -> Colour {
+        match pace {
+            pace::SplitInRun::SplitPersonalBest => self.time_split_ahead,
+            pace::SplitInRun::Inconclusive => self.normal,
+            pace::SplitInRun::BehindAndGaining => self.time_behind_gaining,
+            pace::SplitInRun::BehindAndLosing => self.time_behind,
+            pace::SplitInRun::AheadAndGaining => self.time_ahead,
+            pace::SplitInRun::AheadAndLosing => self.time_ahead_losing,
+        }
+    }
+
+    #[must_use]
     fn by_pace(&self, pace: Pace) -> Colour {
         match pace {
             Pace::PersonalBest => self.time_split_ahead,
-            Pace::Behind => self.time_run_behind,
-            Pace::Ahead => self.time_run_ahead,
+            Pace::Behind => self.time_behind,
+            Pace::Ahead => self.time_ahead,
             Pace::Inconclusive => self.normal,
         }
     }

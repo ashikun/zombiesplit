@@ -9,7 +9,7 @@ pub enum Pace {
     Inconclusive,
     /// This split, or run, is behind its comparison.
     Behind,
-    /// This split, or run, is ahead its comparison.
+    /// This split, or run, is ahead (or breaking even on) its comparison.
     Ahead,
     /// This split, or run, is a personal best ('gold split').
     PersonalBest,
@@ -81,4 +81,67 @@ pub struct Pair {
     pub split: PacedTime,
     /// The run-so-far pace.
     pub run_so_far: PacedTime,
+}
+
+impl Pair {
+    /// Gets the combined split-in-run pace note for this pair.
+    #[must_use]
+    pub fn split_in_run_pace(&self) -> SplitInRun {
+        SplitInRun::new(self.split.pace, self.run_so_far.pace)
+    }
+}
+
+/// Combined pace note for a split in the context of a run in progress.
+///
+/// These note the pace of a run, as well as how the current split has affected
+/// it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum SplitInRun {
+    /// There is no pacing time.
+    Inconclusive,
+    /// The split is a personal best ('gold split').
+    SplitPersonalBest,
+    /// The run is behind, and we lost time on the given split.
+    BehindAndLosing,
+    /// The run is behind, but we gained time (or broke even) on the given split.
+    BehindAndGaining,
+    /// The run is ahead, but we lost time on the given split.
+    AheadAndLosing,
+    /// The run is ahead, and we gained time (or broke even) on the given split.
+    AheadAndGaining,
+}
+
+impl SplitInRun {
+    /// Constructs a split-in-run pace note from a `split` and `run_so_far` pace.
+    ///
+    /// ```
+    /// use zombiesplit::model::comparison::pace;
+    ///
+    /// assert_eq!(
+    ///     pace::SplitInRun::Inconclusive,
+    ///     pace::SplitInRun::new(pace::Pace::Inconclusive, pace::Pace::Ahead));
+    /// assert_eq!(
+    ///     pace::SplitInRun::Inconclusive,
+    ///     pace::SplitInRun::new(pace::Pace::Behind, pace::Pace::Inconclusive));
+    /// assert_eq!(
+    ///     pace::SplitInRun::SplitPersonalBest,
+    ///     pace::SplitInRun::new(pace::Pace::PersonalBest, pace::Pace::Behind));
+    /// assert_eq!(
+    ///     pace::SplitInRun::BehindAndGaining,
+    ///     pace::SplitInRun::new(pace::Pace::Ahead, pace::Pace::Behind));
+    /// assert_eq!(
+    ///     pace::SplitInRun::AheadAndLosing,
+    ///     pace::SplitInRun::new(pace::Pace::Behind, pace::Pace::Ahead));
+    /// ```
+    #[must_use]
+    pub fn new(split: Pace, run_so_far: Pace) -> Self {
+        match (split, run_so_far) {
+            (Pace::Inconclusive, _) | (_, Pace::Inconclusive) => Self::Inconclusive,
+            (Pace::PersonalBest, _) => Self::SplitPersonalBest,
+            (Pace::Behind, Pace::Behind) => Self::BehindAndLosing,
+            (Pace::Ahead, Pace::Behind) => Self::BehindAndGaining,
+            (Pace::Behind, Pace::Ahead | Pace::PersonalBest) => Self::AheadAndLosing,
+            (Pace::Ahead, Pace::Ahead | Pace::PersonalBest) => Self::AheadAndGaining,
+        }
+    }
 }
