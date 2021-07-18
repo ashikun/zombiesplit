@@ -28,7 +28,7 @@ fn render_label(r: &mut dyn Renderer) -> Result<()> {
     r.set_pos(Position::top_left(0, 0));
     r.set_font(font::Id::Normal);
     r.set_fg_colour(colour::fg::Id::Header);
-    r.put_str("Total after cursor")
+    r.put_str("Total up to cursor")
 }
 
 fn render_time(r: &mut dyn Renderer, p: &Presenter) -> Result<()> {
