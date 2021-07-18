@@ -1,6 +1,9 @@
 //! The [Session] type and related code.
 
-use crate::model::{game::category::ShortDescriptor, history};
+use crate::model::{
+    game::category::{AttemptInfo, ShortDescriptor},
+    history,
+};
 
 use super::super::{
     comparison::{self, pace, Comparison},
@@ -81,8 +84,8 @@ impl<'a> Session<'a> {
 
     /// Gets the current run's attempt number.
     #[must_use]
-    pub fn attempt(&self) -> usize {
-        self.run.attempt
+    pub fn attempt(&self) -> &AttemptInfo {
+        &self.run.attempt
     }
 
     fn run_paced_time_at(&self, split: usize) -> pace::PacedTime {

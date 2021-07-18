@@ -1,6 +1,6 @@
 //! Models relating to runs.
 
-use crate::model::history;
+use crate::model::{game::category::AttemptInfo, history};
 
 use super::{
     super::time::Time,
@@ -9,8 +9,8 @@ use super::{
 
 /// An in-progress run.
 pub struct Run {
-    /// The attempt number of this run.
-    pub attempt: usize,
+    /// Attempt information for this run.
+    pub attempt: AttemptInfo,
     /// The split data for this run.
     pub splits: Vec<Split>,
 }
@@ -18,7 +18,7 @@ pub struct Run {
 /// A run is a set of splits.
 impl Set for Run {
     fn reset(&mut self) {
-        self.attempt += 1;
+        self.increment_attempt();
         self.splits.iter_mut().for_each(Split::clear)
     }
 
@@ -66,6 +66,11 @@ impl Set for Run {
 }
 
 impl Run {
+    fn increment_attempt(&mut self) {
+        self.attempt
+            .increment(matches!(self.status(), Status::Complete))
+    }
+
     /// Gets the current status of the run, based on how many splits have been
     /// filled in.
     #[must_use]

@@ -6,7 +6,11 @@ use super::{
     render::{Region, Renderer},
     widget,
 };
-use crate::{model::game::category::Info, presenter::Presenter, view::error::Result};
+use crate::{
+    model::game::category::{AttemptInfo, Info},
+    presenter::Presenter,
+    view::error::Result,
+};
 
 /// Views information about the run in the form of a header.
 pub struct Widget {
@@ -36,7 +40,7 @@ fn render_meta(r: &mut dyn Renderer, meta: &Info) -> Result<()> {
     Ok(())
 }
 
-fn render_attempt(r: &mut dyn Renderer, attempt: usize) -> Result<()> {
+fn render_attempt(r: &mut dyn Renderer, attempt: &AttemptInfo) -> Result<()> {
     r.set_pos(Position::x(X::Right(0)));
-    r.put_str_r(&format!("#{}", attempt))
+    r.put_str_r(&format!("#{} ({})", attempt.total, attempt.completed))
 }

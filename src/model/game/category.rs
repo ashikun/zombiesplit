@@ -71,3 +71,33 @@ pub struct AttemptInfo {
     /// The number of runs stored and marked as completed.
     pub completed: usize,
 }
+
+impl Default for AttemptInfo {
+    fn default() -> Self {
+        Self {
+            total: 0,
+            completed: 0,
+        }
+    }
+}
+
+impl AttemptInfo {
+    /// Increments the attempt counter(s).
+    ///
+    /// If `is_completed` is true, we increment the completed counter too.
+    ///
+    /// ```
+    /// use zombiesplit::model::game::category::AttemptInfo;
+    /// let mut info = AttemptInfo::default();
+    /// info.increment(false);
+    /// info.increment(true);
+    /// assert_eq!(2, info.total);
+    /// assert_eq!(1, info.completed);
+    /// ```
+    pub fn increment(&mut self, is_completed: bool) {
+        self.total += 1;
+        if is_completed {
+            self.completed += 1;
+        }
+    }
+}

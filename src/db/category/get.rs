@@ -48,11 +48,10 @@ impl<'conn> Getter<'conn> {
     ///
     /// Propagates any errors from the database.
     pub fn init_session<'b>(&mut self, info: InfoWithID) -> Result<attempt::Session<'b>> {
-        let attempt_info = self.attempt_info(&info)?;
+        let attempt = self.attempt_info(&info)?;
         let splits = self.splits(&info)?;
-        // TODO(@MattWindsor91): track attempts properly.
         let run = attempt::Run {
-            attempt: attempt_info.total + 1,
+            attempt,
             splits: splits.into_iter().map(attempt::Split::new).collect(),
         };
         Ok(attempt::Session::new(info.info, run))
