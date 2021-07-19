@@ -7,10 +7,11 @@ pub mod mode;
 pub mod nav;
 
 use crate::model::{
-    attempt::{split::Set, Session},
+    attempt::{self, split::Set, Session},
     comparison::pace,
 };
 pub use editor::Editor;
+use std::sync::mpsc;
 
 use self::cursor::SplitPosition;
 
@@ -21,15 +22,33 @@ pub struct Presenter<'a> {
     pub mode: Box<dyn mode::Mode + 'a>,
     /// The current run.
     pub session: Session<'a>,
+
+    obs_receiver: mpsc::Receiver<Event>,
+    obs_sender: mpsc::Sender<Event>,
 }
 
 impl<'a> Presenter<'a> {
     /// Constructs a new initial state for a given session.
     #[must_use]
     pub fn new(session: Session<'a>) -> Self {
-        Self {
+        // TODO(@MattWindsor91): remove session use here
+        let (obs_sender, obs_receiver) = mpsc::channel();
+        let mut p = Self {
             mode: Box::new(mode::Inactive),
             session,
+            obs_sender,
+            obs_receiver,
+        };
+        p.session.add_observer(Box::new(p.observer()));
+        p
+    }
+
+    /// Gets an observer that can be used to update the presenter with
+    /// session changes.
+    #[must_use]
+    pub fn observer(&self) -> Observer {
+        Observer {
+            sender: self.obs_sender.clone(),
         }
     }
 
@@ -91,13 +110,48 @@ impl<'a> Presenter<'a> {
     /// Starts a new run, abandoning any previous run.
     fn start_new_run(&mut self) {
         self.session.reset();
-        let cur = cursor::Cursor::new(self.session.num_splits() - 1);
-        // Don't commit the previous mode.
-        self.mode = Box::new(nav::Nav::new(cur))
     }
 
     /// Start the process of quitting.
     fn quit(&mut self) {
         self.transition(Box::new(mode::Quitting))
     }
+
+    pub fn pump(&mut self) {
+        let events = self.obs_receiver.try_iter();
+        for l in events {
+            match l {
+                Event::Reset => {
+                    let cur = cursor::Cursor::new(self.session.num_splits() - 1);
+                    // Don't commit the previous mode.
+                    self.mode = Box::new(nav::Nav::new(cur))
+                }
+            }
+        }
+    }
+}
+
+pub struct Observer {
+    sender: mpsc::Sender<Event>,
+}
+
+impl attempt::Observer for Observer {
+    fn on_reset(&self, _session: &Session) {
+        // TODO(@MattWindsor91): perhaps use this session (Arc?)
+        self.send(Event::Reset)
+    }
+}
+
+impl Observer {
+    fn send(&self, evt: Event) {
+        // TODO(@MattWindsor91): handle errors properly?
+        if let Err(e) = self.sender.send(evt) {
+            log::warn!("error sending event to presenter: {}", e)
+        }
+    }
+}
+
+/// Enumeration of events that can be sent through the presenter's
+enum Event {
+    Reset,
 }

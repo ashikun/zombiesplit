@@ -89,6 +89,7 @@ impl<'c, 'p> Instance<'c, 'p> {
     }
 
     fn cycle(&mut self) -> error::Result<()> {
+        self.presenter.pump();
         for e in self.events.poll_iter() {
             if let Some(x) = event::from_sdl(&e) {
                 self.presenter.handle_event(&x)
