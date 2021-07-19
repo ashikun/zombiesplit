@@ -5,7 +5,7 @@ mod event;
 pub mod gfx;
 
 use crate::presenter;
-use std::cell::RefCell;
+use std::{cell::RefCell, time::Duration};
 
 pub use config::Config;
 pub use error::{Error, Result};
@@ -79,18 +79,24 @@ impl<'c, 'p> Instance<'c, 'p> {
     ///
     /// Returns an error if SDL fails to perform an action.
     pub fn run(&mut self) -> error::Result<()> {
-        // TODO(@MattWindsor91): pass in something other than Game.
-
         self.gfx.redraw(&self.presenter)?;
 
         while self.presenter.is_running() {
-            for e in self.events.poll_iter() {
-                if let Some(x) = event::from_sdl(&e) {
-                    self.presenter.handle_event(&x)
-                }
-            }
-            self.gfx.redraw(&self.presenter)?;
+            self.cycle()?;
         }
+
+        Ok(())
+    }
+
+    fn cycle(&mut self) -> error::Result<()> {
+        for e in self.events.poll_iter() {
+            if let Some(x) = event::from_sdl(&e) {
+                self.presenter.handle_event(&x)
+            }
+        }
+        self.gfx.redraw(&self.presenter)?;
+
+        std::thread::sleep(Duration::from_millis(1));
 
         Ok(())
     }
