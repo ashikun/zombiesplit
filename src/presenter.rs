@@ -23,8 +23,8 @@ pub struct Presenter<'a> {
     /// The current run.
     pub session: Session<'a>,
 
-    obs_receiver: mpsc::Receiver<Event>,
-    obs_sender: mpsc::Sender<Event>,
+    obs_receiver: mpsc::Receiver<attempt::observer::Event>,
+    obs_sender: mpsc::Sender<attempt::observer::Event>,
 }
 
 impl<'a> Presenter<'a> {
@@ -121,7 +121,7 @@ impl<'a> Presenter<'a> {
         let events = self.obs_receiver.try_iter();
         for l in events {
             match l {
-                Event::Reset => {
+                attempt::observer::Event::Reset(_) => {
                     let cur = cursor::Cursor::new(self.session.num_splits() - 1);
                     // Don't commit the previous mode.
                     self.mode = Box::new(nav::Nav::new(cur))
@@ -132,26 +132,14 @@ impl<'a> Presenter<'a> {
 }
 
 pub struct Observer {
-    sender: mpsc::Sender<Event>,
+    sender: mpsc::Sender<attempt::observer::Event>,
 }
 
 impl attempt::Observer for Observer {
-    fn on_reset(&self, _session: &Session) {
-        // TODO(@MattWindsor91): perhaps use this session (Arc?)
-        self.send(Event::Reset)
-    }
-}
-
-impl Observer {
-    fn send(&self, evt: Event) {
+    fn observe(&self, evt: attempt::observer::Event) {
         // TODO(@MattWindsor91): handle errors properly?
         if let Err(e) = self.sender.send(evt) {
             log::warn!("error sending event to presenter: {}", e)
         }
     }
-}
-
-/// Enumeration of events that can be sent through the presenter's
-enum Event {
-    Reset,
 }

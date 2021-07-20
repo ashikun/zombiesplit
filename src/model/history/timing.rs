@@ -16,7 +16,7 @@ pub trait Timing {
 /// Full timing information for a run.
 ///
 /// This includes every logged time for every split in the run.
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Full {
     pub times: short::Map<Vec<Time>>,
 }
@@ -28,7 +28,7 @@ impl Timing for Full {
 }
 
 /// Split-total timing information for a run.
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Totals {
     pub totals: short::LinkedMap<Time>,
 }
@@ -40,7 +40,7 @@ impl Timing for Totals {
 }
 
 /// Abbreviated timing information, usually returned from summary queries.
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct Summary {
     /// The total time across all splits.
     pub total: Time,

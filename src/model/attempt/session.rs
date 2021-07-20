@@ -5,10 +5,13 @@ use crate::model::{
     history,
 };
 
-use super::super::{
-    comparison::{self, pace, Comparison},
-    game::category,
-    time::Time,
+use super::{
+    super::{
+        comparison::{self, pace, Comparison},
+        game::category,
+        time::Time,
+    },
+    observer::Event,
 };
 use super::{observer::Observer, run::Status, split::Set, Run};
 
@@ -127,8 +130,10 @@ impl<'a> Session<'a> {
     }
 
     fn observe_reset(&self) {
+        // TODO(@MattWindsor91): inefficient?
+        let run = self.run_as_historic();
         for o in &self.observers {
-            o.on_reset(&self)
+            o.observe(Event::Reset(run.clone()))
         }
     }
 

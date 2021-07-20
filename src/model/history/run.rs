@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 /// A summary of a finished run.
 ///
 /// Runs are parametric over category locators and time calculations.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug)]
 pub struct Run<L, T> {
     /// The category_locator used to locate the game and category.
     #[serde(flatten)]

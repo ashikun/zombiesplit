@@ -4,7 +4,11 @@ use std::rc::Rc;
 
 use log::{info, warn};
 
-use crate::{db::Result, Db};
+use crate::{
+    db::Result,
+    model::{attempt, game::category::ShortDescriptor, history},
+    Db,
+};
 
 /// An observer that logs runs into a database.
 pub struct Observer {
@@ -12,9 +16,11 @@ pub struct Observer {
     db: Rc<Db>,
 }
 
-impl crate::model::attempt::Observer for Observer {
-    fn on_reset(&self, session: &crate::model::attempt::Session) {
-        log_err(self.try_save_run(session))
+impl attempt::Observer for Observer {
+    fn observe(&self, evt: attempt::observer::Event) {
+        match evt {
+            attempt::observer::Event::Reset(run) => log_err(self.try_save_run(run)),
+        }
     }
 }
 
@@ -26,12 +32,12 @@ impl Observer {
 
     /// Shortcut for creating a boxed database observer.
     #[must_use]
-    pub fn boxed(db: Rc<Db>) -> Box<dyn crate::model::attempt::Observer> {
+    pub fn boxed(db: Rc<Db>) -> Box<dyn attempt::Observer> {
         Box::new(Self::new(db))
     }
 
-    fn try_save_run(&self, session: &crate::model::attempt::Session) -> Result<()> {
-        if let Some(run) = session.run_as_historic() {
+    fn try_save_run(&self, run: Option<history::run::FullyTimed<ShortDescriptor>>) -> Result<()> {
+        if let Some(run) = run {
             self.db.add_run(&run)?;
             info!("saved run at {}", run.date);
         } else {
