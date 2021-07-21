@@ -95,7 +95,7 @@ fn test_sample_observe_run() {
 
     let mut session = init_session(&handle);
 
-    session.add_observer(Observer::boxed(db.clone()));
+    session.observers.add(Observer::boxed(db.clone()));
 
     // This shouldn't insert a run.
     session.reset();

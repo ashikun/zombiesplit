@@ -9,6 +9,7 @@ pub mod nav;
 use crate::model::{
     attempt::{self, split::Set, Session},
     comparison::pace,
+    game::category::AttemptInfo,
 };
 pub use editor::Editor;
 use std::sync::mpsc;
@@ -22,9 +23,16 @@ pub struct Presenter<'a> {
     pub mode: Box<dyn mode::Mode + 'a>,
     /// The current run.
     pub session: Session<'a>,
-
+    pub state: State,
     obs_receiver: mpsc::Receiver<attempt::observer::Event>,
     obs_sender: mpsc::Sender<attempt::observer::Event>,
+}
+
+#[derive(Debug, Default)]
+pub struct State {
+    /// The current attempt information.
+    pub attempt: AttemptInfo,
+    // TODO(@MattWindsor91): move things from using Session to using this.
 }
 
 impl<'a> Presenter<'a> {
@@ -35,11 +43,12 @@ impl<'a> Presenter<'a> {
         let (obs_sender, obs_receiver) = mpsc::channel();
         let mut p = Self {
             mode: Box::new(mode::Inactive),
+            state: State::default(),
             session,
             obs_sender,
             obs_receiver,
         };
-        p.session.add_observer(Box::new(p.observer()));
+        p.session.observers.add(Box::new(p.observer()));
         p
     }
 
@@ -120,12 +129,14 @@ impl<'a> Presenter<'a> {
     pub fn pump(&mut self) {
         let events = self.obs_receiver.try_iter();
         for l in events {
+            use attempt::observer::Event;
             match l {
-                attempt::observer::Event::Reset(_) => {
+                Event::Reset(_) => {
                     let cur = cursor::Cursor::new(self.session.num_splits() - 1);
                     // Don't commit the previous mode.
                     self.mode = Box::new(nav::Nav::new(cur))
                 }
+                Event::NewAttempt(a) => self.state.attempt = a,
             }
         }
     }

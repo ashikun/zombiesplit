@@ -1,9 +1,6 @@
 //! The [Session] type and related code.
 
-use crate::model::{
-    game::category::{AttemptInfo, ShortDescriptor},
-    history,
-};
+use crate::model::{game::category::ShortDescriptor, history};
 
 use super::{
     super::{
@@ -11,9 +8,11 @@ use super::{
         game::category,
         time::Time,
     },
-    observer::Event,
+    observer,
+    run::Status,
+    split::Set,
+    Observer, Run,
 };
-use super::{observer::Observer, run::Status, split::Set, Run};
 
 /// Holds all data for an attempt session.
 ///
@@ -31,7 +30,7 @@ pub struct Session<'a> {
     /// Comparison data for the game/category currently being run.
     comparison: Comparison,
     /// Any observers attached to the session.
-    observers: Vec<Box<dyn Observer + 'a>>,
+    pub observers: observer::Mux<'a>,
     /// The function for timestamping outgoing runs.
     timestamper: fn() -> chrono::DateTime<chrono::Utc>,
     /// The comparison provider.
@@ -46,7 +45,7 @@ impl<'a> Session<'a> {
             metadata,
             run,
             comparison: Comparison::default(),
-            observers: vec![],
+            observers: observer::Mux::default(),
             timestamper: chrono::Utc::now,
             comparator: Box::new(comparison::NullProvider),
         }
@@ -70,11 +69,6 @@ impl<'a> Session<'a> {
         self.refresh_comparison()
     }
 
-    /// Adds an observer to this session.
-    pub fn add_observer(&mut self, o: Box<dyn Observer + 'a>) {
-        self.observers.push(o)
-    }
-
     /// Gets the paced time for the split at `split`.
     /// Said pace is made up of the split and run-so-far paces.
     #[must_use]
@@ -83,12 +77,6 @@ impl<'a> Session<'a> {
             split: self.split_paced_time_at(split),
             run_so_far: self.run_paced_time_at(split),
         }
-    }
-
-    /// Gets the current run's attempt number.
-    #[must_use]
-    pub fn attempt(&self) -> &AttemptInfo {
-        &self.run.attempt
     }
 
     fn run_paced_time_at(&self, split: usize) -> pace::PacedTime {
@@ -130,11 +118,10 @@ impl<'a> Session<'a> {
     }
 
     fn observe_reset(&self) {
-        // TODO(@MattWindsor91): inefficient?
-        let run = self.run_as_historic();
-        for o in &self.observers {
-            o.observe(Event::Reset(run.clone()))
-        }
+        self.observers
+            .observe(observer::Event::Reset(self.run_as_historic()));
+        self.observers
+            .observe(observer::Event::NewAttempt(self.run.attempt));
     }
 
     /// Asks the comparison provider for an updated comparison.

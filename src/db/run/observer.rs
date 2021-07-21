@@ -18,8 +18,8 @@ pub struct Observer {
 
 impl attempt::Observer for Observer {
     fn observe(&self, evt: attempt::observer::Event) {
-        match evt {
-            attempt::observer::Event::Reset(run) => log_err(self.try_save_run(run)),
+        if let attempt::observer::Event::Reset(run) = evt {
+            log_err(self.try_save_run(run))
         }
     }
 }

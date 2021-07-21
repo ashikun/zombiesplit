@@ -181,7 +181,7 @@ impl Zombie {
 
     fn session<'a>(&self, mut insp: Inspector<'a>) -> Result<model::attempt::Session<'a>> {
         let mut session = insp.init_session()?;
-        session.add_observer(db::Observer::boxed(self.db.clone()));
+        session.observers.add(db::Observer::boxed(self.db.clone()));
         session.set_comparison_provider(Box::new(insp));
         Ok(session)
     }

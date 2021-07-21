@@ -25,7 +25,7 @@ impl widget::Widget for Widget {
         r.set_fg_colour(colour::fg::Id::Header);
 
         render_meta(&mut r, &p.session.metadata)?;
-        render_attempt(&mut r, p.session.attempt())?;
+        render_attempt(&mut r, &p.state.attempt)?;
         Ok(())
     }
 }
