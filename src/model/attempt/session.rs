@@ -120,6 +120,9 @@ impl<'a> Session<'a> {
     fn observe_reset(&self) {
         self.observers
             .observe(observer::Event::Reset(self.run_as_historic()));
+    }
+
+    fn observe_attempt(&self) {
         self.observers
             .observe(observer::Event::NewAttempt(self.run.attempt));
     }
@@ -133,6 +136,11 @@ impl<'a> Session<'a> {
             self.comparison = c
         }
     }
+
+    /// Dumps initial session information to the observers.
+    pub fn dump_to_observers(&self) {
+        self.observe_attempt();
+    }
 }
 
 /// The session exposes its underlying run as a split set.
@@ -140,6 +148,7 @@ impl<'a> Set for Session<'a> {
     fn reset(&mut self) {
         self.observe_reset();
         self.run.reset();
+        self.observe_attempt();
         self.refresh_comparison()
     }
 

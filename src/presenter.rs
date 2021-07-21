@@ -49,6 +49,7 @@ impl<'a> Presenter<'a> {
             obs_receiver,
         };
         p.session.observers.add(Box::new(p.observer()));
+        p.session.dump_to_observers();
         p
     }
 

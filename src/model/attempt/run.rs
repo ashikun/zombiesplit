@@ -67,8 +67,9 @@ impl Set for Run {
 
 impl Run {
     fn increment_attempt(&mut self) {
-        self.attempt
-            .increment(matches!(self.status(), Status::Complete))
+        if let Some(is_completed) = self.status().to_completeness() {
+            self.attempt.increment(is_completed)
+        }
     }
 
     /// Gets the current status of the run, based on how many splits have been
@@ -100,6 +101,7 @@ impl Run {
 }
 
 /// The status of the run.
+#[derive(Clone, Copy, Debug)]
 pub enum Status {
     /// The run hasn't been started yet.
     NotStarted,
@@ -107,4 +109,17 @@ pub enum Status {
     Incomplete,
     /// The run appears to be complete.
     Complete,
+}
+
+impl Status {
+    /// Gets whether this run has been started and, if so, whether it is
+    /// completed.
+    #[must_use]
+    pub fn to_completeness(self) -> Option<bool> {
+        match self {
+            Self::NotStarted => None,
+            Self::Incomplete => Some(false),
+            Self::Complete => Some(true),
+        }
+    }
 }
