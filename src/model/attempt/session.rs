@@ -124,7 +124,12 @@ impl<'a> Session<'a> {
 
     fn observe_attempt(&self) {
         self.observers
-            .observe(observer::Event::NewAttempt(self.run.attempt));
+            .observe(observer::Event::Attempt(self.run.attempt));
+    }
+
+    fn observe_game_category(&self) {
+        self.observers
+            .observe(observer::Event::GameCategory(self.metadata.clone()))
     }
 
     /// Asks the comparison provider for an updated comparison.
@@ -140,6 +145,7 @@ impl<'a> Session<'a> {
     /// Dumps initial session information to the observers.
     pub fn dump_to_observers(&self) {
         self.observe_attempt();
+        self.observe_game_category();
     }
 }
 

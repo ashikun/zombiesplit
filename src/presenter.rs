@@ -9,7 +9,7 @@ pub mod nav;
 use crate::model::{
     attempt::{self, split::Set, Session},
     comparison::pace,
-    game::category::AttemptInfo,
+    game::category,
 };
 pub use editor::Editor;
 use std::sync::mpsc;
@@ -31,7 +31,9 @@ pub struct Presenter<'a> {
 #[derive(Debug, Default)]
 pub struct State {
     /// The current attempt information.
-    pub attempt: AttemptInfo,
+    pub attempt: category::AttemptInfo,
+    /// Information about the game and category being played.
+    pub game_category: category::Info,
     // TODO(@MattWindsor91): move things from using Session to using this.
 }
 
@@ -137,7 +139,8 @@ impl<'a> Presenter<'a> {
                     // Don't commit the previous mode.
                     self.mode = Box::new(nav::Nav::new(cur))
                 }
-                Event::NewAttempt(a) => self.state.attempt = a,
+                Event::Attempt(a) => self.state.attempt = a,
+                Event::GameCategory(gc) => self.state.game_category = gc,
             }
         }
     }

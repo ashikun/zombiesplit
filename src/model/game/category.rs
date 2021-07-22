@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 /// A reference to the category of a game using a pair of short names.
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct ShortDescriptor {
     /// The shortname of the game.
     pub game: short::Name,
@@ -53,7 +53,7 @@ pub enum ShortDescriptorError {
 }
 
 /// Full, displayable metadata about a category of a game.
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct Info {
     /// The name of the game.
     pub game: String,

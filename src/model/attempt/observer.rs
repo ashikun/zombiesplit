@@ -1,9 +1,6 @@
 //! Observer pattern wiring for attempt sessions.
 
-use super::super::{
-    game::category::{AttemptInfo, ShortDescriptor},
-    history,
-};
+use super::super::{game::category, history};
 
 /// An observer for the session.
 pub trait Observer {
@@ -18,10 +15,12 @@ pub trait Observer {
 #[derive(Clone, Debug)]
 #[non_exhaustive]
 pub enum Event {
-    /// Observes a reset of a run, with any outgoing run attached as historic.
-    Reset(Option<history::run::FullyTimed<ShortDescriptor>>),
-    /// Observes a new attempt.
-    NewAttempt(AttemptInfo),
+    /// Observes a run reset, with any outgoing run attached as historic.
+    Reset(Option<history::run::FullyTimed<category::ShortDescriptor>>),
+    /// Observes information about the attempt number of a run.
+    Attempt(category::AttemptInfo),
+    /// Observes information about the game being run.
+    GameCategory(category::Info),
 }
 
 /// An observation multiplexer.
