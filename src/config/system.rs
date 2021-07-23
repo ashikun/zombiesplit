@@ -1,6 +1,6 @@
 //! Main system configuration.
 
-use crate::view;
+use crate::ui::view;
 use serde::{Deserialize, Serialize};
 use std::{
     io::Read,

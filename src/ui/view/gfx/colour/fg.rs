@@ -1,10 +1,7 @@
 //! Foreground colour sets and IDs.
 
-use super::definition::Colour;
-use crate::{
-    model::comparison::{pace, Pace},
-    presenter::cursor::SplitPosition,
-};
+use super::{super::super::presenter::cursor::SplitPosition, definition::Colour};
+use crate::model::comparison::{pace, Pace};
 use serde::{Deserialize, Serialize};
 
 /// Foreground colour IDs.

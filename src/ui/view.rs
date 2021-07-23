@@ -4,7 +4,7 @@ pub mod error;
 mod event;
 pub mod gfx;
 
-use crate::presenter;
+use super::presenter;
 use std::{cell::RefCell, time::Duration};
 
 pub use config::Config;

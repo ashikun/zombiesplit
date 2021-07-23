@@ -1,13 +1,14 @@
 //! The split total widget.
 
 use super::{
+    super::{super::presenter::Presenter, error::Result},
     colour, font, metrics,
     position::{Position, X},
     render::{Region, Renderer},
     split::time_str,
     widget,
 };
-use crate::{model::comparison::pace, presenter::Presenter, view::error::Result};
+use crate::model::comparison::pace;
 
 /// Views the total time for a run.
 pub struct Widget {

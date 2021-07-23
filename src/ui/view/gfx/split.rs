@@ -3,17 +3,17 @@
 use std::convert::TryFrom;
 
 use super::{
+    super::{
+        super::presenter::{cursor, Presenter},
+        error::Result,
+    },
     colour,
     font::{self, metrics::TextSizer},
     metrics,
     position::{Position, X},
     render::{Region, Renderer},
 };
-use crate::{
-    model::{self, attempt::split::Set},
-    presenter::{cursor, Presenter},
-    view::error::Result,
-};
+use crate::model::{self, attempt::split::Set};
 
 /// The split viewer widget.
 pub struct Widget {

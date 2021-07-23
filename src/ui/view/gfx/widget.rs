@@ -1,7 +1,9 @@
 //! Widget trait and associated code.
 
-use super::render::Renderer;
-use crate::{presenter::Presenter, view::error::Result};
+use super::{
+    super::{super::Presenter, error::Result},
+    render::Renderer,
+};
 
 /// Trait for things that can render information from a presenter.
 pub trait Widget {

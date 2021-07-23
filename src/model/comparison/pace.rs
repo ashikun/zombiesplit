@@ -111,6 +111,13 @@ pub enum SplitInRun {
     AheadAndGaining,
 }
 
+/// The default split-in-run pace is inconclusive.
+impl Default for SplitInRun {
+    fn default() -> Self {
+        Self::Inconclusive
+    }
+}
+
 impl SplitInRun {
     /// Constructs a split-in-run pace note from a `split` and `run_so_far` pace.
     ///

@@ -4,11 +4,8 @@
 pub mod config;
 pub mod db;
 pub mod model;
-pub mod presenter;
-pub mod view;
+pub mod ui;
 pub mod zombie;
 
 pub use db::Db;
-pub use presenter::Presenter;
-pub use view::View;
 pub use zombie::Zombie;

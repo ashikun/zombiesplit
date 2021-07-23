@@ -1,19 +1,19 @@
 //! Logic for drawing the split editor.
 
 use super::{
+    super::{
+        super::presenter::{
+            editor::{Editor, Field},
+            Presenter,
+        },
+        error::Result,
+    },
     colour, font, metrics,
     position::{Position, X},
     render::{Region, Renderer},
     split, widget,
 };
-use crate::{
-    model::time,
-    presenter::{
-        editor::{Editor, Field},
-        Presenter,
-    },
-    view::error::Result,
-};
+use crate::model::time;
 
 /// The editor widget.
 pub struct Widget {

@@ -12,9 +12,10 @@ mod split;
 mod total;
 mod widget;
 
-use crate::presenter::Presenter;
-
-use super::error::{Error, Result};
+use super::{
+    super::Presenter,
+    error::{Error, Result},
+};
 
 use widget::Widget;
 

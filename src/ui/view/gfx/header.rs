@@ -1,16 +1,13 @@
 //! Header display.
 
 use super::{
+    super::{super::presenter::Presenter, error::Result},
     colour, font, metrics,
     position::{Position, X},
     render::{Region, Renderer},
     widget,
 };
-use crate::{
-    model::game::category::{AttemptInfo, Info},
-    presenter::Presenter,
-    view::error::Result,
-};
+use crate::model::game::category::{AttemptInfo, Info};
 
 /// Views information about the run in the form of a header.
 pub struct Widget {

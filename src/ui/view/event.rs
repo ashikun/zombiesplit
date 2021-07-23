@@ -1,11 +1,9 @@
 //! Mapping from SDL to presenter events.
-use crate::{
-    model::time::position,
-    presenter::{
-        cursor,
-        event::{Edit, Event},
-    },
+use super::presenter::{
+    cursor,
+    event::{Edit, Event},
 };
+use crate::model::time::position;
 
 /// Maps an event from SDL into [Event].
 pub fn from_sdl(e: &sdl2::event::Event) -> Option<Event> {
