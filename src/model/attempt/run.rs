@@ -38,7 +38,8 @@ impl Set for Run {
         }
     }
 
-    fn total_at(&self, split: usize) -> Time {
+    fn cumulative_at(&self, split: usize) -> Time {
+        // TODO(@MattWindsor91): make this more efficient (O(1) access).
         self.splits
             .iter()
             .take(split + 1)

@@ -1,6 +1,14 @@
 //! Observer pattern wiring for attempt sessions.
 
+pub mod aggregate;
+pub mod mux;
+pub mod split;
+
+use crate::model::short;
+
 use super::super::{game::category, history};
+
+pub use mux::Mux;
 
 /// An observer for the session.
 pub trait Observer {
@@ -15,32 +23,14 @@ pub trait Observer {
 #[derive(Clone, Debug)]
 #[non_exhaustive]
 pub enum Event {
+    /// Observes initial information about a split.
+    AddSplit(short::Name, String),
     /// Observes a run reset, with any outgoing run attached as historic.
     Reset(Option<history::run::FullyTimed<category::ShortDescriptor>>),
     /// Observes information about the attempt number of a run.
     Attempt(category::AttemptInfo),
     /// Observes information about the game being run.
     GameCategory(category::Info),
-}
-
-/// An observation multiplexer.
-#[derive(Default)]
-pub struct Mux<'a> {
-    observers: Vec<Box<dyn Observer + 'a>>,
-}
-
-impl<'a> Mux<'a> {
-    /// Adds an observer to the mux.
-    pub fn add(&mut self, obs: Box<dyn Observer + 'a>) {
-        self.observers.push(obs)
-    }
-}
-
-impl<'a> Observer for Mux<'a> {
-    fn observe(&self, evt: Event) {
-        // TODO(@MattWindsor91): eliminate redundant clone
-        for o in &self.observers {
-            o.observe(evt.clone())
-        }
-    }
+    /// Observes an event on a split.
+    Split(short::Name, split::Event),
 }

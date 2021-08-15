@@ -86,7 +86,7 @@ pub trait Set {
 
     /// Gets the total time up to and including `split`.
     #[must_use]
-    fn total_at(&self, split: usize) -> Time;
+    fn cumulative_at(&self, split: usize) -> Time;
 
     /// Gets the number of times logged for the split at `split`.
     #[must_use]

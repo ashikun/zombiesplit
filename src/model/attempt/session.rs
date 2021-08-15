@@ -8,8 +8,7 @@ use super::{
         game::category,
         time::Time,
     },
-    observer,
-    run::Status,
+    observer::{self, aggregate, split},
     split::Set,
     Observer, Run,
 };
@@ -36,6 +35,8 @@ pub struct Session<'a> {
     /// The comparison provider.
     comparator: Box<dyn comparison::Provider + 'a>,
 }
+
+type SplitId = usize;
 
 impl<'a> Session<'a> {
     /// Starts a new session with a given set of metadata and starting run.
@@ -72,24 +73,25 @@ impl<'a> Session<'a> {
     /// Gets the paced time for the split at `split`.
     /// Said pace is made up of the split and run-so-far paces.
     #[must_use]
-    pub fn paced_time_at(&self, split: usize) -> pace::Pair {
+    pub fn paced_time_at(&self, split: SplitId) -> pace::Pair {
         pace::Pair {
             split: self.split_paced_time_at(split),
             run_so_far: self.run_paced_time_at(split),
         }
     }
 
-    fn run_paced_time_at(&self, split: usize) -> pace::PacedTime {
-        self.comparison.run_paced_time(split, self.total_at(split))
+    fn run_paced_time_at(&self, split: SplitId) -> pace::PacedTime {
+        self.comparison
+            .run_paced_time(split, self.cumulative_at(split))
     }
 
-    fn split_paced_time_at(&self, split: usize) -> pace::PacedTime {
+    fn split_paced_time_at(&self, split: SplitId) -> pace::PacedTime {
         self.comparison.split_paced_time(split, self.time_at(split))
     }
 
     /// Gets the comparison time at `split`.
     #[must_use]
-    pub fn comparison_time_at(&self, split: usize) -> Option<Time> {
+    pub fn comparison_time_at(&self, split: SplitId) -> Option<Time> {
         self.comparison.split_comparison_time(split)
     }
 
@@ -98,11 +100,10 @@ impl<'a> Session<'a> {
     /// Returns `None` if there is no started run.
     #[must_use]
     pub fn run_as_historic(&self) -> Option<history::run::FullyTimed<ShortDescriptor>> {
-        match self.run.status() {
-            Status::NotStarted => None,
-            Status::Complete => Some(self.run_as_historic_with_completion(true)),
-            Status::Incomplete => Some(self.run_as_historic_with_completion(false)),
-        }
+        self.run
+            .status()
+            .to_completeness()
+            .map(|c| self.run_as_historic_with_completion(c))
     }
 
     fn run_as_historic_with_completion(
@@ -114,6 +115,35 @@ impl<'a> Session<'a> {
             was_completed,
             date: (self.timestamper)(),
             timing: self.run.timing_as_historic(),
+        }
+    }
+
+    /// Asks the comparison provider for an updated comparison.
+    ///
+    /// This should occur when the run is reset, in case the outgoing run has
+    /// changed the comparisons.
+    fn refresh_comparison(&mut self) {
+        if let Some(c) = self.comparator.comparison() {
+            self.comparison = c
+        }
+    }
+
+    /// Dumps initial session information to the observers.
+    ///
+    /// This should only be called once, as it might not be idempotent.
+    pub fn dump_to_observers(&self) {
+        self.observe_splits();
+        self.observe_attempt();
+        self.observe_game_category();
+    }
+
+    /// Sends information about each split to the observers.
+    fn observe_splits(&self) {
+        for split in &self.run.splits {
+            self.observers.observe(observer::Event::AddSplit(
+                split.info.short.clone(),
+                split.info.name.clone(),
+            ))
         }
     }
 
@@ -132,20 +162,62 @@ impl<'a> Session<'a> {
             .observe(observer::Event::GameCategory(self.metadata.clone()))
     }
 
-    /// Asks the comparison provider for an updated comparison.
+    /// Recalculates times and pacings for every split below and
+    /// including `split`, notifying all observers.
     ///
-    /// This should occur when the run is reset, in case the outgoing run has
-    /// changed the comparisons.
-    fn refresh_comparison(&mut self) {
-        if let Some(c) = self.comparator.comparison() {
-            self.comparison = c
+    /// We assume the caller has already updated the split, but not observed it
+    /// yet.
+    fn recalculate_and_observe_splits(&self, split: SplitId) {
+        self.observe_split_attempt_time(split);
+
+        // TODO(@MattWindsor91): update run cumulatives
+        for i in split..=self.num_splits() {
+            self.observe_split_cumulative(i);
+            self.observe_split_pace(i)
         }
     }
 
-    /// Dumps initial session information to the observers.
-    pub fn dump_to_observers(&self) {
-        self.observe_attempt();
-        self.observe_game_category();
+    fn observe_split_attempt_time(&self, split: SplitId) {
+        self.observe_aggregate(
+            split,
+            self.time_at(split),
+            aggregate::Kind::attempt(aggregate::Scope::Split),
+        )
+    }
+
+    fn observe_split_cumulative(&self, split: SplitId) {
+        self.observe_aggregate(
+            split,
+            self.cumulative_at(split),
+            aggregate::Kind::attempt(aggregate::Scope::Cumulative),
+        )
+    }
+
+    fn observe_aggregate(&self, split: SplitId, time: Time, kind: aggregate::Kind) {
+        self.observe_split(
+            split,
+            split::Event::Time(time, split::Time::Aggregate(kind)),
+        )
+    }
+
+    fn observe_split_pace(&self, split: SplitId) {
+        let pt = self.paced_time_at(split);
+        self.observe_split(split, split::Event::Pace(pt.split_in_run_pace()))
+    }
+
+    fn observe_split(&self, split: SplitId, event: split::Event) {
+        self.observers.observe(observer::Event::Split(
+            self.split_from_position(split),
+            event,
+        ))
+    }
+
+    fn split_from_position(&self, pos: usize) -> String {
+        // TODO(@MattWindsor91): this should ideally be temporary.
+        self.run
+            .splits
+            .get(pos)
+            .map_or_else(String::default, |x| x.info.short.clone())
     }
 }
 
@@ -158,27 +230,33 @@ impl<'a> Set for Session<'a> {
         self.refresh_comparison()
     }
 
-    fn clear_at(&mut self, split: usize) {
+    fn clear_at(&mut self, split: SplitId) {
         self.run.clear_at(split)
     }
 
-    fn push_to(&mut self, split: usize, time: Time) {
-        self.run.push_to(split, time)
+    fn push_to(&mut self, split: SplitId, time: Time) {
+        self.run.push_to(split, time);
+        self.observe_split(split, split::Event::Time(time, split::Time::Pushed));
+        self.recalculate_and_observe_splits(split)
     }
 
-    fn pop_from(&mut self, split: usize) -> Option<Time> {
-        self.run.pop_from(split)
+    fn pop_from(&mut self, split: SplitId) -> Option<Time> {
+        self.run.pop_from(split).and_then(|time| {
+            self.observe_split(split, split::Event::Time(time, split::Time::Popped));
+            self.recalculate_and_observe_splits(split);
+            Some(time)
+        })
     }
 
-    fn total_at(&self, split: usize) -> Time {
-        self.run.total_at(split)
+    fn cumulative_at(&self, split: SplitId) -> Time {
+        self.run.cumulative_at(split)
     }
 
-    fn num_times_at(&self, split: usize) -> usize {
+    fn num_times_at(&self, split: SplitId) -> usize {
         self.run.num_times_at(split)
     }
 
-    fn time_at(&self, split: usize) -> Time {
+    fn time_at(&self, split: SplitId) -> Time {
         self.run.time_at(split)
     }
 
@@ -186,7 +264,7 @@ impl<'a> Set for Session<'a> {
         self.run.num_splits()
     }
 
-    fn name_at(&self, split: usize) -> &str {
+    fn name_at(&self, split: SplitId) -> &str {
         self.run.name_at(split)
     }
 }

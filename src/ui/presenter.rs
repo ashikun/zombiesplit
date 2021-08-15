@@ -124,6 +124,7 @@ impl<'a> Presenter<'a> {
         for l in events {
             use attempt::observer::Event;
             match l {
+                Event::AddSplit(short, name) => self.state.add_split(short, name),
                 Event::Reset(_) => {
                     let cur = cursor::Cursor::new(self.session.num_splits() - 1);
                     // Don't commit the previous mode.
@@ -131,6 +132,7 @@ impl<'a> Presenter<'a> {
                 }
                 Event::Attempt(a) => self.state.attempt = a,
                 Event::GameCategory(gc) => self.state.game_category = gc,
+                Event::Split(short, ev) => self.state.handle_split_event(&short, ev),
             }
         }
     }

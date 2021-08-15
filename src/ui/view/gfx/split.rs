@@ -13,7 +13,10 @@ use super::{
     position::{Position, X},
     render::{Region, Renderer},
 };
-use crate::model::{self, attempt::split::Set};
+use crate::{
+    model::{self, attempt::split::Set},
+    ui::presenter,
+};
 
 /// The split viewer widget.
 pub struct Widget {
@@ -27,10 +30,11 @@ impl super::widget::Widget for Widget {
     fn render(&mut self, r: &mut dyn Renderer, p: &Presenter) -> Result<()> {
         let mut r = Region::new(r, self.rect);
 
-        for index in 0..p.session.num_splits() {
+        for (index, state) in p.state.splits.iter().enumerate() {
             r.set_pos(self.split_pos(index));
             SplitDrawer {
                 index,
+                state,
                 r: &mut r,
                 p,
             }
@@ -54,6 +58,7 @@ impl Widget {
 /// Contains all state useful to draw one split.
 struct SplitDrawer<'r, 'g, 'p> {
     index: usize,
+    state: &'p presenter::state::Split,
     r: &'r mut Region<'g>,
     p: &'p Presenter<'p>,
 }
@@ -88,7 +93,7 @@ impl<'r, 'g, 'p> SplitDrawer<'r, 'g, 'p> {
         // TODO(@MattWindsor91): use both dimensions of pace.
         let pair = self.paced_time();
         self.r
-            .set_fg_colour(colour::fg::Id::SplitInRunPace(pair.split_in_run_pace()));
+            .set_fg_colour(colour::fg::Id::SplitInRunPace(self.state.pace_in_run));
         self.r.put_str_r(&time_str(pair.split.time))
     }
 

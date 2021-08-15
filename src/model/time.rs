@@ -140,11 +140,27 @@ impl std::ops::Add for Time {
     }
 }
 
+impl std::ops::Sub for Time {
+    type Output = Time;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        // TODO(@MattWindsor91): make this more efficient?
+        let raw: u32 = u32::from(self).saturating_sub(u32::from(rhs));
+        Self::try_from(raw).unwrap_or_default()
+    }
+}
+
 impl std::ops::AddAssign for Time {
     fn add_assign(&mut self, rhs: Self) {
         // TODO(@MattWindsor91): make this more efficient?
-        let raw: u32 = u32::from(*self) + u32::from(rhs);
-        *self = Self::try_from(raw).unwrap_or_default()
+        *self = *self + rhs;
+    }
+}
+
+impl std::ops::SubAssign for Time {
+    fn sub_assign(&mut self, rhs: Self) {
+        // TODO(@MattWindsor91): make this more efficient?
+        *self = *self - rhs;
     }
 }
 
@@ -192,6 +208,22 @@ impl rusqlite::ToSql for Time {
 }
 
 mod tests {
+    /// Tests that adding and subtracting a time appears to be the identity.
+    #[test]
+    fn time_add_sub() {
+        let t1: super::Time = "1h5m10s".parse().expect("should be valid");
+        let t2: super::Time = "6m4s100".parse().expect("should be valid");
+        assert_eq!(t1, (t1 + t2) - t2);
+    }
+
+    /// Tests that subtracting a large time from a short time results in zero.
+    #[test]
+    fn time_sub_sat() {
+        let t1: super::Time = "1h5m10s".parse().expect("should be valid");
+        let t2: super::Time = "6m4s100".parse().expect("should be valid");
+        assert_eq!(super::Time::default(), t2 - t1);
+    }
+
     #[test]
     fn time_from_str_empty() {
         let t: super::Time = "".parse().expect("should be valid");
