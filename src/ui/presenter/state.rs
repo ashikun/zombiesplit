@@ -49,7 +49,7 @@ impl State {
     }
 }
 
-// Presenter state about one split.
+/// Presenter state about one split.
 #[derive(Debug, Default, Clone)]
 pub struct Split {
     /// The number of times that have been logged on this split.

@@ -241,10 +241,10 @@ impl<'a> Set for Session<'a> {
     }
 
     fn pop_from(&mut self, split: SplitId) -> Option<Time> {
-        self.run.pop_from(split).and_then(|time| {
+        self.run.pop_from(split).map(|time| {
             self.observe_split(split, split::Event::Time(time, split::Time::Popped));
             self.recalculate_and_observe_splits(split);
-            Some(time)
+            time
         })
     }
 
