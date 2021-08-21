@@ -37,7 +37,9 @@ impl Comparison {
         self.split(split).and_then(|f| f.in_run.map(|x| x.time))
     }
 
-    fn split(&self, index: usize) -> Option<&Split> {
+    /// Gets the comparison for the split at `index`.
+    #[must_use]
+    pub fn split(&self, index: usize) -> Option<&Split> {
         // TODO(@MattWindsor91): this is O(n), don't.
         self.splits.values().nth(index)
     }
@@ -46,12 +48,13 @@ impl Comparison {
 /// Split comparisons.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Split {
+    // TODO(@MattWindsor91): this is basically an aggregate pair.
     /// The personal best for this split, if any.
     ///
     /// Any splits that compare quicker than this time get the `PersonalBest`
     /// pace.
     pub split: Option<Time>,
-    /// Thiming information for this split in the comparison run, if any.
+    /// Timing information for this split in the comparison run, if any.
     pub in_run: Option<InRun>,
 }
 

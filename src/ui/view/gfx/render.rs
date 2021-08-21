@@ -72,7 +72,7 @@ impl<'a> Renderer for Window<'a> {
         self.pos = Point::new(
             pos.x.to_left(self.pos.x, self.w_metrics.win_w),
             pos.y.to_top(self.pos.y, self.w_metrics.win_h),
-        )
+        );
     }
 
     fn fill(&mut self, rect: metrics::Rect) -> Result<()> {
@@ -83,15 +83,15 @@ impl<'a> Renderer for Window<'a> {
     }
 
     fn set_font(&mut self, font: font::Id) {
-        self.pen.set_font(font, &self.font_manager)
+        self.pen.set_font(font, &self.font_manager);
     }
 
     fn set_bg_colour(&mut self, colour: colour::bg::Id) {
-        self.pen.bg_colour = colour
+        self.pen.bg_colour = colour;
     }
 
     fn set_fg_colour(&mut self, colour: colour::fg::Id) {
-        self.pen.fg_colour = colour
+        self.pen.fg_colour = colour;
     }
 
     fn put_str(&mut self, str: &str) -> Result<()> {
@@ -138,18 +138,18 @@ impl<'a> Window<'a> {
     pub fn clear(&mut self) {
         self.set_bg_colour(colour::bg::Id::Window);
         self.set_screen_bg();
-        self.screen.clear()
+        self.screen.clear();
     }
 
     /// Refreshes the screen.
     pub fn present(&mut self) {
-        self.screen.present()
+        self.screen.present();
     }
 
     // Sets the screen draw colour to the background colour.
     fn set_screen_bg(&mut self) {
         let colour = self.colour_set.bg.get(self.pen.bg_colour);
-        self.screen.set_draw_color(colour)
+        self.screen.set_draw_color(colour);
     }
 
     fn font_texture(&mut self) -> Result<Rc<Texture<'a>>> {
@@ -221,16 +221,16 @@ impl<'a> Region<'a> {
 
 impl<'a> Renderer for Region<'a> {
     fn set_pos(&mut self, pos: Position) {
-        self.renderer.set_pos(pos.normalise_to_rect(self.rect))
+        self.renderer.set_pos(pos.normalise_to_rect(self.rect));
     }
     fn set_font(&mut self, font: font::Id) {
-        self.renderer.set_font(font)
+        self.renderer.set_font(font);
     }
     fn set_bg_colour(&mut self, colour: colour::bg::Id) {
-        self.renderer.set_bg_colour(colour)
+        self.renderer.set_bg_colour(colour);
     }
     fn set_fg_colour(&mut self, colour: colour::fg::Id) {
-        self.renderer.set_fg_colour(colour)
+        self.renderer.set_fg_colour(colour);
     }
     fn put_str(&mut self, str: &str) -> Result<()> {
         self.renderer.put_str(str)

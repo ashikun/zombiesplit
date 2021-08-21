@@ -51,7 +51,7 @@ impl<'a> Split {
     /// If the time is zero, it will not be added.
     pub fn push(&mut self, time: Time) {
         if !time.is_zero() {
-            self.times.push(time)
+            self.times.push(time);
         }
     }
 
@@ -63,7 +63,7 @@ impl<'a> Split {
 
     /// Removes all times from this split.
     pub fn clear(&mut self) {
-        self.times.clear()
+        self.times.clear();
     }
 }
 

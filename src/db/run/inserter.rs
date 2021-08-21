@@ -93,7 +93,7 @@ impl<'conn> Inserter<'conn> {
             self.query_add_split
                 .execute(named_params![":run_id": run_id, ":split_id": split_id])?;
             let run_split_id = self.conn.last_insert_rowid();
-            self.add_split_times(run_split_id, &times)?;
+            self.add_split_times(run_split_id, times)?;
         }
         Ok(())
     }

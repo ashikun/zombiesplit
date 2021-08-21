@@ -19,12 +19,12 @@ pub struct Run {
 impl Set for Run {
     fn reset(&mut self) {
         self.increment_attempt();
-        self.splits.iter_mut().for_each(Split::clear)
+        self.splits.iter_mut().for_each(Split::clear);
     }
 
     fn push_to(&mut self, split: usize, time: Time) {
         if let Some(ref mut s) = self.splits.get_mut(split) {
-            s.push(time)
+            s.push(time);
         }
     }
 
@@ -34,7 +34,7 @@ impl Set for Run {
 
     fn clear_at(&mut self, split: usize) {
         if let Some(s) = self.splits.get_mut(split) {
-            s.clear()
+            s.clear();
         }
     }
 
@@ -62,14 +62,14 @@ impl Set for Run {
     }
 
     fn name_at(&self, split: usize) -> &str {
-        self.splits.get(split).map_or("Unknown", |s| &s.name())
+        self.splits.get(split).map_or("Unknown", |s| s.name())
     }
 }
 
 impl Run {
     fn increment_attempt(&mut self) {
         if let Some(is_completed) = self.status().to_completeness() {
-            self.attempt.increment(is_completed)
+            self.attempt.increment(is_completed);
         }
     }
 

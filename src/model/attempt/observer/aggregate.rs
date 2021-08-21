@@ -113,13 +113,13 @@ impl IndexMut<Source> for Set {
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Pair {
     /// Single time for this split only.
-    pub split: Time,
+    pub split: Option<Time>,
     /// Cumulative time for all splits up to and including this split.
-    pub cumulative: Time,
+    pub cumulative: Option<Time>,
 }
 
 impl Index<Scope> for Pair {
-    type Output = Time;
+    type Output = Option<Time>;
 
     fn index(&self, index: Scope) -> &Self::Output {
         match index {

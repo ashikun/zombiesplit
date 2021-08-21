@@ -19,7 +19,7 @@ pub struct Observer {
 impl attempt::Observer for Observer {
     fn observe(&self, evt: attempt::observer::Event) {
         if let attempt::observer::Event::Reset(run) = evt {
-            log_err(self.try_save_run(run))
+            log_err(self.try_save_run(run));
         }
     }
 }
@@ -41,12 +41,12 @@ impl Observer {
             self.db.add_run(&run)?;
             info!("saved run at {}", run.date);
         } else {
-            info!("skipped saving run -- not started")
+            info!("skipped saving run -- not started");
         }
         Ok(())
     }
 }
 
 fn log_err(e: Result<()>) {
-    e.unwrap_or_else(|e| warn!("error saving run: {}", e))
+    e.unwrap_or_else(|e| warn!("error saving run: {}", e));
 }

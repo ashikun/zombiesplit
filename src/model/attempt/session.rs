@@ -56,7 +56,7 @@ impl<'a> Session<'a> {
     ///
     /// Useful for stubbing out time when testing.
     pub fn set_timestamper(&mut self, ts: fn() -> chrono::DateTime<chrono::Utc>) {
-        self.timestamper = ts
+        self.timestamper = ts;
     }
 
     /// Replaces the session's comparison provider with a different one.
@@ -67,7 +67,7 @@ impl<'a> Session<'a> {
     /// Triggers an immediate comparison reset.
     pub fn set_comparison_provider(&mut self, p: Box<dyn comparison::Provider + 'a>) {
         self.comparator = p;
-        self.refresh_comparison()
+        self.refresh_comparison();
     }
 
     /// Gets the paced time for the split at `split`.
@@ -124,26 +124,29 @@ impl<'a> Session<'a> {
     /// changed the comparisons.
     fn refresh_comparison(&mut self) {
         if let Some(c) = self.comparator.comparison() {
-            self.comparison = c
+            self.comparison = c;
         }
+        self.observe_comparison();
     }
 
     /// Dumps initial session information to the observers.
     ///
     /// This should only be called once, as it might not be idempotent.
     pub fn dump_to_observers(&self) {
+        self.observe_game_category();
         self.observe_splits();
         self.observe_attempt();
-        self.observe_game_category();
+        self.observe_comparison();
     }
 
     /// Sends information about each split to the observers.
     fn observe_splits(&self) {
+        // TODO(@MattWindsor91): see if I can lifetime this better.
         for split in &self.run.splits {
             self.observers.observe(observer::Event::AddSplit(
                 split.info.short.clone(),
                 split.info.name.clone(),
-            ))
+            ));
         }
     }
 
@@ -159,7 +162,7 @@ impl<'a> Session<'a> {
 
     fn observe_game_category(&self) {
         self.observers
-            .observe(observer::Event::GameCategory(self.metadata.clone()))
+            .observe(observer::Event::GameCategory(self.metadata.clone()));
     }
 
     /// Recalculates times and pacings for every split below and
@@ -168,48 +171,71 @@ impl<'a> Session<'a> {
     /// We assume the caller has already updated the split, but not observed it
     /// yet.
     fn recalculate_and_observe_splits(&self, split: SplitId) {
-        self.observe_split_attempt_time(split);
-
-        // TODO(@MattWindsor91): update run cumulatives
+        // TODO(@MattWindsor91): update run cumulatives and paces here, rather than
+        // calculating them afresh every time.
         for i in split..=self.num_splits() {
-            self.observe_split_cumulative(i);
-            self.observe_split_pace(i)
+            let pt = self.paced_time_at(split);
+            self.observe_split(split, split::Event::Pace(pt.split_in_run_pace()));
+            self.observe_attempt_split_time(i, pt.split.time);
+            self.observe_attempt_cumulative(i, pt.run_so_far.time);
         }
     }
 
-    fn observe_split_attempt_time(&self, split: SplitId) {
+    fn observe_attempt_split_time(&self, split: SplitId, time: Time) {
         self.observe_aggregate(
             split,
-            self.time_at(split),
+            time,
             aggregate::Kind::attempt(aggregate::Scope::Split),
-        )
+        );
     }
 
-    fn observe_split_cumulative(&self, split: SplitId) {
+    fn observe_attempt_cumulative(&self, split: SplitId, time: Time) {
         self.observe_aggregate(
             split,
-            self.cumulative_at(split),
+            time,
             aggregate::Kind::attempt(aggregate::Scope::Cumulative),
-        )
+        );
+    }
+
+    fn observe_comparison(&self) {
+        for i in 0..=self.num_splits() {
+            self.observe_comparison_split_time(i);
+            self.observe_comparison_cumulative(i);
+        }
+    }
+
+    fn observe_comparison_split_time(&self, split: SplitId) {
+        if let Some(s) = self.comparison.split(split).and_then(|x| x.in_run) {
+            self.observe_aggregate(
+                split,
+                s.time,
+                aggregate::Kind::comparison(aggregate::Scope::Split),
+            );
+        }
+    }
+
+    fn observe_comparison_cumulative(&self, split: SplitId) {
+        if let Some(s) = self.comparison.split(split).and_then(|x| x.in_run) {
+            self.observe_aggregate(
+                split,
+                s.cumulative,
+                aggregate::Kind::comparison(aggregate::Scope::Cumulative),
+            );
+        }
     }
 
     fn observe_aggregate(&self, split: SplitId, time: Time, kind: aggregate::Kind) {
         self.observe_split(
             split,
             split::Event::Time(time, split::Time::Aggregate(kind)),
-        )
-    }
-
-    fn observe_split_pace(&self, split: SplitId) {
-        let pt = self.paced_time_at(split);
-        self.observe_split(split, split::Event::Pace(pt.split_in_run_pace()))
+        );
     }
 
     fn observe_split(&self, split: SplitId, event: split::Event) {
         self.observers.observe(observer::Event::Split(
             self.split_from_position(split),
             event,
-        ))
+        ));
     }
 
     fn split_from_position(&self, pos: usize) -> String {
@@ -227,17 +253,17 @@ impl<'a> Set for Session<'a> {
         self.observe_reset();
         self.run.reset();
         self.observe_attempt();
-        self.refresh_comparison()
+        self.refresh_comparison();
     }
 
     fn clear_at(&mut self, split: SplitId) {
-        self.run.clear_at(split)
+        self.run.clear_at(split);
     }
 
     fn push_to(&mut self, split: SplitId, time: Time) {
         self.run.push_to(split, time);
         self.observe_split(split, split::Event::Time(time, split::Time::Pushed));
-        self.recalculate_and_observe_splits(split)
+        self.recalculate_and_observe_splits(split);
     }
 
     fn pop_from(&mut self, split: SplitId) -> Option<Time> {

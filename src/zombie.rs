@@ -113,7 +113,7 @@ impl Zombie {
                 Some(k) => format!("{}", k).green(),
             };
 
-            println!("{}. {} on {}", rank, run.timing.total, run.date)
+            println!("{}. {} on {}", rank, run.timing.total, run.date);
         }
 
         Ok(())
@@ -155,7 +155,7 @@ impl Zombie {
             if let history::timing::ForLevel::Totals(totals) = pb.timing {
                 // TODO(@MattWindsor91): order by position
                 for (split, total) in totals.totals {
-                    println!("{}: {}", split, total)
+                    println!("{}: {}", split, total);
                 }
             }
         }

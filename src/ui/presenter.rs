@@ -106,7 +106,7 @@ impl<'a> Presenter<'a> {
 
     fn transition(&mut self, new_mode: Box<dyn mode::Mode>) {
         self.mode.commit(&mut self.session);
-        self.mode = new_mode
+        self.mode = new_mode;
     }
 
     /// Starts a new run, abandoning any previous run.
@@ -116,7 +116,7 @@ impl<'a> Presenter<'a> {
 
     /// Start the process of quitting.
     fn quit(&mut self) {
-        self.transition(Box::new(mode::Quitting))
+        self.transition(Box::new(mode::Quitting));
     }
 
     pub fn pump(&mut self) {
@@ -128,7 +128,7 @@ impl<'a> Presenter<'a> {
                 Event::Reset(_) => {
                     let cur = cursor::Cursor::new(self.session.num_splits() - 1);
                     // Don't commit the previous mode.
-                    self.mode = Box::new(nav::Nav::new(cur))
+                    self.mode = Box::new(nav::Nav::new(cur));
                 }
                 Event::Attempt(a) => self.state.attempt = a,
                 Event::GameCategory(gc) => self.state.game_category = gc,
@@ -146,7 +146,7 @@ impl attempt::Observer for Observer {
     fn observe(&self, evt: attempt::observer::Event) {
         // TODO(@MattWindsor91): handle errors properly?
         if let Err(e) = self.sender.send(evt) {
-            log::warn!("error sending event to presenter: {}", e)
+            log::warn!("error sending event to presenter: {}", e);
         }
     }
 }

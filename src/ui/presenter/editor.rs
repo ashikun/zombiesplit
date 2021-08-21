@@ -47,7 +47,7 @@ impl Mode for Editor {
     }
 
     fn editor(&self) -> Option<&Editor> {
-        Some(&self)
+        Some(self)
     }
 }
 

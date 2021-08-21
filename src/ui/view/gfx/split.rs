@@ -14,7 +14,10 @@ use super::{
     render::{Region, Renderer},
 };
 use crate::{
-    model::{self, attempt::split::Set},
+    model::{
+        self,
+        attempt::{observer::aggregate, split::Set},
+    },
     ui::presenter,
 };
 
@@ -80,35 +83,30 @@ impl<'r, 'g, 'p> SplitDrawer<'r, 'g, 'p> {
 
     fn draw_time(&mut self) -> Result<()> {
         self.r.set_pos(Position::x(X::Right(0)));
-        if 0 < self.num_times() {
-            self.draw_summed_time()
+        self.r.set_fg_colour(self.time_colour());
+        self.r.put_str_r(&self.time_str())
+    }
+
+    fn time_str(&self) -> String {
+        time_str_or_placeholder(
+            self.state.aggregates[self.aggregate_source()][aggregate::Scope::Split],
+        )
+    }
+
+    fn time_colour(&self) -> colour::fg::Id {
+        colour::fg::Id::SplitInRunPace(self.state.pace_in_run)
+    }
+
+    /// Decide which source to use for the aggregate displayed on this split.
+    ///
+    /// Currently, this is always the comparison if there are no times logged
+    /// for the attempt, and the attempt otherwise.
+    fn aggregate_source(&self) -> aggregate::Source {
+        if 0 < self.state.num_times {
+            aggregate::Source::Attempt
         } else {
-            self.draw_time_placeholder()
+            aggregate::Source::Comparison
         }
-    }
-
-    fn draw_summed_time(&mut self) -> Result<()> {
-        // TODO(@MattWindsor91): hours?
-        self.r.set_font(font::Id::Normal);
-        // TODO(@MattWindsor91): use both dimensions of pace.
-        let pair = self.paced_time();
-        self.r
-            .set_fg_colour(colour::fg::Id::SplitInRunPace(self.state.pace_in_run));
-        self.r.put_str_r(&time_str(pair.split.time))
-    }
-
-    fn draw_time_placeholder(&mut self) -> Result<()> {
-        self.r.set_font(font::Id::Normal);
-        self.r.set_fg_colour(colour::fg::Id::NoTime);
-        // TODO(@MattWindsor91): tidy this up.
-        self.r.put_str_r(&self.time_placeholder())
-    }
-
-    fn time_placeholder(&self) -> String {
-        self.p
-            .session
-            .comparison_time_at(self.index)
-            .map_or_else(|| "--'--\"---".to_owned(), time_str)
     }
 
     /// Draws a representation of the number of times this split has logged.
@@ -118,23 +116,21 @@ impl<'r, 'g, 'p> SplitDrawer<'r, 'g, 'p> {
         self.r.set_font(font::Id::Small);
         // TODO(@MattWindsor91): better key?
         self.r.set_fg_colour(colour::fg::Id::Header);
-        self.r.put_str_r(&format!("{}x", self.num_times()))
+        self.r.put_str_r(&format!("{}x", self.state.num_times))
     }
 
     fn position(&self) -> cursor::SplitPosition {
         self.p.split_position(self.index)
     }
+}
 
-    fn paced_time(&self) -> model::comparison::pace::Pair {
-        self.p.session.paced_time_at(self.index)
-    }
-
-    fn num_times(&self) -> usize {
-        self.p.session.num_times_at(self.index)
-    }
+#[must_use]
+fn time_str_or_placeholder(time: Option<model::time::Time>) -> String {
+    time.map_or_else(|| "--'--\"--".to_owned(), time_str)
 }
 
 #[must_use]
 pub fn time_str(time: model::time::Time) -> String {
+    // TODO(@MattWindsor91): hours?
     format!("{}'{}\"{}", time.mins, time.secs, time.millis)
 }

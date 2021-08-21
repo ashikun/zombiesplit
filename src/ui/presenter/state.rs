@@ -43,7 +43,7 @@ impl State {
             .copied()
             .and_then(|x| self.splits.get_mut(x))
         {
-            s.handle_event(evt)
+            s.handle_event(evt);
             // TODO(@MattWindsor91): open editor
         }
     }
@@ -67,7 +67,7 @@ impl Split {
     pub fn handle_event(&mut self, evt: split::Event) {
         match evt {
             split::Event::Time(time, split::Time::Aggregate(kind)) => {
-                self.aggregates[kind.source][kind.scope] = time
+                self.aggregates[kind.source][kind.scope] = Some(time);
             }
             split::Event::Time(_, split::Time::Pushed) => {
                 self.num_times += 1;
