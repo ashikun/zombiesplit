@@ -14,10 +14,7 @@ use super::{
     render::{Region, Renderer},
 };
 use crate::{
-    model::{
-        self,
-        attempt::{observer::aggregate, split::Set},
-    },
+    model::{self, attempt::observer::aggregate},
     ui::presenter,
 };
 
@@ -77,7 +74,7 @@ impl<'r, 'g, 'p> SplitDrawer<'r, 'g, 'p> {
     fn draw_name(&mut self) -> Result<()> {
         self.r.set_font(font::Id::Normal);
         self.r.set_fg_colour(colour::fg::Id::Name(self.position()));
-        self.r.put_str(self.p.session.name_at(self.index))?;
+        self.r.put_str(&self.state.name)?;
         Ok(())
     }
 

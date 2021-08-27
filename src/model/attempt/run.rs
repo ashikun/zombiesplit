@@ -37,8 +37,12 @@ impl Set for Run {
             s.clear();
         }
     }
+}
 
-    fn cumulative_at(&self, split: usize) -> Time {
+impl Run {
+    /// Gets the cumulative time at the split `split`.
+    #[must_use]
+    pub fn cumulative_at(&self, split: usize) -> Time {
         // TODO(@MattWindsor91): make this more efficient (O(1) access).
         self.splits
             .iter()
@@ -47,26 +51,20 @@ impl Set for Run {
             .sum()
     }
 
-    fn time_at(&self, split: usize) -> Time {
+    /// Gets the total time of the split `split`.
+    #[must_use]
+    pub fn time_at(&self, split: usize) -> Time {
         self.splits
             .get(split)
             .map_or(Time::default(), Split::summed_time)
     }
 
-    fn num_times_at(&self, split: usize) -> usize {
-        self.splits.get(split).map_or(0, Split::num_times)
-    }
-
-    fn num_splits(&self) -> usize {
+    /// Gets the number of splits in this run.
+    #[must_use]
+    pub fn num_splits(&self) -> usize {
         self.splits.len()
     }
 
-    fn name_at(&self, split: usize) -> &str {
-        self.splits.get(split).map_or("Unknown", |s| s.name())
-    }
-}
-
-impl Run {
     fn increment_attempt(&mut self) {
         if let Some(is_completed) = self.status().to_completeness() {
             self.attempt.increment(is_completed);

@@ -18,6 +18,10 @@ pub struct State {
     pub attempt: category::AttemptInfo,
     /// Information about the game and category being played.
     pub game_category: category::Info,
+
+    // TODO(@MattWindsor91): this has a lot of invariants that need to be
+    // maintained, so we should hide these next two fields or move the
+    // short-position map elsewhere.
     /// Bidirectional map from split shortnames to their locations on the UI.
     pub short_map: short::Bimap<usize>,
     /// Split states.
@@ -46,6 +50,24 @@ impl State {
             s.handle_event(evt);
             // TODO(@MattWindsor91): open editor
         }
+    }
+
+    /// Gets the number of splits that the presenter is tracking.
+    ///
+    /// ```
+    /// use zombiesplit::ui::presenter::state;
+    ///
+    /// let mut s = state::State::default();
+    /// assert_eq!(0, s.num_splits());
+    ///
+    /// s.add_split("pp1".to_owned(), "Palmtree Panic 1".to_owned());
+    /// s.add_split("sp1".to_owned(), "Special Stage 1".to_owned());
+    /// s.add_split("pp2".to_owned(), "Palmtree Panic 2".to_owned());
+    /// assert_eq!(3, s.num_splits());
+    /// ```
+    #[must_use]
+    pub fn num_splits(&self) -> usize {
+        self.splits.len()
     }
 }
 

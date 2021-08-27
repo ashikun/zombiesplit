@@ -69,9 +69,6 @@ impl<'a> Split {
 
 /// Trait for things that contain splits.
 pub trait Set {
-    /// Gets the name of the split at `split`, if it exists.
-    fn name_at(&self, split: usize) -> &str;
-
     /// Wipes all data for all splits, incrementing any attempt counter.
     fn reset(&mut self);
 
@@ -83,20 +80,4 @@ pub trait Set {
 
     /// Pops a time from the split at `split`, if it exists.
     fn pop_from(&mut self, split: usize) -> Option<Time>;
-
-    /// Gets the total time up to and including `split`.
-    #[must_use]
-    fn cumulative_at(&self, split: usize) -> Time;
-
-    /// Gets the number of times logged for the split at `split`.
-    #[must_use]
-    fn num_times_at(&self, split: usize) -> usize;
-
-    /// Gets the summed time logged for the split at `split`.
-    #[must_use]
-    fn time_at(&self, split: usize) -> Time;
-
-    /// Gets the number of splits in this set.
-    #[must_use]
-    fn num_splits(&self) -> usize;
 }

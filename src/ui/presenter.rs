@@ -126,7 +126,7 @@ impl<'a> Presenter<'a> {
             match l {
                 Event::AddSplit(short, name) => self.state.add_split(short, name),
                 Event::Reset(_) => {
-                    let cur = cursor::Cursor::new(self.session.num_splits() - 1);
+                    let cur = cursor::Cursor::new(self.state.num_splits() - 1);
                     // Don't commit the previous mode.
                     self.mode = Box::new(nav::Nav::new(cur));
                 }

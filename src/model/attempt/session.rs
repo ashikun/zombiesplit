@@ -82,11 +82,12 @@ impl<'a> Session<'a> {
 
     fn run_paced_time_at(&self, split: SplitId) -> pace::PacedTime {
         self.comparison
-            .run_paced_time(split, self.cumulative_at(split))
+            .run_paced_time(split, self.run.cumulative_at(split))
     }
 
     fn split_paced_time_at(&self, split: SplitId) -> pace::PacedTime {
-        self.comparison.split_paced_time(split, self.time_at(split))
+        self.comparison
+            .split_paced_time(split, self.run.time_at(split))
     }
 
     /// Gets the comparison time at `split`.
@@ -173,7 +174,7 @@ impl<'a> Session<'a> {
     fn recalculate_and_observe_splits(&self, split: SplitId) {
         // TODO(@MattWindsor91): update run cumulatives and paces here, rather than
         // calculating them afresh every time.
-        for i in split..=self.num_splits() {
+        for i in split..=self.run.num_splits() {
             let pt = self.paced_time_at(split);
             self.observe_split(split, split::Event::Pace(pt.split_in_run_pace()));
             self.observe_attempt_split_time(i, pt.split.time);
@@ -198,7 +199,7 @@ impl<'a> Session<'a> {
     }
 
     fn observe_comparison(&self) {
-        for i in 0..=self.num_splits() {
+        for i in 0..=self.run.num_splits() {
             self.observe_comparison_split_time(i);
             self.observe_comparison_cumulative(i);
         }
@@ -272,25 +273,5 @@ impl<'a> Set for Session<'a> {
             self.recalculate_and_observe_splits(split);
             time
         })
-    }
-
-    fn cumulative_at(&self, split: SplitId) -> Time {
-        self.run.cumulative_at(split)
-    }
-
-    fn num_times_at(&self, split: SplitId) -> usize {
-        self.run.num_times_at(split)
-    }
-
-    fn time_at(&self, split: SplitId) -> Time {
-        self.run.time_at(split)
-    }
-
-    fn num_splits(&self) -> usize {
-        self.run.num_splits()
-    }
-
-    fn name_at(&self, split: SplitId) -> &str {
-        self.run.name_at(split)
     }
 }
