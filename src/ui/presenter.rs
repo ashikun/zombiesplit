@@ -16,12 +16,16 @@ use std::sync::mpsc;
 
 use self::cursor::SplitPosition;
 
-/// The part of zombiesplit that displays and manipulates a model, exposing it
-/// to the view.
+/// The part of zombiesplit that mediates between the model [Session] and the
+/// user interface.
+///
+/// The presenter translates events (ultimately from the keyboard and windowing
+/// system etc.) to operations on the [Session], while translating observations
+/// of changes made to the [Session] into visual and modal changes to the UI.
 pub struct Presenter<'a> {
     /// The current mode.
     pub mode: Box<dyn mode::Mode + 'a>,
-    /// The current run.
+    /// The zombiesplit session being controlled by the
     pub session: Session<'a>,
     pub state: state::State,
     obs_receiver: mpsc::Receiver<attempt::observer::Event>,
@@ -98,7 +102,7 @@ impl<'a> Presenter<'a> {
         use event::Event;
         match e {
             Event::Commit => self.mode.commit(&mut self.session),
-            Event::NewRun => self.start_new_run(),
+            Event::NewRun => self.session.reset(),
             Event::Quit => self.quit(),
             _ => (),
         }
@@ -107,11 +111,6 @@ impl<'a> Presenter<'a> {
     fn transition(&mut self, new_mode: Box<dyn mode::Mode>) {
         self.mode.commit(&mut self.session);
         self.mode = new_mode;
-    }
-
-    /// Starts a new run, abandoning any previous run.
-    fn start_new_run(&mut self) {
-        self.session.reset();
     }
 
     /// Start the process of quitting.

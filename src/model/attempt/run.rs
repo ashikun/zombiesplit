@@ -100,7 +100,7 @@ impl Run {
 }
 
 /// The status of the run.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Status {
     /// The run hasn't been started yet.
     NotStarted,

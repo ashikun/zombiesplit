@@ -29,9 +29,14 @@ pub struct State {
 }
 
 impl State {
+    /// Makes the presenter state reflect a reset in the run.
+    ///
+    /// This clears the time count aggregate data for all splits.  It doesn't
+    /// change the attempt information, as we expect there will be a separate
+    /// observation for that.
     pub fn reset(&mut self) {
         for split in &mut self.splits {
-            split.reset()
+            split.reset();
         }
     }
 
@@ -91,6 +96,10 @@ pub struct Split {
 }
 
 impl Split {
+    /// Resets the per-run state of this split.
+    ///
+    /// This clears the aggregates, pacing information, and time count; it
+    /// doesn't reset metadata.
     pub fn reset(&mut self) {
         self.num_times = 0;
         self.aggregates = aggregate::Set::default();

@@ -4,16 +4,17 @@ use crate::model;
 use super::aggregate;
 
 /// Enumeration of split-level events.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Event {
+    /// Got a new time for the split.
     Time(model::Time, Time),
     /// Got a new pace note for the split.
     Pace(model::comparison::pace::SplitInRun),
 }
 
 /// Enumeration of split-level time types.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Time {
     /// This time was just added to the split.
