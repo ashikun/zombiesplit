@@ -129,6 +129,7 @@ impl<'a> Presenter<'a> {
                     let cur = cursor::Cursor::new(self.state.num_splits() - 1);
                     // Don't commit the previous mode.
                     self.mode = Box::new(nav::Nav::new(cur));
+                    self.state.reset();
                 }
                 Event::Attempt(a) => self.state.attempt = a,
                 Event::GameCategory(gc) => self.state.game_category = gc,

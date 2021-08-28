@@ -29,6 +29,12 @@ pub struct State {
 }
 
 impl State {
+    pub fn reset(&mut self) {
+        for split in &mut self.splits {
+            split.reset()
+        }
+    }
+
     /// Inserts a split into the split list with the given display name.
     pub fn add_split(&mut self, short: String, name: String) {
         let split = Split {
@@ -85,6 +91,12 @@ pub struct Split {
 }
 
 impl Split {
+    pub fn reset(&mut self) {
+        self.num_times = 0;
+        self.aggregates = aggregate::Set::default();
+        self.pace_in_run = pace::SplitInRun::default();
+    }
+
     /// Handles an observation for this split.
     pub fn handle_event(&mut self, evt: split::Event) {
         match evt {
