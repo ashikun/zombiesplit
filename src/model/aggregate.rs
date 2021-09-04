@@ -24,52 +24,16 @@ pub struct Kind {
 
 impl Kind {
     /// A cumulative time from the current attempt.
-    pub const ATTEMPT_CUMULATIVE: Self = Self::attempt(Scope::Cumulative);
+    pub const ATTEMPT_CUMULATIVE: Self = Source::Attempt.with(Scope::Cumulative);
 
     /// A split time from the current attempt.
-    pub const ATTEMPT_SPLIT: Self = Self::attempt(Scope::Split);
+    pub const ATTEMPT_SPLIT: Self = Source::Attempt.with(Scope::Split);
 
     /// A cumulative time from the comparison.
-    pub const COMPARISON_CUMULATIVE: Self = Self::comparison(Scope::Cumulative);
+    pub const COMPARISON_CUMULATIVE: Self = Source::Comparison.with(Scope::Cumulative);
 
     /// A split time from the comparison.
-    pub const COMPARISON_SPLIT: Self = Self::comparison(Scope::Split);
-
-    /// Shortcut for producing an attempt-sourced aggregate.
-    ///
-    /// ```
-    /// use zombiesplit::model::attempt::observer::aggregate::{Source, Scope, Kind};
-    ///
-    /// let x = Kind::attempt(Scope::Cumulative);
-    /// assert_eq!(Source::Attempt, x.source);
-    /// assert_eq!(Kind::ATTEMPT_CUMULATIVE, x);
-
-    /// ```
-    #[must_use]
-    pub const fn attempt(scope: Scope) -> Self {
-        Kind {
-            source: Source::Attempt,
-            scope,
-        }
-    }
-
-    /// Shortcut for producing a comparison-sourced aggregate.
-    ///
-    /// ```
-    /// use zombiesplit::model::attempt::observer::aggregate::{Source, Scope, Kind};
-    ///
-    /// let x = Kind::comparison(Scope::Split);
-    /// assert_eq!(Source::Comparison, x.source);
-    /// assert_eq!(Scope::Split, x.scope);
-    /// assert_eq!(Kind::COMPARISON_SPLIT, x);
-    /// ```
-    #[must_use]
-    pub const fn comparison(scope: Scope) -> Self {
-        Kind {
-            source: Source::Comparison,
-            scope,
-        }
-    }
+    pub const COMPARISON_SPLIT: Self = Source::Comparison.with(Scope::Split);
 }
 
 /// Enumeration of sources for aggregate times.
@@ -80,6 +44,29 @@ pub enum Source {
     /// This time comes from the comparison; ie, it is the time to which we are
     /// comparing.
     Comparison,
+}
+
+impl Source {
+    /// Creates a `Kind` using this `Source` and a given `Scope` `scope`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use zombiesplit::model::attempt::observer::aggregate::{Source, Scope, Kind};
+    ///
+    /// let x = Source::Attempt.with(Scope::Cumulative);
+    /// assert_eq!(Source::Attempt, x.source);
+    /// assert_eq!(Scope::Cumulative, x.scope);
+    /// assert_eq!(Kind::ATTEMPT_CUMULATIVE, x);
+
+    /// ```
+    #[must_use]
+    pub const fn with(self, scope: Scope) -> Kind {
+        Kind {
+            source: self,
+            scope,
+        }
+    }
 }
 
 /// Enumeration of scopes for aggregate times.

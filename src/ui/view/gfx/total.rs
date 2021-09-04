@@ -35,10 +35,7 @@ fn render_label(r: &mut dyn Renderer) -> Result<()> {
 fn render_time(r: &mut dyn Renderer, p: &Presenter) -> Result<()> {
     r.set_pos(Position::x(X::Right(0)));
     r.set_font(font::Id::Large);
-    let pace::Pair {
-        run_so_far: pace::PacedTime { pace, time },
-        ..
-    } = p.run_pace();
+    let pace::PacedTime { pace, time } = p.state.total;
     r.set_fg_colour(colour::fg::Id::Pace(pace));
     r.put_str_r(&time_str(time))
 }

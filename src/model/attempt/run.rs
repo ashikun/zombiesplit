@@ -1,6 +1,6 @@
 //! Models relating to runs.
 
-use crate::model::{game::category::AttemptInfo, history};
+use crate::model::{aggregate, game::category::AttemptInfo, history};
 
 use super::{
     super::time::Time,
@@ -40,6 +40,15 @@ impl Set for Run {
 }
 
 impl Run {
+    /// Gets all aggregate times for the split at `split`.
+    #[must_use]
+    pub fn aggregate_at(&self, split: usize) -> aggregate::Pair {
+        aggregate::Pair {
+            split: Some(self.time_at(split)),
+            cumulative: Some(self.cumulative_at(split)),
+        }
+    }
+
     /// Gets the cumulative time at the split `split`.
     #[must_use]
     pub fn cumulative_at(&self, split: usize) -> Time {

@@ -151,4 +151,23 @@ impl SplitInRun {
             (Pace::Ahead, Pace::Ahead | Pace::PersonalBest) => Self::AheadAndGaining,
         }
     }
+
+    /// Extracts the overall pace note from a split-in-run pace.
+    ///
+    /// ```
+    /// use zombiesplit::model::comparison::pace;
+    ///
+    /// let p = pace::SplitInRun::new(pace::Pace::Ahead, pace::Pace::Behind);
+    /// assert_eq!(pace::Pace::Behind, p.overall());
+    /// ```
+    #[must_use]
+    pub fn overall(self) -> Pace {
+        match self {
+            SplitInRun::Inconclusive => Pace::Inconclusive,
+            SplitInRun::SplitPersonalBest | SplitInRun::AheadAndGaining | Self::AheadAndLosing => {
+                Pace::Ahead
+            }
+            SplitInRun::BehindAndLosing | SplitInRun::BehindAndGaining => Pace::Behind,
+        }
+    }
 }

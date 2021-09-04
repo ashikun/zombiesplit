@@ -4,7 +4,11 @@ pub mod pace;
 
 pub use pace::{Pace, PacedTime};
 
-use super::{short::LinkedMap, Time};
+use super::{
+    aggregate,
+    short::{self, LinkedMap},
+    Time,
+};
 
 /// A comparison set.
 #[derive(Clone, Debug, Default)]
@@ -13,28 +17,13 @@ pub struct Comparison {
 }
 
 impl Comparison {
-    /// Compares `run_time` against the cumulative time at `split`.
+    /// Gets a pace note for the split with short name `split`, which has just
+    /// posted an aggregate time pair of `against`.
     #[must_use]
-    pub fn run_paced_time(&self, split: usize, run_time: Time) -> PacedTime {
-        self.split(split)
-            .map_or(PacedTime::inconclusive(run_time), |x| {
-                x.run_paced_time(run_time)
-            })
-    }
-
-    /// Compares `split_time` against the split data at `split`.
-    #[must_use]
-    pub fn split_paced_time(&self, split: usize, split_time: Time) -> PacedTime {
-        self.split(split)
-            .map_or(PacedTime::inconclusive(split_time), |x| {
-                x.split_paced_time(split_time)
-            })
-    }
-
-    /// Gets the comparison time for `split`.
-    #[must_use]
-    pub fn split_comparison_time(&self, split: usize) -> Option<Time> {
-        self.split(split).and_then(|f| f.in_run.map(|x| x.time))
+    pub fn pace(&self, split: short::Name, against: aggregate::Pair) -> pace::SplitInRun {
+        self.splits
+            .get(&split)
+            .map_or(pace::SplitInRun::Inconclusive, |x| x.pace(against))
     }
 
     /// Gets the comparison for the split at `index`.
@@ -46,52 +35,67 @@ impl Comparison {
 }
 
 /// Split comparisons.
+///
+/// A split comparison contains (for now) up to two pieces:
+///
+/// - a 'personal best' for the split across all runs stored in the database
+///   (used for calculating so-called 'gold splits');
+/// - a set of aggregates that represent the important times logged for this
+///   split on the comparison run (right now, there is only one comparison run,
+///   the PB).
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Split {
-    // TODO(@MattWindsor91): this is basically an aggregate pair.
     /// The personal best for this split, if any.
     ///
     /// Any splits that compare quicker than this time get the `PersonalBest`
     /// pace.
-    pub split: Option<Time>,
+    pub split_pb: Option<Time>,
     /// Timing information for this split in the comparison run, if any.
-    pub in_run: Option<InRun>,
+    pub in_run: Option<aggregate::Pair>,
 }
 
 impl Split {
-    /// Compares `run_time` against the cumulative time at this split.
+    /// Gets a pace note for this split, which has just posted an aggregate time
+    /// pair of `against`.
     #[must_use]
-    pub fn run_paced_time(&self, run_time: Time) -> PacedTime {
-        PacedTime::of_comparison(run_time, self.in_run.map(|x| x.cumulative))
+    pub fn pace(&self, against: aggregate::Pair) -> pace::SplitInRun {
+        pace::SplitInRun::new(
+            self.split_pace(against.split),
+            self.cumulative_pace(against.cumulative),
+        )
+    }
+
+    /// Gets the aggregate time of scope `scope` for this split in the run
+    /// against which we are comparing.
+    #[must_use]
+    pub fn aggregate_in_run(&self, scope: aggregate::Scope) -> Option<Time> {
+        self.in_run.and_then(|x| x[scope])
+    }
+
+    /// Compares `time` against the cumulative time at this split.
+    #[must_use]
+    pub fn cumulative_pace(&self, time: Option<Time>) -> Pace {
+        time.map_or(Pace::Inconclusive, |time| {
+            Pace::of_comparison(time, self.aggregate_in_run(aggregate::Scope::Cumulative))
+        })
     }
 
     /// Compares `split_time` against the split data for this comparison.
     #[must_use]
-    pub fn split_paced_time(&self, split_time: Time) -> PacedTime {
-        if self.is_personal_best(split_time) {
-            PacedTime::personal_best(split_time)
-        } else {
-            PacedTime::of_comparison(split_time, self.in_run.map(|x| x.time))
-        }
+    pub fn split_pace(&self, time: Option<Time>) -> Pace {
+        time.map_or(Pace::Inconclusive, |time| {
+            if self.is_personal_best(time) {
+                Pace::PersonalBest
+            } else {
+                Pace::of_comparison(time, self.aggregate_in_run(aggregate::Scope::Split))
+            }
+        })
     }
 
     /// Checks whether `split time` is a new personal best.
     fn is_personal_best(&self, split_time: Time) -> bool {
-        self.split.map_or(false, |pb| split_time < pb)
+        self.split_pb.map_or(false, |pb| split_time < pb)
     }
-}
-
-/// Holds information about a split's comparisons within a particular run.
-#[derive(Clone, Copy, Debug, Default)]
-pub struct InRun {
-    /// The time for this split in the comparison run, if any.
-    ///
-    /// This feeds into the split-by-split part of a split's in-run pacing.
-    pub time: Time,
-    /// The cumulative time for this split in the comparison run, if any.
-    ///
-    /// This feeds into the run-so-far part of a split's in-run pacing.
-    pub cumulative: Time,
 }
 
 /// Trait of objects that can provide comparisons.

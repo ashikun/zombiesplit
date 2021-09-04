@@ -6,7 +6,13 @@ of change on the model.
 
 use std::fmt::Display;
 
-use crate::model::{aggregate, attempt::observer::split, comparison::pace, game::category, short};
+use crate::model::{
+    aggregate,
+    attempt::observer::split,
+    comparison::pace::{self, PacedTime},
+    game::category,
+    short,
+};
 
 /// The presenter's representation of the model.
 #[derive(Debug, Default)]
@@ -21,8 +27,12 @@ pub struct State {
     // short-position map elsewhere.
     /// Bidirectional map from split shortnames to their locations on the UI.
     pub short_map: short::Bimap<usize>,
+
     /// Split states.
-    pub splits: Vec<Split>, // TODO(@MattWindsor91): move things from using Session to using this.
+    pub splits: Vec<Split>,
+
+    /// Contains state about the total time of the run.
+    pub total: pace::PacedTime,
 }
 
 impl State {
@@ -35,6 +45,15 @@ impl State {
         for split in &mut self.splits {
             split.reset();
         }
+    }
+
+    /// Recalculates the state's currently displayed run total, taking the
+    /// first `num_splits` splits into account.
+    pub fn refresh_total(&mut self, num_splits: usize) {
+        self.total = num_splits
+            .checked_sub(1)
+            .and_then(|c| self.splits[c].paced_cumulative())
+            .unwrap_or_default();
     }
 
     /// Inserts a split into the split list with the given display name.
@@ -122,6 +141,17 @@ impl Split {
         self.num_times = 0;
         self.aggregates = aggregate::Set::default();
         self.pace_in_run = pace::SplitInRun::default();
+    }
+
+    /// Gets the cumulative time at this split along with its pace note.
+    #[must_use]
+    pub fn paced_cumulative(&self) -> Option<PacedTime> {
+        self.aggregates[aggregate::Source::Attempt][aggregate::Scope::Cumulative].map(|time| {
+            PacedTime {
+                pace: self.pace_in_run.overall(),
+                time,
+            }
+        })
     }
 
     /// Handles an observation for this split.

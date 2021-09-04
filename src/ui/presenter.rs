@@ -7,14 +7,11 @@ pub mod mode;
 pub mod nav;
 pub mod state;
 
-use crate::model::{
-    attempt::{self, split::Set, Session},
-    comparison::pace,
-};
+use crate::model::attempt::{self, split::Set, Session};
 pub use editor::Editor;
 use std::sync::mpsc;
 
-use self::cursor::SplitPosition;
+use self::cursor::{Cursor, SplitPosition};
 
 /// The part of zombiesplit that mediates between the model [Session] and the
 /// user interface.
@@ -78,14 +75,6 @@ impl<'a> Presenter<'a> {
         self.mode.editor()
     }
 
-    /// Gets the run pace up to and excluding the cursor, if any.
-    #[must_use]
-    pub fn run_pace(&self) -> pace::Pair {
-        self.mode.cursor().map_or(pace::Pair::default(), |c| {
-            self.session.paced_time_at(c.position())
-        })
-    }
-
     /// Handles an event.
     ///
     /// Events are offered to the current mode first, and handled globally if
@@ -94,14 +83,14 @@ impl<'a> Presenter<'a> {
         match self.mode.handle_event(e, &mut self.session) {
             mode::EventResult::Transition(new_mode) => self.transition(new_mode),
             mode::EventResult::NotHandled => self.handle_event_globally(e),
-            mode::EventResult::Handled => (),
+            mode::EventResult::Handled => self.refresh_total(),
         }
     }
 
     fn handle_event_globally(&mut self, e: &event::Event) {
         use event::Event;
         match e {
-            Event::Commit => self.mode.commit(&mut self.session),
+            Event::Commit => self.commit_mode(),
             Event::NewRun => self.session.reset(),
             Event::Quit => self.quit(),
             _ => (),
@@ -109,8 +98,26 @@ impl<'a> Presenter<'a> {
     }
 
     fn transition(&mut self, new_mode: Box<dyn mode::Mode>) {
-        self.mode.commit(&mut self.session);
+        self.commit_mode();
         self.mode = new_mode;
+    }
+
+    fn commit_mode(&mut self) {
+        self.mode.commit(&mut self.session);
+        self.refresh_total();
+    }
+
+    /// Refreshes the presenter state's total display.
+    ///
+    /// This is done after any presenter event that may have moved the cursor,
+    /// since the totals depend on the cursor position.
+    fn refresh_total(&mut self) {
+        // TODO(@MattWindsor91): ideally we should separate modal events from
+        // non-modal ones, and have all the modal ones automatically refresh
+        // totals.
+        if let Some(c) = self.mode.cursor().map(Cursor::position) {
+            self.state.refresh_total(c);
+        }
     }
 
     /// Start the process of quitting.
@@ -135,6 +142,8 @@ impl<'a> Presenter<'a> {
                 Event::Split(short, ev) => self.state.handle_split_event(short, ev),
             }
         }
+        // TODO(@MattWindsor91): this is wasteful but borrowck won't let me do better yet.
+        self.refresh_total();
     }
 }
 

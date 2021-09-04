@@ -1,13 +1,11 @@
 //! The [Session] type and related code.
 
-use crate::model::{game::category::ShortDescriptor, history, short};
-
 use super::{
     super::{
         aggregate,
-        comparison::{self, pace, Comparison},
+        comparison::{self, Comparison},
         game::category,
-        Time,
+        history, short, Time,
     },
     observer::{self, split},
     split::Set,
@@ -71,37 +69,11 @@ impl<'a> Session<'a> {
         self.refresh_comparison();
     }
 
-    /// Gets the paced time for the split at `split`.
-    /// Said pace is made up of the split and run-so-far paces.
-    #[must_use]
-    pub fn paced_time_at(&self, split: SplitId) -> pace::Pair {
-        pace::Pair {
-            split: self.split_paced_time_at(split),
-            run_so_far: self.run_paced_time_at(split),
-        }
-    }
-
-    fn run_paced_time_at(&self, split: SplitId) -> pace::PacedTime {
-        self.comparison
-            .run_paced_time(split, self.run.cumulative_at(split))
-    }
-
-    fn split_paced_time_at(&self, split: SplitId) -> pace::PacedTime {
-        self.comparison
-            .split_paced_time(split, self.run.time_at(split))
-    }
-
-    /// Gets the comparison time at `split`.
-    #[must_use]
-    pub fn comparison_time_at(&self, split: SplitId) -> Option<Time> {
-        self.comparison.split_comparison_time(split)
-    }
-
     /// Converts this session's current run, if any, to a historic run.
     ///
     /// Returns `None` if there is no started run.
     #[must_use]
-    pub fn run_as_historic(&self) -> Option<history::run::FullyTimed<ShortDescriptor>> {
+    pub fn run_as_historic(&self) -> Option<history::run::FullyTimed<category::ShortDescriptor>> {
         self.run
             .status()
             .to_completeness()
@@ -111,7 +83,7 @@ impl<'a> Session<'a> {
     fn run_as_historic_with_completion(
         &self,
         was_completed: bool,
-    ) -> history::run::FullyTimed<ShortDescriptor> {
+    ) -> history::run::FullyTimed<category::ShortDescriptor> {
         history::run::FullyTimed {
             category_locator: self.metadata.short.clone(),
             was_completed,
@@ -176,27 +148,39 @@ impl<'a> Session<'a> {
         // TODO(@MattWindsor91): update run cumulatives and paces here, rather than
         // calculating them afresh every time.
         for i in split..=self.run.num_splits() {
-            let pt = self.paced_time_at(split);
-            self.observe_split(split, split::Event::Pace(pt.split_in_run_pace()));
-            self.observe_aggregate(i, pt.split.time, aggregate::Kind::ATTEMPT_SPLIT);
-            self.observe_aggregate(i, pt.run_so_far.time, aggregate::Kind::ATTEMPT_CUMULATIVE);
+            let sid = self.split_from_position(i);
+            let time = self.run.aggregate_at(i);
+            let pace = self.comparison.pace(sid, time);
+
+            self.observe_split(split, split::Event::Pace(pace));
+            self.observe_aggregate(i, time, aggregate::Source::Attempt);
         }
     }
 
     fn observe_comparison(&self) {
         for i in 0..=self.run.num_splits() {
             if let Some(s) = self.comparison.split(i).and_then(|x| x.in_run) {
-                self.observe_aggregate(i, s.time, aggregate::Kind::COMPARISON_SPLIT);
-                self.observe_aggregate(i, s.cumulative, aggregate::Kind::COMPARISON_CUMULATIVE);
+                self.observe_aggregate(i, s, aggregate::Source::Comparison);
             }
         }
     }
 
-    fn observe_aggregate(&self, split: SplitId, time: Time, kind: aggregate::Kind) {
-        self.observe_split(
+    fn observe_aggregate(&self, split: SplitId, pair: aggregate::Pair, source: aggregate::Source) {
+        self.observe_aggregate_part(split, pair.split, source.with(aggregate::Scope::Split));
+        self.observe_aggregate_part(
             split,
-            split::Event::Time(time, split::Time::Aggregate(kind)),
+            pair.cumulative,
+            source.with(aggregate::Scope::Cumulative),
         );
+    }
+
+    fn observe_aggregate_part(&self, split: SplitId, time: Option<Time>, kind: aggregate::Kind) {
+        if let Some(time) = time {
+            self.observe_split(
+                split,
+                split::Event::Time(time, split::Time::Aggregate(kind)),
+            );
+        }
     }
 
     fn observe_split(&self, split: SplitId, event: split::Event) {

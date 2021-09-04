@@ -226,9 +226,9 @@ fn output_split_pb(
     split: comparison::Split,
 ) -> Result<()> {
     write!(tw, "{}\t", short)?;
-    output_time(tw, split.split)?;
+    output_time(tw, split.split_pb)?;
     write!(tw, "\t")?;
-    output_time(tw, split.in_run.map(|x| x.time))?;
+    output_time(tw, split.in_run.and_then(|x| x.split))?;
     writeln!(tw)?;
 
     Ok(())
