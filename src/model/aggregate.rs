@@ -11,7 +11,7 @@ storing those aggregates.
 
 use std::ops::{Index, IndexMut};
 
-use crate::model::Time;
+use super::Time;
 
 /// The kind ([Source] and [Scope]) of an aggregate time.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -24,17 +24,16 @@ pub struct Kind {
 
 impl Kind {
     /// A cumulative time from the current attempt.
-    pub const ATTEMPT_CUMULATIVE : Self = Self::attempt(Scope::Cumulative);
+    pub const ATTEMPT_CUMULATIVE: Self = Self::attempt(Scope::Cumulative);
 
     /// A split time from the current attempt.
-    pub const ATTEMPT_SPLIT : Self = Self::attempt(Scope::Split);
+    pub const ATTEMPT_SPLIT: Self = Self::attempt(Scope::Split);
 
     /// A cumulative time from the comparison.
-    pub const COMPARISON_CUMULATIVE : Self = Self::comparison(Scope::Cumulative);
+    pub const COMPARISON_CUMULATIVE: Self = Self::comparison(Scope::Cumulative);
 
     /// A split time from the comparison.
-    pub const COMPARISON_SPLIT : Self = Self::comparison(Scope::Split);
-
+    pub const COMPARISON_SPLIT: Self = Self::comparison(Scope::Split);
 
     /// Shortcut for producing an attempt-sourced aggregate.
     ///
@@ -44,7 +43,7 @@ impl Kind {
     /// let x = Kind::attempt(Scope::Cumulative);
     /// assert_eq!(Source::Attempt, x.source);
     /// assert_eq!(Kind::ATTEMPT_CUMULATIVE, x);
-    
+
     /// ```
     #[must_use]
     pub const fn attempt(scope: Scope) -> Self {

@@ -1,8 +1,6 @@
 //! Split events in attempt observations.
 use crate::model;
 
-use super::aggregate;
-
 /// Enumeration of split-level events.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
@@ -23,5 +21,5 @@ pub enum Time {
     /// The UI may choose to load this time into a split editor.
     Popped,
     /// This is a new aggregate time for this split.
-    Aggregate(aggregate::Kind),
+    Aggregate(model::aggregate::Kind),
 }

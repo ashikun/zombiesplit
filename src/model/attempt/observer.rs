@@ -1,6 +1,5 @@
 //! Observer pattern wiring for attempt sessions.
 
-pub mod aggregate;
 pub mod mux;
 pub mod split;
 

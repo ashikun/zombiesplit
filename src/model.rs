@@ -1,4 +1,5 @@
 //! Models used in zombiesplit.
+pub mod aggregate;
 pub mod attempt;
 pub mod comparison;
 pub mod game;

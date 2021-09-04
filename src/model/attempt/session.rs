@@ -4,11 +4,12 @@ use crate::model::{game::category::ShortDescriptor, history, short};
 
 use super::{
     super::{
+        aggregate,
         comparison::{self, pace, Comparison},
         game::category,
-        time::Time,
+        Time,
     },
-    observer::{self, aggregate, split},
+    observer::{self, split},
     split::Set,
     Observer, Run,
 };

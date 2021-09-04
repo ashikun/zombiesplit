@@ -6,12 +6,7 @@ of change on the model.
 
 use std::fmt::Display;
 
-use crate::model::{
-    attempt::observer::{aggregate, split},
-    comparison::pace,
-    game::category,
-    short,
-};
+use crate::model::{aggregate, attempt::observer::split, comparison::pace, game::category, short};
 
 /// The presenter's representation of the model.
 #[derive(Debug, Default)]

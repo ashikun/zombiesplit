@@ -14,7 +14,7 @@ use super::{
     render::{Region, Renderer},
 };
 use crate::{
-    model::{self, attempt::observer::aggregate},
+    model::{self, aggregate},
     ui::presenter,
 };
 
