@@ -10,7 +10,7 @@ use crate::{
     db::inspect::Inspector,
     model::{
         comparison::{self, Provider},
-        Time,
+        short, Time,
     },
 };
 
@@ -133,7 +133,7 @@ impl Zombie {
         let mut tw = TabWriter::new(std::io::stdout());
         writeln!(tw, "SPLIT\tSPLIT PB\tIN-RUN PB")?;
         for (short, split) in insp.comparison().into_iter().flat_map(|x| x.splits) {
-            output_split_pb(&mut tw, &short, split)?;
+            output_split_pb(&mut tw, short, split)?;
         }
         tw.flush()?;
 
@@ -220,7 +220,11 @@ pub enum Error {
 /// The top-level zombiesplit result type.
 pub type Result<T> = std::result::Result<T, Error>;
 
-fn output_split_pb(tw: &mut impl Write, short: &str, split: comparison::Split) -> Result<()> {
+fn output_split_pb(
+    tw: &mut impl Write,
+    short: short::Name,
+    split: comparison::Split,
+) -> Result<()> {
     write!(tw, "{}\t", short)?;
     output_time(tw, split.split)?;
     write!(tw, "\t")?;

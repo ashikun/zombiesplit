@@ -1,6 +1,6 @@
 //! The [Session] type and related code.
 
-use crate::model::{game::category::ShortDescriptor, history};
+use crate::model::{game::category::ShortDescriptor, history, short};
 
 use super::{
     super::{
@@ -145,7 +145,7 @@ impl<'a> Session<'a> {
         // TODO(@MattWindsor91): see if I can lifetime this better.
         for split in &self.run.splits {
             self.observers.observe(observer::Event::AddSplit(
-                split.info.short.clone(),
+                split.info.short,
                 split.info.name.clone(),
             ));
         }
@@ -239,12 +239,12 @@ impl<'a> Session<'a> {
         ));
     }
 
-    fn split_from_position(&self, pos: usize) -> String {
+    fn split_from_position(&self, pos: usize) -> short::Name {
         // TODO(@MattWindsor91): this should ideally be temporary.
         self.run
             .splits
             .get(pos)
-            .map_or_else(String::default, |x| x.info.short.clone())
+            .map_or_else(|| "".into(), |x| x.info.short)
     }
 }
 

@@ -7,7 +7,7 @@ use rusqlite::{named_params, Connection, Statement};
 
 use crate::model::{
     history,
-    short::{LinkedMap, Name},
+    short::{self, LinkedMap, Name},
     Time,
 };
 
@@ -93,7 +93,7 @@ impl<'conn> Getter<'conn> {
         let totals = self
             .query_splits_for_run
             .query_and_then(named_params![":run": id], |r| {
-                let short: String = r.get("short")?;
+                let short: short::Name = r.get("short")?;
                 let total: Time = r.get("total")?;
                 Ok((short, total))
             })?

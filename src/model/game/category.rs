@@ -17,10 +17,10 @@ pub struct ShortDescriptor {
 impl ShortDescriptor {
     /// Constructs a new short descriptor with the given game and category.
     #[must_use]
-    pub fn new(game: &str, category: &str) -> Self {
+    pub fn new(game: impl Into<short::Name>, category: impl Into<short::Name>) -> Self {
         Self {
-            game: game.to_owned(),
-            category: category.to_owned(),
+            game: game.into(),
+            category: category.into(),
         }
     }
 }
@@ -53,7 +53,7 @@ pub enum ShortDescriptorError {
 }
 
 /// Full, displayable metadata about a category of a game.
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Info {
     /// The name of the game.
     pub game: String,

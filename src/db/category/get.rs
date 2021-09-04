@@ -13,6 +13,7 @@ use crate::model::{
         category::{AttemptInfo, Info, ShortDescriptor},
         Split,
     },
+    short,
 };
 
 /// Object for getting category information from the database.
@@ -65,12 +66,12 @@ impl<'conn> Getter<'conn> {
     pub fn all_game_category_info(&mut self) -> Result<Vec<Info>> {
         self.query_info_all
             .query_and_then([], |row| {
-                let g_short: String = row.get("gshort")?;
-                let c_short: String = row.get("cshort")?;
+                let g_short: short::Name = row.get("gshort")?;
+                let c_short: short::Name = row.get("cshort")?;
                 Ok(Info {
                     game: row.get("gname")?,
                     category: row.get("cname")?,
-                    short: ShortDescriptor::new(&g_short, &c_short),
+                    short: ShortDescriptor::new(g_short, c_short),
                 })
             })?
             .collect()

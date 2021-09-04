@@ -110,12 +110,12 @@ impl<'conn, 'tx> Inserter<'conn, 'tx> {
 
     fn add_splits(&mut self, game: &game::Config) -> Result<()> {
         for (short, split) in &game.splits {
-            self.add_split(short, split)?;
+            self.add_split(*short, split)?;
         }
         Ok(())
     }
 
-    fn add_split(&mut self, short: &str, split: &game::config::Split) -> Result<()> {
+    fn add_split(&mut self, short: short::Name, split: &game::config::Split) -> Result<()> {
         log::info!("adding split {} ('{}')", short, split.name);
 
         self.query(Query::Split)
@@ -123,31 +123,35 @@ impl<'conn, 'tx> Inserter<'conn, 'tx> {
 
         let split_id = self.tx.last_insert_rowid();
         log::info!("split {} -> ID {}", short, split_id);
-        self.split_ids.insert(short.to_owned(), split_id);
+        self.split_ids.insert(short, split_id);
 
         Ok(())
     }
 
     fn add_segments(&mut self, game: &game::Config) -> Result<()> {
         for (short, seg) in &game.segments {
-            self.add_segment(short, seg)?;
+            self.add_segment(*short, seg)?;
         }
         Ok(())
     }
 
-    fn add_segment(&mut self, short: &str, segment: &game::config::Segment) -> Result<()> {
+    fn add_segment(&mut self, short: short::Name, segment: &game::config::Segment) -> Result<()> {
         let segment_id = self.add_segment_main(short, segment)?;
         self.add_splits_to_segment(segment_id, segment)
     }
 
-    fn add_segment_main(&mut self, short: &str, segment: &game::config::Segment) -> Result<i64> {
+    fn add_segment_main(
+        &mut self,
+        short: short::Name,
+        segment: &game::config::Segment,
+    ) -> Result<i64> {
         log::info!("adding segment {} ('{}')", short, segment.name);
         self.query(Query::Segment)
             .execute(named_params![":short": short, ":name": segment.name])?;
 
         let segment_id = self.tx.last_insert_rowid();
         log::info!("segment {} -> ID {}", short, segment_id);
-        self.segment_ids.insert(short.to_owned(), segment_id);
+        self.segment_ids.insert(short, segment_id);
 
         Ok(segment_id)
     }
@@ -177,7 +181,7 @@ impl<'conn, 'tx> Inserter<'conn, 'tx> {
                     .get(short)
                     .copied()
                     .ok_or_else(|| Error::MissingSplit {
-                        short: short.clone(),
+                        short: *short,
                         in_segment: segment.name.clone(),
                     })
             })
@@ -186,19 +190,27 @@ impl<'conn, 'tx> Inserter<'conn, 'tx> {
 
     fn add_categories(&mut self, game: &game::Config) -> Result<()> {
         for (short, category) in &game.categories {
-            self.add_category(short, category)?;
+            self.add_category(*short, category)?;
         }
 
         Ok(())
     }
 
-    fn add_category(&mut self, short: &str, category: &game::config::Category) -> Result<()> {
+    fn add_category(
+        &mut self,
+        short: short::Name,
+        category: &game::config::Category,
+    ) -> Result<()> {
         let category_id = self.add_category_main(short, category)?;
         self.add_category_to_game(category_id)?;
         self.add_segments_to_category(category_id, category)
     }
 
-    fn add_category_main(&mut self, short: &str, category: &game::config::Category) -> Result<i64> {
+    fn add_category_main(
+        &mut self,
+        short: short::Name,
+        category: &game::config::Category,
+    ) -> Result<i64> {
         log::info!("adding category {} for game ID {}", short, self.game_id);
         self.query(Query::Category)
             .execute(named_params![":short": short, ":name": category.name])?;
@@ -246,7 +258,7 @@ impl<'conn, 'tx> Inserter<'conn, 'tx> {
                     .get(short)
                     .copied()
                     .ok_or_else(|| Error::MissingSegment {
-                        short: short.clone(),
+                        short: *short,
                         in_category: category.name.clone(),
                     })
             })

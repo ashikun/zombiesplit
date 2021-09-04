@@ -125,10 +125,10 @@ impl<'db> Inspector<'db> {
 fn all_splits_with_pbs<'a>(
     pbs: &'a short::Map<Time>,
     splits: &'a [Split],
-) -> impl Iterator<Item = (String, Option<Time>)> + 'a {
+) -> impl Iterator<Item = (short::Name, Option<Time>)> + 'a {
     splits
         .iter()
-        .map(move |s| (s.short.clone(), pbs.get(&s.short).copied()))
+        .map(move |s| (s.short, pbs.get(&s.short).copied()))
 }
 
 /// Gets an iterator over all of the in-run comparisons in a PB.

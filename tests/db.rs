@@ -7,7 +7,7 @@ use zombiesplit::{
     model::{
         attempt::{split::Set, Session},
         game::{self, category::ShortDescriptor},
-        history, Loadable, Time,
+        history, short, Loadable, Time,
     },
 };
 
@@ -57,7 +57,7 @@ fn test_sample_session() {
     assert_eq!(game.name, session.metadata.game);
     assert_eq!(
         game.categories
-            .get(SAMPLE_CATEGORY_NAME)
+            .get(&short::Name::from(SAMPLE_CATEGORY_NAME))
             .map(|x| x.name.to_owned()),
         Some(session.metadata.category)
     );

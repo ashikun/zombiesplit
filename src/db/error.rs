@@ -2,6 +2,8 @@
 
 use thiserror::Error;
 
+use crate::model::short;
+
 /// Database errors.
 #[derive(Debug, Error)]
 pub enum Error {
@@ -11,15 +13,21 @@ pub enum Error {
 
     /// A category referenced a segment not inserted in the database yet.
     #[error("couldn't find segment {short} requested by category {in_category}")]
-    MissingSegment { short: String, in_category: String },
+    MissingSegment {
+        short: short::Name,
+        in_category: String,
+    },
 
     /// A segment referenced a split not inserted in the database yet.
     #[error("couldn't find split {short} requested by segment {in_segment}")]
-    MissingSplit { short: String, in_segment: String },
+    MissingSplit {
+        short: short::Name,
+        in_segment: String,
+    },
 
     /// A run referenced a split not inserted in the database yet.
     #[error("couldn't find split {short} requested by run")]
-    MissingRunSplit { short: String },
+    MissingRunSplit { short: short::Name },
 
     #[error("bad run timestamp: {0}")]
     BadRunTimestamp(i64),

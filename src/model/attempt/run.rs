@@ -93,7 +93,7 @@ impl Run {
             times: self
                 .splits
                 .iter()
-                .map(|s| (s.info.short.clone(), s.all_times()))
+                .map(|s| (s.info.short, s.all_times()))
                 .collect(),
         }
     }

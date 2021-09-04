@@ -132,7 +132,7 @@ impl<'a> Presenter<'a> {
                 }
                 Event::Attempt(a) => self.state.attempt = a,
                 Event::GameCategory(gc) => self.state.game_category = gc,
-                Event::Split(short, ev) => self.state.handle_split_event(&short, ev),
+                Event::Split(short, ev) => self.state.handle_split_event(short, ev),
             }
         }
     }

@@ -4,6 +4,8 @@ This is populated from the model every time the presenter observes some kind
 of change on the model.
 */
 
+use std::fmt::Display;
+
 use crate::model::{
     attempt::observer::{aggregate, split},
     comparison::pace,
@@ -41,7 +43,10 @@ impl State {
     }
 
     /// Inserts a split into the split list with the given display name.
-    pub fn add_split(&mut self, short: String, name: String) {
+    pub fn add_split<T: Into<short::Name>, N: Display>(&mut self, short: T, name: N) {
+        let short = short.into();
+        let name = name.to_string();
+
         let split = Split {
             name,
             ..Split::default()
@@ -51,10 +56,10 @@ impl State {
     }
 
     /// Handles an observation for the split with the given shortname.
-    pub fn handle_split_event(&mut self, short: &str, evt: split::Event) {
+    pub fn handle_split_event(&mut self, short: short::Name, evt: split::Event) {
         if let Some(ref mut s) = self
             .short_map
-            .get_by_left(short)
+            .get_by_left(&short)
             .copied()
             .and_then(|x| self.splits.get_mut(x))
         {
@@ -71,9 +76,9 @@ impl State {
     /// let mut s = state::State::default();
     /// assert_eq!(0, s.num_splits());
     ///
-    /// s.add_split("pp1".to_owned(), "Palmtree Panic 1".to_owned());
-    /// s.add_split("sp1".to_owned(), "Special Stage 1".to_owned());
-    /// s.add_split("pp2".to_owned(), "Palmtree Panic 2".to_owned());
+    /// s.add_split("pp1", "Palmtree Panic 1");
+    /// s.add_split("sp1", "Special Stage 1");
+    /// s.add_split("pp2", "Palmtree Panic 2");
     /// assert_eq!(3, s.num_splits());
     /// ```
     #[must_use]
@@ -96,6 +101,24 @@ pub struct Split {
 }
 
 impl Split {
+    /// Creates a new split with a display name, but no other data logged.
+    ///
+    /// ```
+    /// use zombiesplit::ui::presenter::state;
+    ///
+    /// let s = state::Split::new("Palmtree Panic 1");
+    /// assert_eq!("Palmtree Panic 1", s.name);
+    /// assert_eq!(0, s.num_times);
+    /// assert_eq!(zombiesplit::model::comparison::pace::SplitInRun::Inconclusive, s.pace_in_run);
+    /// ```
+    pub fn new<N: Display>(name: N) -> Self {
+        let name = name.to_string();
+        Self {
+            name,
+            ..Self::default()
+        }
+    }
+
     /// Resets the per-run state of this split.
     ///
     /// This clears the aggregates, pacing information, and time count; it
