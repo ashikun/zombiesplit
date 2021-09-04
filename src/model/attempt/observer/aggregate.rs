@@ -23,14 +23,28 @@ pub struct Kind {
 }
 
 impl Kind {
+    /// A cumulative time from the current attempt.
+    pub const ATTEMPT_CUMULATIVE : Self = Self::attempt(Scope::Cumulative);
+
+    /// A split time from the current attempt.
+    pub const ATTEMPT_SPLIT : Self = Self::attempt(Scope::Split);
+
+    /// A cumulative time from the comparison.
+    pub const COMPARISON_CUMULATIVE : Self = Self::comparison(Scope::Cumulative);
+
+    /// A split time from the comparison.
+    pub const COMPARISON_SPLIT : Self = Self::comparison(Scope::Split);
+
+
     /// Shortcut for producing an attempt-sourced aggregate.
     ///
     /// ```
     /// use zombiesplit::model::attempt::observer::aggregate::{Source, Scope, Kind};
     ///
-    /// let x = Kind::comparison(Scope::Split);
-    /// assert_eq!(Source::Comparison, x.source);
-    /// assert_eq!(Scope::Split, x.scope);
+    /// let x = Kind::attempt(Scope::Cumulative);
+    /// assert_eq!(Source::Attempt, x.source);
+    /// assert_eq!(Kind::ATTEMPT_CUMULATIVE, x);
+    
     /// ```
     #[must_use]
     pub const fn attempt(scope: Scope) -> Self {
@@ -48,6 +62,7 @@ impl Kind {
     /// let x = Kind::comparison(Scope::Split);
     /// assert_eq!(Source::Comparison, x.source);
     /// assert_eq!(Scope::Split, x.scope);
+    /// assert_eq!(Kind::COMPARISON_SPLIT, x);
     /// ```
     #[must_use]
     pub const fn comparison(scope: Scope) -> Self {

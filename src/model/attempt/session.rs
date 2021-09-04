@@ -177,51 +177,17 @@ impl<'a> Session<'a> {
         for i in split..=self.run.num_splits() {
             let pt = self.paced_time_at(split);
             self.observe_split(split, split::Event::Pace(pt.split_in_run_pace()));
-            self.observe_attempt_split_time(i, pt.split.time);
-            self.observe_attempt_cumulative(i, pt.run_so_far.time);
+            self.observe_aggregate(i, pt.split.time, aggregate::Kind::ATTEMPT_SPLIT);
+            self.observe_aggregate(i, pt.run_so_far.time, aggregate::Kind::ATTEMPT_CUMULATIVE);
         }
-    }
-
-    fn observe_attempt_split_time(&self, split: SplitId, time: Time) {
-        self.observe_aggregate(
-            split,
-            time,
-            aggregate::Kind::attempt(aggregate::Scope::Split),
-        );
-    }
-
-    fn observe_attempt_cumulative(&self, split: SplitId, time: Time) {
-        self.observe_aggregate(
-            split,
-            time,
-            aggregate::Kind::attempt(aggregate::Scope::Cumulative),
-        );
     }
 
     fn observe_comparison(&self) {
         for i in 0..=self.run.num_splits() {
-            self.observe_comparison_split_time(i);
-            self.observe_comparison_cumulative(i);
-        }
-    }
-
-    fn observe_comparison_split_time(&self, split: SplitId) {
-        if let Some(s) = self.comparison.split(split).and_then(|x| x.in_run) {
-            self.observe_aggregate(
-                split,
-                s.time,
-                aggregate::Kind::comparison(aggregate::Scope::Split),
-            );
-        }
-    }
-
-    fn observe_comparison_cumulative(&self, split: SplitId) {
-        if let Some(s) = self.comparison.split(split).and_then(|x| x.in_run) {
-            self.observe_aggregate(
-                split,
-                s.cumulative,
-                aggregate::Kind::comparison(aggregate::Scope::Cumulative),
-            );
+            if let Some(s) = self.comparison.split(i).and_then(|x| x.in_run) {
+                self.observe_aggregate(i, s.time, aggregate::Kind::COMPARISON_SPLIT);
+                self.observe_aggregate(i, s.cumulative, aggregate::Kind::COMPARISON_CUMULATIVE);
+            }
         }
     }
 

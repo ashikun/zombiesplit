@@ -6,7 +6,15 @@ use bimap::BiHashMap;
 use rusqlite::{types::FromSql, ToSql};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 
-/// Type alias for short names.
+/// A 'short name', used to identify parts of a model outside of the database.
+///
+/// Short names are interned symbols, with the particular representation not
+/// being stable between zombiesplit sessions.  There is an implicit global
+/// interning registry for short names.
+///
+/// Externally, short names convert to and from strings when interfacing with
+/// humans, and are usually exchanged for primary keys when interfacing with the
+/// database.
 #[derive(
     Clone, Copy, Debug, Hash, DeserializeFromStr, SerializeDisplay, PartialEq, Eq, PartialOrd, Ord,
 )]
