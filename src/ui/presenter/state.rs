@@ -8,7 +8,7 @@ use std::fmt::Display;
 
 use crate::model::{
     aggregate,
-    attempt::observer::split,
+    attempt::observer::{split, time},
     comparison::pace::{self, PacedTime},
     game::category,
     short,
@@ -157,13 +157,13 @@ impl Split {
     /// Handles an observation for this split.
     pub fn handle_event(&mut self, evt: split::Event) {
         match evt {
-            split::Event::Time(time, split::Time::Aggregate(kind)) => {
-                self.aggregates[kind.source][kind.scope] = Some(time);
+            split::Event::Time(t, time::Event::Aggregate(kind)) => {
+                self.aggregates[kind.source][kind.scope] = Some(t);
             }
-            split::Event::Time(_, split::Time::Pushed) => {
+            split::Event::Time(_, time::Event::Pushed) => {
                 self.num_times += 1;
             }
-            split::Event::Time(_, split::Time::Popped) => {
+            split::Event::Time(_, time::Event::Popped) => {
                 self.num_times -= 1;
                 // Moving the newly popped time to the editor gets handled
                 // elsewhere.

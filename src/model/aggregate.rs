@@ -52,7 +52,7 @@ impl Source {
     /// # Examples
     ///
     /// ```
-    /// use zombiesplit::model::attempt::observer::aggregate::{Source, Scope, Kind};
+    /// use zombiesplit::model::aggregate::{Source, Scope, Kind};
     ///
     /// let x = Source::Attempt.with(Scope::Cumulative);
     /// assert_eq!(Source::Attempt, x.source);

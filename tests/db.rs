@@ -5,7 +5,7 @@ use tempfile::{tempdir, TempDir};
 use zombiesplit::{
     db::{Db, Observer, Reader},
     model::{
-        attempt::{split::Set, Session},
+        attempt::Session,
         game::{self, category::ShortDescriptor},
         history, short, Loadable, Time,
     },

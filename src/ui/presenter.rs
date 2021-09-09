@@ -7,7 +7,7 @@ pub mod mode;
 pub mod nav;
 pub mod state;
 
-use crate::model::attempt::{self, split::Set, Session};
+use crate::model::attempt::{self, Session};
 pub use editor::Editor;
 use std::sync::mpsc;
 

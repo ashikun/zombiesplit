@@ -9,7 +9,7 @@ use super::{
     nav::Nav,
 };
 use crate::model::{
-    attempt::{split::Set, Session},
+    attempt::Session,
     time::{self, position},
 };
 

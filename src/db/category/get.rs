@@ -53,7 +53,7 @@ impl<'conn> Getter<'conn> {
         let splits = self.splits(&info)?;
         let run = attempt::Run {
             attempt,
-            splits: splits.into_iter().map(attempt::Split::new).collect(),
+            splits: attempt::split::Set::new(splits),
         };
         Ok(attempt::Session::new(info.info, run))
     }

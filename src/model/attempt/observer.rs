@@ -2,10 +2,9 @@
 
 pub mod mux;
 pub mod split;
+pub mod time;
 
-use crate::model::short;
-
-use super::super::{game::category, history};
+use super::super::{game::category, history, short};
 
 pub use mux::Mux;
 
@@ -32,4 +31,11 @@ pub enum Event {
     GameCategory(category::Info),
     /// Observes an event on a split.
     Split(short::Name, split::Event),
+}
+
+/// Blanket implementation for split observing on model observers.
+impl<T: Observer> split::Observer for T {
+    fn observe_split(&self, split: crate::model::short::Name, event: split::Event) {
+        self.observe(Event::Split(split, event));
+    }
 }

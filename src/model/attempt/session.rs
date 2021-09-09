@@ -7,9 +7,8 @@ use super::{
         game::category,
         history, short, Time,
     },
-    observer::{self, split},
-    split::Set,
-    Observer, Run,
+    observer::{self, split::Observer as SO, time::Observer as TO},
+    split, Observer, Run,
 };
 
 /// Holds all data for an attempt session.
@@ -34,8 +33,6 @@ pub struct Session<'a> {
     /// The comparison provider.
     comparator: Box<dyn comparison::Provider + 'a>,
 }
-
-type SplitId = usize;
 
 impl<'a> Session<'a> {
     /// Starts a new session with a given set of metadata and starting run.
@@ -116,7 +113,7 @@ impl<'a> Session<'a> {
     /// Sends information about each split to the observers.
     fn observe_splits(&self) {
         // TODO(@MattWindsor91): see if I can lifetime this better.
-        for split in &self.run.splits {
+        for split in self.run.splits.iter() {
             self.observers.observe(observer::Event::AddSplit(
                 split.info.short,
                 split.info.name.clone(),
@@ -144,28 +141,37 @@ impl<'a> Session<'a> {
     ///
     /// We assume the caller has already updated the split, but not observed it
     /// yet.
-    fn recalculate_and_observe_splits(&self, split: SplitId) {
-        // TODO(@MattWindsor91): update run cumulatives and paces here, rather than
-        // calculating them afresh every time.
-        for i in split..=self.run.num_splits() {
-            let sid = self.split_from_position(i);
-            let time = self.run.aggregate_at(i);
-            let pace = self.comparison.pace(sid, time);
+    fn recalculate_and_observe_splits(&self, split: short::Name) {
+        // TODO(@MattWindsor91): start from split
+        for (short, agg) in self.run.splits.aggregates() {
+            let pace = self.comparison.pace(short, agg);
 
-            self.observe_split(split, split::Event::Pace(pace));
-            self.observe_aggregate(i, time, aggregate::Source::Attempt);
+            self.observers
+                .observe_split(split, observer::split::Event::Pace(pace));
+            self.observe_aggregate(short, agg, aggregate::Source::Attempt);
         }
     }
 
+    /// Observes the contents of a comparison.
+    ///
+    /// This lets the user interface know, for each splits, which times we are
+    /// running against.
     fn observe_comparison(&self) {
-        for i in 0..=self.run.num_splits() {
-            if let Some(s) = self.comparison.split(i).and_then(|x| x.in_run) {
-                self.observe_aggregate(i, s, aggregate::Source::Comparison);
+        for split in self.run.splits.iter() {
+            let short = split.info.short;
+            if let Some(s) = self.comparison.aggregate_for(short) {
+                self.observe_aggregate(short, *s, aggregate::Source::Comparison);
             }
         }
     }
 
-    fn observe_aggregate(&self, split: SplitId, pair: aggregate::Pair, source: aggregate::Source) {
+    /// Observes an aggregate pair `pair` for aggregate source `source` for split `split`.
+    fn observe_aggregate(
+        &self,
+        split: short::Name,
+        pair: aggregate::Pair,
+        source: aggregate::Source,
+    ) {
         self.observe_aggregate_part(split, pair.split, source.with(aggregate::Scope::Split));
         self.observe_aggregate_part(
             split,
@@ -174,55 +180,59 @@ impl<'a> Session<'a> {
         );
     }
 
-    fn observe_aggregate_part(&self, split: SplitId, time: Option<Time>, kind: aggregate::Kind) {
+    fn observe_aggregate_part(
+        &self,
+        split: short::Name,
+        time: Option<Time>,
+        kind: aggregate::Kind,
+    ) {
         if let Some(time) = time {
-            self.observe_split(
-                split,
-                split::Event::Time(time, split::Time::Aggregate(kind)),
-            );
+            self.observers
+                .observe_time(split, time, observer::time::Event::Aggregate(kind));
         }
     }
 
-    fn observe_split(&self, split: SplitId, event: split::Event) {
-        self.observers.observe(observer::Event::Split(
-            self.split_from_position(split),
-            event,
-        ));
-    }
-
-    fn split_from_position(&self, pos: usize) -> short::Name {
-        // TODO(@MattWindsor91): this should ideally be temporary.
-        self.run
-            .splits
-            .get(pos)
-            .map_or_else(|| "".into(), |x| x.info.short)
-    }
-}
-
-/// The session exposes its underlying run as a split set.
-impl<'a> Set for Session<'a> {
-    fn reset(&mut self) {
+    pub fn reset(&mut self) {
         self.observe_reset();
         self.run.reset();
         self.observe_attempt();
         self.refresh_comparison();
     }
 
-    fn clear_at(&mut self, split: SplitId) {
-        self.run.clear_at(split);
+    pub fn clear_at(&mut self, split: impl split::Locator) {
+        if let Some(s) = self.locate_split_mut(split) {
+            s.clear();
+            // TODO(@MattWindsor91): observe
+        }
     }
 
-    fn push_to(&mut self, split: SplitId, time: Time) {
-        self.run.push_to(split, time);
-        self.observe_split(split, split::Event::Time(time, split::Time::Pushed));
-        self.recalculate_and_observe_splits(split);
+    pub fn push_to(&mut self, split: impl split::Locator, time: Time) {
+        if let Some(s) = self.locate_split_mut(split) {
+            s.push(time);
+            let short = s.info.short;
+            self.observers
+                .observe_time(short, time, observer::time::Event::Pushed);
+            self.recalculate_and_observe_splits(short);
+        }
     }
 
-    fn pop_from(&mut self, split: SplitId) -> Option<Time> {
-        self.run.pop_from(split).map(|time| {
-            self.observe_split(split, split::Event::Time(time, split::Time::Popped));
-            self.recalculate_and_observe_splits(split);
-            time
-        })
+    pub fn pop_from(&mut self, split: impl split::Locator) -> Option<Time> {
+        let splits = &mut self.run.splits;
+        split
+            .locate_mut(splits)
+            .and_then(|s| {
+                let short = s.info.short;
+                s.pop().map(|time| (short, time))
+            })
+            .map(|(short, time)| {
+                self.observers
+                    .observe_time(short, time, observer::time::Event::Popped);
+                self.recalculate_and_observe_splits(short);
+                time
+            })
+    }
+
+    fn locate_split_mut(&mut self, split: impl split::Locator) -> Option<&mut split::Split> {
+        split.locate_mut(&mut self.run.splits)
     }
 }

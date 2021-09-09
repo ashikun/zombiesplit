@@ -6,20 +6,25 @@ use crate::model;
 #[non_exhaustive]
 pub enum Event {
     /// Got a new time for the split.
-    Time(model::Time, Time),
+    Time(model::Time, super::time::Event),
     /// Got a new pace note for the split.
     Pace(model::comparison::pace::SplitInRun),
 }
 
-/// Enumeration of split-level time types.
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-#[non_exhaustive]
-pub enum Time {
-    /// This time was just added to the split.
-    Pushed,
-    /// This time was just removed from the split.
-    /// The UI may choose to load this time into a split editor.
-    Popped,
-    /// This is a new aggregate time for this split.
-    Aggregate(model::aggregate::Kind),
+/// Trait for things that can observe split events.
+pub trait Observer {
+    /// Observes a split event `event` for split `split`.
+    fn observe_split(&self, split: model::short::Name, event: Event);
+}
+
+/// Blanket implementation of time observers for split event observers.
+impl<T: Observer> super::time::Observer for T {
+    fn observe_time(
+        &self,
+        split: model::short::Name,
+        time: model::Time,
+        event: super::time::Event,
+    ) {
+        self.observe_split(split, Event::Time(time, event));
+    }
 }

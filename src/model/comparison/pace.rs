@@ -74,23 +74,6 @@ impl PacedTime {
     }
 }
 
-/// A pair of split pace and run-so-far pace.
-#[derive(Clone, Copy, Debug, Default)]
-pub struct Pair {
-    /// The split pace.
-    pub split: PacedTime,
-    /// The run-so-far pace.
-    pub run_so_far: PacedTime,
-}
-
-impl Pair {
-    /// Gets the combined split-in-run pace note for this pair.
-    #[must_use]
-    pub fn split_in_run_pace(&self) -> SplitInRun {
-        SplitInRun::new(self.split.pace, self.run_so_far.pace)
-    }
-}
-
 /// Combined pace note for a split in the context of a run in progress.
 ///
 /// These note the pace of a run, as well as how the current split has affected

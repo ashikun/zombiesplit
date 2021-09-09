@@ -2,35 +2,38 @@
 
 pub mod pace;
 
+use std::iter::FromIterator;
+
 pub use pace::{Pace, PacedTime};
 
-use super::{
-    aggregate,
-    short::{self, LinkedMap},
-    Time,
-};
+use super::{aggregate, short, Time};
 
 /// A comparison set.
 #[derive(Clone, Debug, Default)]
-pub struct Comparison {
-    pub splits: LinkedMap<Split>,
-}
+pub struct Comparison(pub short::Map<Split>);
 
 impl Comparison {
     /// Gets a pace note for the split with short name `split`, which has just
     /// posted an aggregate time pair of `against`.
     #[must_use]
     pub fn pace(&self, split: short::Name, against: aggregate::Pair) -> pace::SplitInRun {
-        self.splits
+        self.0
             .get(&split)
             .map_or(pace::SplitInRun::Inconclusive, |x| x.pace(against))
     }
 
-    /// Gets the comparison for the split at `index`.
+    /// Gets the aggregate times for the split with short name `split`, if
+    /// available.
     #[must_use]
-    pub fn split(&self, index: usize) -> Option<&Split> {
-        // TODO(@MattWindsor91): this is O(n), don't.
-        self.splits.values().nth(index)
+    pub fn aggregate_for(&self, split: short::Name) -> Option<&aggregate::Pair> {
+        self.0.get(&split).and_then(|x| x.in_run.as_ref())
+    }
+}
+
+/// A [Comparison] can be created using named split comparisons.
+impl FromIterator<(short::Name, Split)> for Comparison {
+    fn from_iter<T: IntoIterator<Item = (short::Name, Split)>>(iter: T) -> Self {
+        Comparison(iter.into_iter().collect())
     }
 }
 
@@ -68,7 +71,7 @@ impl Split {
     /// Gets the aggregate time of scope `scope` for this split in the run
     /// against which we are comparing.
     #[must_use]
-    pub fn aggregate_in_run(&self, scope: aggregate::Scope) -> Option<Time> {
+    fn aggregate_in_run(&self, scope: aggregate::Scope) -> Option<Time> {
         self.in_run.and_then(|x| x[scope])
     }
 

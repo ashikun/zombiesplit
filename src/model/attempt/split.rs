@@ -1,7 +1,124 @@
 //! Splits and related items.
 
+use crate::model::{aggregate, short};
+
 use super::super::{game, time::Time};
 use std::rc::Rc;
+
+/// A set of splits, addressable by [Locator]s.
+///
+/// To operate on an individual split, use a [Locator] to get a reference to it,
+/// and use the method on the respective [Split].
+pub struct Set {
+    /// The vector itself.
+    contents: Vec<Split>,
+    /// Lookup cache from short names to positions in the vector.
+    ///
+    /// Used for implementing [Locaotr] for short names.
+    cache: short::Map<usize>,
+}
+
+/// Trait for things that locate a split in a set.
+pub trait Locator {
+    /// Gets a non-mutable reference to the given split in `set`.
+    fn locate(self, set: &Set) -> Option<&Split>;
+
+    /// Gets a mutable reference to the given split in `set`.
+    fn locate_mut(self, set: &mut Set) -> Option<&mut Split>;
+}
+
+/// Locate a split by absolute position.
+impl Locator for usize {
+    fn locate(self, set: &Set) -> Option<&Split> {
+        set.contents.get(self)
+    }
+
+    fn locate_mut(self, set: &mut Set) -> Option<&mut Split> {
+        set.contents.get_mut(self)
+    }
+}
+
+/// Locate a split by name.
+impl Locator for short::Name {
+    fn locate(self, set: &Set) -> Option<&Split> {
+        set.cache.get(&self).and_then(|u| set.contents.get(*u))
+    }
+
+    fn locate_mut(self, set: &mut Set) -> Option<&mut Split> {
+        let contents = &mut set.contents; // necessary for borrowck
+        set.cache.get(&self).and_then(move |u| contents.get_mut(*u))
+    }
+}
+
+impl Set {
+    /// Constructs a split set.
+    #[must_use]
+    pub fn new<S: Into<Rc<game::Split>>>(from: impl IntoIterator<Item = S>) -> Self {
+        let contents: Vec<Split> = from.into_iter().map(Split::new).collect();
+        let cache = make_cache(&contents);
+        Self { contents, cache }
+    }
+
+    /// Gets the number of splits in the set.
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.contents.len()
+    }
+
+    /// Gets whether the split set is empty.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.contents.is_empty()
+    }
+
+    /// Wipes all data for all splits.
+    pub fn reset(&mut self) {
+        for s in &mut self.contents {
+            s.clear();
+        }
+    }
+
+    /// Gets an iterator of all of the splits in this set, in position order.
+    ///
+    /// The short name of each split can be found through its metadata.
+    pub fn iter(&self) -> impl Iterator<Item = &Split> {
+        self.contents.iter()
+    }
+
+    /// Gets an iterator of all of the splits in this set, in position order,
+    /// that are either `split` or will depend in some way on `split`.
+    ///
+    /// The short name of each split can be found through its metadata.
+    pub fn dependents_of(&self, split: short::Name) -> impl Iterator<Item = &Split> {
+        let pos = self.cache.get(&split).copied().unwrap_or_default();
+        self.iter().skip(pos)
+    }
+
+    /// Iterates over all of the aggregate times for this split set.
+    pub fn aggregates(&self) -> impl Iterator<Item = (short::Name, aggregate::Pair)> + '_ {
+        self.contents
+            .iter()
+            .scan(Time::default(), |cumulative, split| {
+                let short = split.info.short;
+                // TODO(@MattWindsor91): cache the sum somewhere?
+                let split = split.times.iter().copied().sum();
+                *cumulative += split;
+                let agg = aggregate::Pair {
+                    split: Some(split),
+                    cumulative: Some(*cumulative),
+                };
+
+                Some((short, agg))
+            })
+    }
+}
+
+fn make_cache(from: &[Split]) -> short::Map<usize> {
+    from.iter()
+        .enumerate()
+        .map(|(i, s)| (s.info.short, i))
+        .collect()
+}
 
 /// A split in a run attempt.
 pub struct Split {
@@ -34,12 +151,6 @@ impl<'a> Split {
         self.times.clone()
     }
 
-    /// Calculates the summed time of the split.
-    #[must_use]
-    pub fn summed_time(&self) -> Time {
-        self.times.iter().copied().sum()
-    }
-
     /// Gets the number of times logged for this split.
     #[must_use]
     pub fn num_times(&self) -> usize {
@@ -65,19 +176,4 @@ impl<'a> Split {
     pub fn clear(&mut self) {
         self.times.clear();
     }
-}
-
-/// Trait for things that contain splits.
-pub trait Set {
-    /// Wipes all data for all splits, incrementing any attempt counter.
-    fn reset(&mut self);
-
-    /// Removes all times from the split at `split`, if it exists.
-    fn clear_at(&mut self, split: usize);
-
-    /// Pushes the time `time` onto the split at `split`, if it exists.
-    fn push_to(&mut self, split: usize, time: Time);
-
-    /// Pops a time from the split at `split`, if it exists.
-    fn pop_from(&mut self, split: usize) -> Option<Time>;
 }

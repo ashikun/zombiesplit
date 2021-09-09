@@ -106,12 +106,10 @@ impl<'db> Inspector<'db> {
         let split_pbs = all_splits_with_pbs(&split_pbs, &splits);
         let run_pbs = in_run_iter(run_pb, &splits);
 
-        Ok(comparison::Comparison {
-            splits: split_pbs
-                .zip(run_pbs)
-                .map(|((short, split_pb), in_run)| (short, comparison::Split { split_pb, in_run }))
-                .collect(),
-        })
+        Ok(split_pbs
+            .zip(run_pbs)
+            .map(|((short, split_pb), in_run)| (short, comparison::Split { split_pb, in_run }))
+            .collect())
     }
 
     fn run_pb_with_totals(&mut self) -> Result<Option<history::run::WithTotals<category::GcID>>> {
