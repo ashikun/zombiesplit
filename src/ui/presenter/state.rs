@@ -26,7 +26,7 @@ pub struct State {
     // maintained, so we should hide these next two fields or move the
     // short-position map elsewhere.
     /// Bidirectional map from split shortnames to their locations on the UI.
-    pub short_map: short::Bimap<usize>,
+    pub short_map: short::Map<usize>,
 
     /// Split states.
     pub splits: Vec<Split>,
@@ -73,7 +73,7 @@ impl State {
     pub fn handle_split_event(&mut self, short: short::Name, evt: split::Event) {
         if let Some(ref mut s) = self
             .short_map
-            .get_by_left(&short)
+            .get(&short)
             .copied()
             .and_then(|x| self.splits.get_mut(x))
         {

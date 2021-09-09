@@ -2,7 +2,6 @@
 
 use std::{convert::Infallible, str::FromStr};
 
-use bimap::BiHashMap;
 use rusqlite::{types::FromSql, ToSql};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 
@@ -59,9 +58,6 @@ impl FromSql for Name {
         Ok(Name(symbol::Symbol::from(value.as_str()?)))
     }
 }
-
-/// Type alias for bidirectional maps from short names to items.
-pub type Bimap<T> = BiHashMap<Name, T>;
 
 /// Type alias for maps from short names to items.
 pub type Map<T> = std::collections::HashMap<Name, T>;
