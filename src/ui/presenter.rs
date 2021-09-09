@@ -22,7 +22,7 @@ use self::cursor::{Cursor, SplitPosition};
 pub struct Presenter<'a> {
     /// The current mode.
     pub mode: Box<dyn mode::Mode + 'a>,
-    /// The zombiesplit session being controlled by the
+    /// The zombiesplit session being controlled by the presenter.
     pub session: Session<'a>,
     pub state: state::State,
     obs_receiver: mpsc::Receiver<attempt::observer::Event>,

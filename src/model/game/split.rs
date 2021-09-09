@@ -5,6 +5,7 @@ use crate::model::short;
 /// Info about a split.
 ///
 /// Records here correspond to entries in the `split` table.
+#[derive(Debug)]
 pub struct Split {
     /// The ID of this split in the table.
     pub id: i64,

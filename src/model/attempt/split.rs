@@ -3,7 +3,7 @@
 use crate::model::{aggregate, short};
 
 use super::super::{game, time::Time};
-use std::rc::Rc;
+use std::iter::FromIterator;
 
 /// A set of splits, addressable by [Locator]s.
 ///
@@ -50,15 +50,18 @@ impl Locator for short::Name {
     }
 }
 
-impl Set {
-    /// Constructs a split set.
-    #[must_use]
-    pub fn new<S: Into<Rc<game::Split>>>(from: impl IntoIterator<Item = S>) -> Self {
-        let contents: Vec<Split> = from.into_iter().map(Split::new).collect();
+/// We can construct a [Set] from any iterator that yields us split data.
+impl FromIterator<game::Split> for Set {
+    // TODO(@MattWindsor91): remove the use of Rc here.
+
+    fn from_iter<T: IntoIterator<Item = game::Split>>(iter: T) -> Self {
+        let contents: Vec<Split> = iter.into_iter().map(Split::new).collect();
         let cache = make_cache(&contents);
         Self { contents, cache }
     }
+}
 
+impl Set {
     /// Gets the number of splits in the set.
     #[must_use]
     pub fn len(&self) -> usize {
@@ -121,20 +124,24 @@ fn make_cache(from: &[Split]) -> short::Map<usize> {
 }
 
 /// A split in a run attempt.
+#[derive(Debug)]
 pub struct Split {
-    /// A reference to the split information for the game.
-    pub info: Rc<game::Split>,
+    /// The game/category split information for this split.
+    ///
+    /// This contains the split's shortname, its default display name, and other
+    /// such information.
+    pub info: game::Split,
     /// The entered times.
     /// Invariant: none of the times are zero.
     times: Vec<Time>,
 }
 
-impl<'a> Split {
+impl Split {
     /// Creates a new split with the given metadata and an empty time.
     #[must_use]
-    pub fn new<T: Into<Rc<game::Split>>>(metadata: T) -> Self {
+    pub fn new(info: game::Split) -> Self {
         Self {
-            info: metadata.into(),
+            info,
             times: Vec::new(),
         }
     }

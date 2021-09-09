@@ -43,17 +43,15 @@ impl<'conn> Getter<'conn> {
     }
 
     /// Initialises an attempt session for the game/category referred to by
-    /// `desc`.
+    /// `info`.
     ///
     /// # Errors
     ///
     /// Propagates any errors from the database.
     pub fn init_session<'b>(&mut self, info: InfoWithID) -> Result<attempt::Session<'b>> {
-        let attempt = self.attempt_info(&info)?;
-        let splits = self.splits(&info)?;
         let run = attempt::Run {
-            attempt,
-            splits: attempt::split::Set::new(splits),
+            attempt: self.attempt_info(&info)?,
+            splits: self.splits(&info)?,
         };
         Ok(attempt::Session::new(info.info, run))
     }
@@ -147,7 +145,7 @@ impl<'conn> Getter<'conn> {
     /// # Errors
     ///
     /// Propagates any errors from the database.
-    pub fn splits<L: Locator>(&mut self, locator: &L) -> Result<Vec<Split>> {
+    pub fn splits<L: Locator>(&mut self, locator: &L) -> Result<attempt::split::Set> {
         let game_category = locator.locate_gcid(self)?;
         // TODO(@MattWindsor91): get the segments too.
         self.query_splits

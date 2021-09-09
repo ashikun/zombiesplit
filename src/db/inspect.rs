@@ -8,7 +8,7 @@ use super::{
     util::WithID,
     Result,
 };
-use crate::model::{aggregate, attempt, comparison, game::Split, history, short, Time};
+use crate::model::{aggregate, attempt, comparison, history, short, Time};
 
 /// Inspects various aspects of the database for a given game-category ID.
 pub struct Inspector<'db> {
@@ -122,24 +122,24 @@ impl<'db> Inspector<'db> {
 
 fn all_splits_with_pbs<'a>(
     pbs: &'a short::Map<Time>,
-    splits: &'a [Split],
+    splits: &'a attempt::split::Set,
 ) -> impl Iterator<Item = (short::Name, Option<Time>)> + 'a {
     splits
         .iter()
-        .map(move |s| (s.short, pbs.get(&s.short).copied()))
+        .map(move |s| (s.info.short, pbs.get(&s.info.short).copied()))
 }
 
 /// Gets an iterator over all of the in-run comparisons in a PB.
 fn in_run_iter<'a>(
     pb: Option<history::run::WithTotals<category::GcID>>,
-    splits: &'a [Split],
+    splits: &'a attempt::split::Set,
 ) -> Box<dyn Iterator<Item = Option<aggregate::Pair>> + 'a> {
     // TODO(@MattWindsor91): decouple this for testing.
     pb.map_or_else(
         || empty_splits(splits),
         |pb| {
             Box::new(splits.iter().scan(Time::default(), move |cumulative, s| {
-                Some(pb.timing.totals.get(&s.short).map(|time| {
+                Some(pb.timing.totals.get(&s.info.short).map(|time| {
                     *cumulative += *time;
                     aggregate::Pair {
                         split: Some(*time),
@@ -151,6 +151,6 @@ fn in_run_iter<'a>(
     )
 }
 
-fn empty_splits(splits: &[Split]) -> Box<dyn Iterator<Item = Option<aggregate::Pair>>> {
+fn empty_splits(splits: &attempt::split::Set) -> Box<dyn Iterator<Item = Option<aggregate::Pair>>> {
     Box::new(repeat(None).take(splits.len()))
 }
