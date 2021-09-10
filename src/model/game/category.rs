@@ -53,7 +53,7 @@ pub enum ShortDescriptorError {
 }
 
 /// Full, displayable metadata about a category of a game.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Info {
     /// The name of the game.
     pub game: String,
@@ -64,7 +64,7 @@ pub struct Info {
 }
 
 /// Information about the number of attempts a game-category has had.
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct AttemptInfo {
     /// The number of runs stored in total.
     pub total: usize,

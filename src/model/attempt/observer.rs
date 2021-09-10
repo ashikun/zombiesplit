@@ -18,7 +18,7 @@ pub trait Observer {
 }
 
 /// Enumeration of events that can be sent through an observer.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Event {
     /// Observes initial information about a split.
