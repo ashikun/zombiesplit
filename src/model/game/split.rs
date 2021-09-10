@@ -18,7 +18,16 @@ pub struct Split {
 
 impl Split {
     /// Constructs a new split information entry.
-    pub fn new(id: i64, short: impl Into<short::Name>, name: &impl ToString) -> Self {
+    ///
+    /// ```
+    /// use zombiesplit::model::game::split;
+    ///
+    /// let split = split::Split::new(0, "pp1", "Palmtree Panic 1");
+    /// assert_eq!(0, split.id);
+    /// assert_eq!("pp1", split.short.to_string());
+    /// assert_eq!("Palmtree Panic 1", split.name);
+    /// ```
+    pub fn new(id: i64, short: impl Into<short::Name>, name: &(impl ToString + ?Sized)) -> Self {
         Split {
             id,
             short: short.into(),

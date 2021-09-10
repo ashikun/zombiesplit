@@ -150,11 +150,11 @@ impl<'conn> Getter<'conn> {
         // TODO(@MattWindsor91): get the segments too.
         self.query_splits
             .query_and_then(named_params![":game_category": game_category], |row| {
-                Ok(Split {
-                    id: row.get(0)?,
-                    short: row.get(1)?,
-                    name: row.get(2)?,
-                })
+                Ok(Split::new(
+                    row.get("sid")?,
+                    row.get::<_, short::Name>("sshort")?,
+                    &row.get::<_, String>("sname")?,
+                ))
             })?
             .collect()
     }
@@ -196,12 +196,13 @@ SELECT COUNT(*)                     AS total,
  WHERE game_category_id = :game_category;";
 
 const SQL_SPLITS: &str = "
-    SELECT split_id, split.short, split.name
-    FROM split
-            INNER JOIN segment_split    USING(split_id)
-            INNER JOIN category_segment USING(segment_id)
-            INNER JOIN game_category    USING(category_id)
-    WHERE game_category_id = :game_category
-    ORDER BY category_segment.position ASC
-            , segment_split.position   ASC
-    ;";
+SELECT split_id    AS sid
+     , split.short AS sshort
+     , split.name  AS sname
+  FROM split
+       INNER JOIN segment_split    USING(split_id)
+       INNER JOIN category_segment USING(segment_id)
+       INNER JOIN game_category    USING(category_id)
+ WHERE game_category_id = :game_category
+ ORDER BY category_segment.position ASC
+        , segment_split.position    ASC;";
