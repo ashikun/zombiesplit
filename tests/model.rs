@@ -3,18 +3,36 @@
 use std::{cell::RefCell, rc::Rc};
 
 use zombiesplit::model::{
-    attempt::{observer, Observer, Run, Session},
+    attempt::{
+        observer::{self, Event},
+        Observer, Run, Session,
+    },
     game::{
-        category::{self, AttemptInfo, ShortDescriptor},
+        category,
         Split,
     },
-    short,
 };
 
 /// Tests that a session doesn't send any observations until prompted.
 #[test]
 fn test_session_initial() {
     let (_, obs) = make_session_and_obs();
+    obs.assert_empty()
+}
+
+/// Tests that a session sends the appropriate initial observations when asked
+/// to dump.
+#[test]
+fn test_session_dump() {
+    let (s, obs) = make_session_and_obs();
+
+    s.dump_to_observers();
+
+    obs.assert_received(Event::GameCategory(game_category()));
+    for split in splits() {
+        obs.assert_received(Event::AddSplit(split.short, split.name));
+    }
+    obs.assert_received(Event::Attempt(attempt_info()));
     obs.assert_empty()
 }
 
@@ -27,25 +45,36 @@ fn make_session_and_obs() -> (Session<'static>, Obs) {
     (s, obs)
 }
 
-fn make_session() -> Session<'static> {
-    let game = short::Name::from("game");
-    let category = short::Name::from("category");
-    let metadata = category::Info {
+fn attempt_info() -> category::AttemptInfo {
+    category::AttemptInfo{
+        total: 42,
+        completed: 2
+    }
+}
+
+fn game_category() -> category::Info {
+    category::Info {
         game: "Game Name".to_string(),
         category: "Game Category".to_string(),
-        short: ShortDescriptor::new(game, category),
-    };
-    let splits = [
+        short: category::ShortDescriptor::new("game", "category"),
+    }
+}
+
+fn splits() -> [Split; 3] {
+    [
         Split::new(0, "s1", "Split 1"),
         Split::new(1, "s2", "Split 2"),
         Split::new(2, "s3", "Split 3"),
-    ];
-    let splits = std::array::IntoIter::new(splits).collect();
+    ]
+}
+
+fn make_session() -> Session<'static> {
+    let splits = std::array::IntoIter::new(splits()).collect();
     let run = Run {
-        attempt: AttemptInfo::default(),
+        attempt: attempt_info(),
         splits,
     };
-    Session::new(metadata, run)
+    Session::new(game_category(), run)
 }
 
 // TODO(@MattWindsor91): possibly unify with the presenter version.
@@ -62,7 +91,13 @@ impl Obs {
 
     /// Asserts that the observer is empty.
     pub fn assert_empty(&self) {
-        assert!(self.0.borrow().is_empty(), "expected no more observations")
+        // We could use is_empty here, but this would report a less useful error
+        // if there is an observation.
+        assert_eq!(
+            None,
+            self.0.borrow().first(),
+            "expected no more observations"
+        )
     }
 }
 
