@@ -7,7 +7,7 @@ use rusqlite::{named_params, Connection, Statement};
 
 use crate::model::{
     history,
-    short::{self, LinkedMap, Name},
+    short::{self, Map, Name},
     Time,
 };
 
@@ -97,7 +97,7 @@ impl<'conn> Getter<'conn> {
                 let total: Time = r.get("total")?;
                 Ok((short, total))
             })?
-            .collect::<Result<LinkedMap<Time>>>()?;
+            .collect::<Result<Map<Time>>>()?;
         Ok(history::timing::Totals { totals })
     }
 }

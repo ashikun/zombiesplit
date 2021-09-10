@@ -7,10 +7,7 @@ use zombiesplit::model::{
         observer::{self, Event},
         Observer, Run, Session,
     },
-    game::{
-        category,
-        Split,
-    },
+    game::{category, Split},
 };
 
 /// Tests that a session doesn't send any observations until prompted.
@@ -46,9 +43,9 @@ fn make_session_and_obs() -> (Session<'static>, Obs) {
 }
 
 fn attempt_info() -> category::AttemptInfo {
-    category::AttemptInfo{
+    category::AttemptInfo {
         total: 42,
-        completed: 2
+        completed: 2,
     }
 }
 

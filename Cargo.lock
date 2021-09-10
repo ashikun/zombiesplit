@@ -270,16 +270,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "linked-hash-map"
-version = "0.5.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7fb9b38af92608140b86b693604b9ffcc5824240a484d1ecd4795bacb2fe88f3"
-dependencies = [
- "serde",
- "serde_test",
-]
-
-[[package]]
 name = "lock_api"
 version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -555,15 +545,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "serde_test"
-version = "1.0.126"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd1055d1c20532080b9da5040ec8e27425f4d4573d8e29eb19ba4ff1e4b9da2d"
-dependencies = [
- "serde",
-]
-
-[[package]]
 name = "serde_with"
 version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -791,7 +772,6 @@ dependencies = [
  "colored",
  "css-color-parser",
  "env_logger",
- "linked-hash-map",
  "log",
  "r2d2",
  "r2d2_sqlite",

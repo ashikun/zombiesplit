@@ -13,7 +13,6 @@ clap = "2.33.0"
 colored = "2"
 css-color-parser = "0.1.2"
 env_logger = "0.8.3"
-linked-hash-map = { version = "0.5.4", features = ["serde_impl"] }
 log = { version = "0.4", features = ["serde", "std"] }
 rusqlite = { version = "0.25.0", features = ["chrono"] }
 r2d2 = "0.8.9"

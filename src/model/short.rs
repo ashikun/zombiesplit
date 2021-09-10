@@ -35,7 +35,7 @@ impl FromStr for Name {
 
 impl std::fmt::Display for Name {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
+        self.0.fmt(f)
     }
 }
 
@@ -61,6 +61,3 @@ impl FromSql for Name {
 
 /// Type alias for maps from short names to items.
 pub type Map<T> = std::collections::HashMap<Name, T>;
-
-/// Type alias for insertion-ordered maps from short names to items.
-pub type LinkedMap<T> = linked_hash_map::LinkedHashMap<Name, T>;
