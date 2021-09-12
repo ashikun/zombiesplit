@@ -136,18 +136,16 @@ impl<'a> Session<'a> {
             .observe(observer::Event::GameCategory(self.metadata.clone()));
     }
 
-    /// Recalculates times and pacings for every split below and
-    /// including `split`, notifying all observers.
-    ///
-    /// We assume the caller has already updated the split, but not observed it
-    /// yet.
-    fn recalculate_and_observe_splits(&self, split: short::Name) {
-        // TODO(@MattWindsor91): start from split
-        for (short, agg) in self.run.splits.aggregates() {
+    /// Observes all paces and aggregates for each split, notifying all
+    /// observers.
+    fn observe_paces_and_aggregates(&self) {
+        // TODO(@MattWindsor91): start from a particular split, to avoid
+        // redundancy?
+        for (split, agg) in self.run.splits.aggregates() {
+            let short = split.info.short;
             let pace = self.comparison.pace(short, agg);
-
             self.observers
-                .observe_split(split, observer::split::Event::Pace(pace));
+                .observe_split(short, observer::split::Event::Pace(pace));
             self.observe_aggregate(short, agg, aggregate::Source::Attempt);
         }
     }
@@ -212,7 +210,7 @@ impl<'a> Session<'a> {
             let short = s.info.short;
             self.observers
                 .observe_time(short, time, observer::time::Event::Pushed);
-            self.recalculate_and_observe_splits(short);
+            self.observe_paces_and_aggregates();
         }
     }
 
@@ -227,7 +225,7 @@ impl<'a> Session<'a> {
             .map(|(short, time)| {
                 self.observers
                     .observe_time(short, time, observer::time::Event::Popped);
-                self.recalculate_and_observe_splits(short);
+                self.observe_paces_and_aggregates();
                 time
             })
     }

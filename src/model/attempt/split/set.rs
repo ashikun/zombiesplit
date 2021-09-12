@@ -58,8 +58,8 @@ impl Set {
     }
 
     /// Iterates over all of the aggregate times for this split set.
-    pub fn aggregates(&self) -> impl Iterator<Item = (short::Name, aggregate::Set)> + '_ {
-        aggregate::Set::accumulate(self.contents.iter())
+    pub fn aggregates(&self) -> impl Iterator<Item = (&Split, aggregate::Set)> + '_ {
+        aggregate::Set::accumulate_splits(self.contents.iter())
     }
 
     /// Uses `loc` to find a split in this set.
@@ -133,8 +133,10 @@ mod test {
         let s3s = set.get_mut(s3).expect("split 3 should exist");
         s3s.push(Time::seconds(110).unwrap());
 
-        let ags: Vec<(short::Name, aggregate::Set)> = set.aggregates().collect();
+        let ags: Vec<_> = set.aggregates().collect();
         assert_eq!(3, ags.len(), "there should be exactly three aggregates")
+
+        // TODO(@MattWindsor91): investigate times
     }
 
     // TODO(@MattWindsor91): possibly unify this with the integration test version?

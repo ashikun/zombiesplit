@@ -2,7 +2,7 @@
 
 use std::ops::{Index, IndexMut};
 
-use crate::model::{attempt::split, short};
+use crate::model::attempt::split;
 
 use super::{
     super::Time,
@@ -56,24 +56,20 @@ impl Set {
     ///
     /// Although split aggregates are yielded in order, we provide the short
     /// name of each split for convenience.
-    pub fn accumulate<'a>(
+    pub fn accumulate_splits<'a>(
         splits: impl IntoIterator<Item = &'a split::Split> + 'a,
-    ) -> impl Iterator<Item = (short::Name, Set)> + 'a {
-        Self::accumulate_pairs(
-            splits
-                .into_iter()
-                .map(|split| (split.info.short, split.total_time())),
-        )
+    ) -> impl Iterator<Item = (&'a split::Split, Set)> + 'a {
+        Self::accumulate_pairs(splits.into_iter().map(|x| (x, x.total_time())))
     }
 
-    /// Constructs an iterator that yields, for each pair of short-name and
+    /// Constructs an iterator that yields, for each pair of split and
     /// total time in `pairs`, a corresponding stream of aggregate times.
     ///
     /// Although aggregates are yielded in order, we provide the short
     /// name of each split for convenience.
-    pub fn accumulate_pairs(
-        pairs: impl IntoIterator<Item = (short::Name, Time)>,
-    ) -> impl Iterator<Item = (short::Name, Set)> {
+    pub fn accumulate_pairs<T>(
+        pairs: impl IntoIterator<Item = (T, Time)>,
+    ) -> impl Iterator<Item = (T, Set)> {
         pairs
             .into_iter()
             .scan(Time::default(), |cumulative, (short, split)| {
