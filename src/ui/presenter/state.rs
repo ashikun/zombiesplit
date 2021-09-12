@@ -52,7 +52,7 @@ impl State {
     pub fn refresh_total(&mut self, num_splits: usize) {
         self.total = num_splits
             .checked_sub(1)
-            .and_then(|c| self.splits[c].paced_cumulative())
+            .map(|c| self.splits[c].paced_cumulative())
             .unwrap_or_default();
     }
 
@@ -145,20 +145,19 @@ impl Split {
 
     /// Gets the cumulative time at this split along with its pace note.
     #[must_use]
-    pub fn paced_cumulative(&self) -> Option<PacedTime> {
-        self.aggregates[aggregate::Source::Attempt][aggregate::Scope::Cumulative].map(|time| {
-            PacedTime {
-                pace: self.pace_in_run.overall(),
-                time,
-            }
-        })
+    pub fn paced_cumulative(&self) -> PacedTime {
+        let time = self.aggregates[aggregate::Source::Attempt][aggregate::Scope::Cumulative];
+        PacedTime {
+            pace: self.pace_in_run.overall(),
+            time,
+        }
     }
 
     /// Handles an observation for this split.
     pub fn handle_event(&mut self, evt: split::Event) {
         match evt {
             split::Event::Time(t, time::Event::Aggregate(kind)) => {
-                self.aggregates[kind.source][kind.scope] = Some(t);
+                self.aggregates[kind.source][kind.scope] = t;
             }
             split::Event::Time(_, time::Event::Pushed) => {
                 self.num_times += 1;

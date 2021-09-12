@@ -85,9 +85,7 @@ impl<'r, 'g, 'p> SplitDrawer<'r, 'g, 'p> {
     }
 
     fn time_str(&self) -> String {
-        time_str_or_placeholder(
-            self.state.aggregates[self.aggregate_source()][aggregate::Scope::Split],
-        )
+        time_str(self.state.aggregates[self.aggregate_source()][aggregate::Scope::Split])
     }
 
     fn time_colour(&self) -> colour::fg::Id {
@@ -119,11 +117,6 @@ impl<'r, 'g, 'p> SplitDrawer<'r, 'g, 'p> {
     fn position(&self) -> cursor::SplitPosition {
         self.p.split_position(self.index)
     }
-}
-
-#[must_use]
-fn time_str_or_placeholder(time: Option<model::time::Time>) -> String {
-    time.map_or_else(|| "--'--\"--".to_owned(), time_str)
 }
 
 #[must_use]

@@ -45,9 +45,9 @@ impl IndexMut<Source> for Full {
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Set {
     /// Single time for this split only.
-    pub split: Option<Time>,
+    pub split: Time,
     /// Cumulative time for all splits up to and including this split.
-    pub cumulative: Option<Time>,
+    pub cumulative: Time,
 }
 
 impl Set {
@@ -75,8 +75,8 @@ impl Set {
             .scan(Time::default(), |cumulative, (short, split)| {
                 *cumulative += split;
                 let agg = Set {
-                    split: Some(split),
-                    cumulative: Some(*cumulative),
+                    split,
+                    cumulative: *cumulative,
                 };
 
                 Some((short, agg))
@@ -84,9 +84,9 @@ impl Set {
     }
 }
 
-/// We can index a [Set] by scope, yielding a possible time.
+/// We can index a [Set] by scope, yielding a time.
 impl Index<Scope> for Set {
-    type Output = Option<Time>;
+    type Output = Time;
 
     fn index(&self, index: Scope) -> &Self::Output {
         match index {
@@ -96,7 +96,7 @@ impl Index<Scope> for Set {
     }
 }
 
-/// We can mutably index a [Set] by scope, yielding a time slot.
+/// We can mutably index a [Set] by scope, yielding access to the time.
 impl IndexMut<Scope> for Set {
     fn index_mut(&mut self, index: Scope) -> &mut Self::Output {
         match index {
@@ -128,14 +128,14 @@ mod test {
                 "aggregates should mention same splits in order"
             );
             assert_eq!(
-                Some(*orig_time),
+                *orig_time,
                 agg[Scope::Split],
                 "aggregate split times should match"
             );
 
             cumulative += *orig_time;
             assert_eq!(
-                Some(cumulative),
+                cumulative,
                 agg[Scope::Cumulative],
                 "aggregate cumulative times should match"
             );

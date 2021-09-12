@@ -72,27 +72,23 @@ impl Split {
     /// against which we are comparing.
     #[must_use]
     fn aggregate_in_run(&self, scope: aggregate::Scope) -> Option<Time> {
-        self.in_run.and_then(|x| x[scope])
+        self.in_run.map(|x| x[scope])
     }
 
     /// Compares `time` against the cumulative time at this split.
     #[must_use]
-    pub fn cumulative_pace(&self, time: Option<Time>) -> Pace {
-        time.map_or(Pace::Inconclusive, |time| {
-            Pace::of_comparison(time, self.aggregate_in_run(aggregate::Scope::Cumulative))
-        })
+    pub fn cumulative_pace(&self, time: Time) -> Pace {
+        Pace::of_comparison(time, self.aggregate_in_run(aggregate::Scope::Cumulative))
     }
 
     /// Compares `split_time` against the split data for this comparison.
     #[must_use]
-    pub fn split_pace(&self, time: Option<Time>) -> Pace {
-        time.map_or(Pace::Inconclusive, |time| {
-            if self.is_personal_best(time) {
-                Pace::PersonalBest
-            } else {
-                Pace::of_comparison(time, self.aggregate_in_run(aggregate::Scope::Split))
-            }
-        })
+    pub fn split_pace(&self, time: Time) -> Pace {
+        if self.is_personal_best(time) {
+            Pace::PersonalBest
+        } else {
+            Pace::of_comparison(time, self.aggregate_in_run(aggregate::Scope::Split))
+        }
     }
 
     /// Checks whether `split time` is a new personal best.

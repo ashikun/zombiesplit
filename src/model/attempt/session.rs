@@ -186,16 +186,9 @@ impl<'a> Session<'a> {
         );
     }
 
-    fn observe_aggregate_part(
-        &self,
-        split: short::Name,
-        time: Option<Time>,
-        kind: aggregate::Kind,
-    ) {
-        if let Some(time) = time {
-            self.observers
-                .observe_time(split, time, observer::time::Event::Aggregate(kind));
-        }
+    fn observe_aggregate_part(&self, split: short::Name, time: Time, kind: aggregate::Kind) {
+        self.observers
+            .observe_time(split, time, observer::time::Event::Aggregate(kind));
     }
 
     pub fn reset(&mut self) {

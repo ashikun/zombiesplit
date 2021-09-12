@@ -231,7 +231,7 @@ fn output_split_pb(
     write!(tw, "{}\t", short)?;
     output_time(tw, split.split_pb)?;
     write!(tw, "\t")?;
-    output_time(tw, split.in_run.and_then(|x| x.split))?;
+    output_time(tw, split.in_run.map(|x| x.split))?;
     writeln!(tw)?;
 
     Ok(())
