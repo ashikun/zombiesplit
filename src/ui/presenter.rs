@@ -11,7 +11,7 @@ use crate::model::attempt::{self, Session};
 pub use editor::Editor;
 use std::sync::mpsc;
 
-use self::cursor::{Cursor, SplitPosition};
+use self::cursor::SplitPosition;
 
 /// The part of zombiesplit that mediates between the model [Session] and the
 /// user interface.
@@ -83,7 +83,7 @@ impl<'a> Presenter<'a> {
         match self.mode.handle_event(e, &mut self.session) {
             mode::EventResult::Transition(new_mode) => self.transition(new_mode),
             mode::EventResult::NotHandled => self.handle_event_globally(e),
-            mode::EventResult::Handled => self.refresh_total(),
+            mode::EventResult::Handled => self.refresh_state_cursor(),
         }
     }
 
@@ -104,20 +104,16 @@ impl<'a> Presenter<'a> {
 
     fn commit_mode(&mut self) {
         self.mode.commit(&mut self.session);
-        self.refresh_total();
     }
 
-    /// Refreshes the presenter state's total display.
+    /// Refreshes the presenter state's view of the cursor.
     ///
     /// This is done after any presenter event that may have moved the cursor,
-    /// since the totals depend on the cursor position.
-    fn refresh_total(&mut self) {
-        // TODO(@MattWindsor91): ideally we should separate modal events from
-        // non-modal ones, and have all the modal ones automatically refresh
-        // totals.
-        if let Some(c) = self.mode.cursor().map(Cursor::position) {
-            self.state.refresh_total(c);
-        }
+    /// since various parts of the state (eg totals) depend on the cursor
+    /// position being available outside of the mode.
+    fn refresh_state_cursor(&mut self) {
+        // TODO(@MattWindsor91): get rid of this, somehow.
+        self.state.set_cursor(self.mode.cursor().map(|x| x.position()))
     }
 
     /// Start the process of quitting.
@@ -143,7 +139,7 @@ impl<'a> Presenter<'a> {
             }
         }
         // TODO(@MattWindsor91): this is wasteful but borrowck won't let me do better yet.
-        self.refresh_total();
+        self.refresh_state_cursor();
     }
 }
 

@@ -74,12 +74,10 @@ impl Set {
             .into_iter()
             .scan(Time::default(), |cumulative, (short, split)| {
                 *cumulative += split;
-                let agg = Set {
+                Some((short, Set {
                     split,
                     cumulative: *cumulative,
-                };
-
-                Some((short, agg))
+                }))
             })
     }
 }

@@ -6,17 +6,13 @@ of change on the model.
 
 use std::fmt::Display;
 
-use crate::model::{
-    aggregate,
-    attempt::observer::{split, time},
-    comparison::pace::{self, PacedTime},
-    game::category,
-    short,
-};
+use crate::model::{Time, aggregate, attempt::observer::{split, time}, comparison::pace::{self, PacedTime}, game::category, short};
 
 /// The presenter's representation of the model.
 #[derive(Debug, Default)]
 pub struct State {
+    pub cursor_pos: Option<usize>,
+
     /// The current attempt information.
     pub attempt: category::AttemptInfo,
     /// Information about the game and category being played.
@@ -31,8 +27,8 @@ pub struct State {
     /// Split states.
     pub splits: Vec<Split>,
 
-    /// Contains state about the total time of the run.
-    pub total: pace::PacedTime,
+    /// State for the footer widget (generally, various times).
+    pub footer: Footer,
 }
 
 impl State {
@@ -47,13 +43,32 @@ impl State {
         }
     }
 
-    /// Recalculates the state's currently displayed run total, taking the
-    /// first `num_splits` splits into account.
-    pub fn refresh_total(&mut self, num_splits: usize) {
-        self.total = num_splits
-            .checked_sub(1)
+    /// Sets the visible cursor position to `cursor_at`.
+    pub fn set_cursor(&mut self, cursor_at: Option<usize>) {
+        self.cursor_pos = cursor_at;
+        self.footer.at_cursor = self.total_at_cursor();
+    }
+
+    /// Recalculates the state's footer totals.
+    ///
+    /// This generally needs to be done if the cursor has moved, or the split
+    /// times have changed.
+    pub fn refresh_footer_totals(&mut self) {
+        self.footer.at_cursor = self.total_at_cursor();
+        self.footer.total = self.total();
+    }
+
+    /// Gets the total up to and excluding the current cursor position.
+    fn total_at_cursor(&mut self) -> PacedTime {
+        self.cursor_pos
+            .and_then(|x| x.checked_sub(1))
             .map(|c| self.splits[c].paced_cumulative())
-            .unwrap_or_default();
+            .unwrap_or_default()
+    }
+
+    /// Gets the overall cursor.
+    fn total(&mut self) -> PacedTime {
+        self.splits.last().map(Split::paced_cumulative).unwrap_or_default()
     }
 
     /// Inserts a split into the split list with the given display name.
@@ -78,6 +93,10 @@ impl State {
             .and_then(|x| self.splits.get_mut(x))
         {
             s.handle_event(evt);
+            // The changes to this split could have changed the overall and
+            // up-to-cursor totals.
+            self.refresh_footer_totals()
+
             // TODO(@MattWindsor91): open editor
         }
     }
@@ -172,4 +191,17 @@ impl Split {
             }
         }
     }
+}
+
+/// Contains presenter state used in the footer.
+#[derive(Clone, Default, Debug)]
+pub struct Footer {
+    /// The total time of the run up to the cursor, and its pace.
+    pub at_cursor: pace::PacedTime,
+
+    /// The total time of the run, and its pace.
+    pub total: pace::PacedTime,
+
+    /// The target time of the run, if any.
+    pub target: Option<Time>
 }
