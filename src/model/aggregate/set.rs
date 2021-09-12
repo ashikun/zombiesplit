@@ -109,3 +109,40 @@ impl IndexMut<Scope> for Set {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::{Scope, Set};
+    use crate::model::{short, Time};
+
+    #[test]
+    fn accumulate_pairs_nonempty() {
+        let pairs = [
+            (short::Name::from("split1"), Time::seconds(63).unwrap()),
+            (short::Name::from("split2"), Time::seconds(42).unwrap()),
+            (short::Name::from("split3"), Time::seconds(101).unwrap()),
+        ];
+        let results: Vec<_> = Set::accumulate_pairs(std::array::IntoIter::new(pairs)).collect();
+        assert_eq!(3, results.len(), "expected as many aggregates as splits");
+
+        let mut cumulative = Time::default();
+        for ((orig_name, orig_time), (agg_name, agg)) in pairs.iter().zip(&results) {
+            assert_eq!(
+                orig_name, agg_name,
+                "aggregates should mention same splits in order"
+            );
+            assert_eq!(
+                Some(*orig_time),
+                agg[Scope::Split],
+                "aggregate split times should match"
+            );
+
+            cumulative += *orig_time;
+            assert_eq!(
+                Some(cumulative),
+                agg[Scope::Cumulative],
+                "aggregate cumulative times should match"
+            );
+        }
+    }
+}
