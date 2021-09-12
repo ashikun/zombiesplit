@@ -1,11 +1,13 @@
 //! Observer pattern wiring for attempt sessions.
 
+pub mod debug;
 pub mod mux;
 pub mod split;
 pub mod time;
 
 use super::super::{game::category, history, short};
 
+pub use debug::Debug;
 pub use mux::Mux;
 
 /// An observer for the session.
