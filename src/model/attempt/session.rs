@@ -3,7 +3,7 @@
 use super::{
     super::{
         aggregate,
-        comparison::{self, Comparison},
+        comparison::{self, pace, Comparison},
         game::category,
         history, short, Time,
     },
@@ -142,11 +142,19 @@ impl<'a> Session<'a> {
         // TODO(@MattWindsor91): start from a particular split, to avoid
         // redundancy?
         for (split, agg) in self.run.splits.aggregates() {
+            let pace = self.split_pace(split, agg);
             let short = split.info.short;
-            let pace = self.comparison.pace(short, agg);
             self.observers
                 .observe_split(short, observer::split::Event::Pace(pace));
             self.observe_aggregate(short, agg, aggregate::Source::Attempt);
+        }
+    }
+
+    fn split_pace(&self, split: &super::Split, agg: aggregate::Set) -> pace::SplitInRun {
+        if split.num_times() == 0 {
+            pace::SplitInRun::Inconclusive
+        } else {
+            self.comparison.pace(split.info.short, agg)
         }
     }
 

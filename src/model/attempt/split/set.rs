@@ -117,7 +117,7 @@ impl Locator for short::Name {
 #[cfg(test)]
 mod test {
     use super::Set;
-    use crate::model::{aggregate, game::Split, short, Time};
+    use crate::model::{game::Split, short, Time};
 
     #[test]
     fn aggregates_sample_run() {
