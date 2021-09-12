@@ -12,6 +12,8 @@ use std::{
 };
 
 /// A field in a time struct.
+///
+/// To get the value of a field, convert it to a `u16` using [From]/[Into].
 pub struct Field<P> {
     /// The value.
     val: u16,

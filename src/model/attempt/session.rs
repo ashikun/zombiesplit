@@ -169,7 +169,7 @@ impl<'a> Session<'a> {
     fn observe_aggregate(
         &self,
         split: short::Name,
-        pair: aggregate::Pair,
+        pair: aggregate::Set,
         source: aggregate::Source,
     ) {
         self.observe_aggregate_part(split, pair.split, source.with(aggregate::Scope::Split));

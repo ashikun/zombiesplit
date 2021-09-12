@@ -31,6 +31,35 @@ pub struct Time {
 }
 
 impl Time {
+    /// Tries to construct a [Time] from a given number of seconds.
+    ///
+    /// This is generally useful for testing.
+    ///
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use zombiesplit::model::time::Time;
+    ///
+    /// let t1 = Time::seconds(0).expect("shouldn't overflow");
+    /// assert!(t1.is_zero());
+    ///
+    /// let t2 = Time::seconds(42).expect("shouldn't overflow");
+    /// assert_eq!(42, u16::from(t2.secs));
+    ///
+    /// let t3 = Time::seconds(182).expect("shouldn't overflow");
+    /// assert_eq!(3, u16::from(t3.mins));
+    /// assert_eq!(2, u16::from(t3.secs));
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Errors if the number of seconds is too high to store in this time.
+    pub fn seconds(amount: u32) -> error::Result<Self> {
+        // TODO(@MattWindsor91): error if overflowing multiplication
+        Self::try_from(amount * 1000)
+    }
+
     /// Tries to set the field at `position` from string `str`.
     ///
     /// # Errors

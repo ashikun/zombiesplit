@@ -133,7 +133,7 @@ fn all_splits_with_pbs<'a>(
 fn in_run_iter<'a>(
     pb: Option<history::run::WithTotals<category::GcID>>,
     splits: &'a attempt::split::Set,
-) -> Box<dyn Iterator<Item = Option<aggregate::Pair>> + 'a> {
+) -> Box<dyn Iterator<Item = Option<aggregate::Set>> + 'a> {
     // TODO(@MattWindsor91): decouple this for testing.
     pb.map_or_else(
         || empty_splits(splits),
@@ -141,7 +141,7 @@ fn in_run_iter<'a>(
             Box::new(splits.iter().scan(Time::default(), move |cumulative, s| {
                 Some(pb.timing.totals.get(&s.info.short).map(|time| {
                     *cumulative += *time;
-                    aggregate::Pair {
+                    aggregate::Set {
                         split: Some(*time),
                         cumulative: Some(*cumulative),
                     }
@@ -151,6 +151,6 @@ fn in_run_iter<'a>(
     )
 }
 
-fn empty_splits(splits: &attempt::split::Set) -> Box<dyn Iterator<Item = Option<aggregate::Pair>>> {
+fn empty_splits(splits: &attempt::split::Set) -> Box<dyn Iterator<Item = Option<aggregate::Set>>> {
     Box::new(repeat(None).take(splits.len()))
 }

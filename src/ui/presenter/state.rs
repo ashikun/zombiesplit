@@ -109,7 +109,7 @@ pub struct Split {
     /// The display name of the split.
     pub name: String,
     /// The aggregate times logged for this split.
-    pub aggregates: aggregate::Set,
+    pub aggregates: aggregate::Full,
     /// The pace of this split in the run-so-far.
     pub pace_in_run: pace::SplitInRun,
 }
@@ -139,7 +139,7 @@ impl Split {
     /// doesn't reset metadata.
     pub fn reset(&mut self) {
         self.num_times = 0;
-        self.aggregates = aggregate::Set::default();
+        self.aggregates = aggregate::Full::default();
         self.pace_in_run = pace::SplitInRun::default();
     }
 

@@ -16,7 +16,7 @@ impl Comparison {
     /// Gets a pace note for the split with short name `split`, which has just
     /// posted an aggregate time pair of `against`.
     #[must_use]
-    pub fn pace(&self, split: short::Name, against: aggregate::Pair) -> pace::SplitInRun {
+    pub fn pace(&self, split: short::Name, against: aggregate::Set) -> pace::SplitInRun {
         self.0
             .get(&split)
             .map_or(pace::SplitInRun::Inconclusive, |x| x.pace(against))
@@ -25,7 +25,7 @@ impl Comparison {
     /// Gets the aggregate times for the split with short name `split`, if
     /// available.
     #[must_use]
-    pub fn aggregate_for(&self, split: short::Name) -> Option<&aggregate::Pair> {
+    pub fn aggregate_for(&self, split: short::Name) -> Option<&aggregate::Set> {
         self.0.get(&split).and_then(|x| x.in_run.as_ref())
     }
 }
@@ -54,14 +54,14 @@ pub struct Split {
     /// pace.
     pub split_pb: Option<Time>,
     /// Timing information for this split in the comparison run, if any.
-    pub in_run: Option<aggregate::Pair>,
+    pub in_run: Option<aggregate::Set>,
 }
 
 impl Split {
     /// Gets a pace note for this split, which has just posted an aggregate time
     /// pair of `against`.
     #[must_use]
-    pub fn pace(&self, against: aggregate::Pair) -> pace::SplitInRun {
+    pub fn pace(&self, against: aggregate::Set) -> pace::SplitInRun {
         pace::SplitInRun::new(
             self.split_pace(against.split),
             self.cumulative_pace(against.cumulative),
