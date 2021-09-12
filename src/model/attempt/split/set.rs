@@ -1,7 +1,7 @@
 //! Split sets.
 use crate::model::{aggregate, short};
 
-use super::super::super::{game, time::Time};
+use super::super::super::game;
 use std::iter::FromIterator;
 
 use super::Split;
@@ -59,20 +59,7 @@ impl Set {
 
     /// Iterates over all of the aggregate times for this split set.
     pub fn aggregates(&self) -> impl Iterator<Item = (short::Name, aggregate::Set)> + '_ {
-        self.contents
-            .iter()
-            .scan(Time::default(), |cumulative, split| {
-                let short = split.info.short;
-                // TODO(@MattWindsor91): cache the sum somewhere?
-                let split = split.times.iter().copied().sum();
-                *cumulative += split;
-                let agg = aggregate::Set {
-                    split: Some(split),
-                    cumulative: Some(*cumulative),
-                };
-
-                Some((short, agg))
-            })
+        aggregate::Set::accumulate(self.contents.iter())
     }
 
     /// Uses `loc` to find a split in this set.

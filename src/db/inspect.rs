@@ -138,15 +138,19 @@ fn in_run_iter<'a>(
     pb.map_or_else(
         || empty_splits(splits),
         |pb| {
-            Box::new(splits.iter().scan(Time::default(), move |cumulative, s| {
-                Some(pb.timing.totals.get(&s.info.short).map(|time| {
-                    *cumulative += *time;
-                    aggregate::Set {
-                        split: Some(*time),
-                        cumulative: Some(*cumulative),
-                    }
+            Box::new(
+                aggregate::Set::accumulate_pairs(splits.iter().map(move |s| {
+                    (
+                        s.info.short,
+                        pb.timing
+                            .totals
+                            .get(&s.info.short)
+                            .copied()
+                            .unwrap_or_default(),
+                    )
                 }))
-            }))
+                .map(|(_, x)| Option::Some(x)),
+            )
         },
     )
 }

@@ -35,6 +35,23 @@ impl Split {
         &self.info.name
     }
 
+    /// Gets the total time for this split.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use zombiesplit::model::{attempt::split::Split, game, Time};
+    ///
+    /// let mut s = Split::new(game::Split::new(0, "pp1", "Palmtree Panic 1"));
+    /// s.push(Time::seconds(9).unwrap());
+    /// s.push(Time::seconds(10).unwrap());
+    /// assert_eq!(Time::seconds(19).unwrap(), s.total_time());
+    /// ```
+    #[must_use]
+    pub fn total_time(&self) -> Time {
+        self.times.iter().copied().sum()
+    }
+
     /// Clones a copy of the times for this split.
     #[must_use]
     pub fn all_times(&self) -> Vec<Time> {
