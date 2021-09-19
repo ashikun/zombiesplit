@@ -104,7 +104,7 @@ impl State {
             s.handle_event(evt);
             // The changes to this split could have changed the overall and
             // up-to-cursor totals.
-            self.refresh_footer_totals()
+            self.refresh_footer_totals();
 
             // TODO(@MattWindsor91): open editor
         }

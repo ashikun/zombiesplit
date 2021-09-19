@@ -1,11 +1,13 @@
 //! Header display.
 
-use super::{
-    super::{super::presenter::Presenter, error::Result},
-    colour, font, metrics,
-    position::{Position, X},
-    render::{Region, Renderer},
-    widget,
+use super::super::{
+    super::presenter::Presenter,
+    error::Result,
+    gfx::{
+        colour, font, metrics,
+        position::{Position, X},
+        render::{Region, Renderer},
+    },
 };
 use crate::model::game::category::{AttemptInfo, Info};
 
@@ -15,7 +17,7 @@ pub struct Widget {
     pub rect: metrics::Rect,
 }
 
-impl widget::Widget for Widget {
+impl super::Widget for Widget {
     fn render(&mut self, r: &mut dyn Renderer, p: &Presenter) -> Result<()> {
         let mut r = Region::new(r, self.rect);
 

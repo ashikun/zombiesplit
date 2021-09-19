@@ -7,11 +7,13 @@ use super::{
             Presenter,
         },
         error::Result,
+        gfx::{
+            colour, font, metrics,
+            position::{Position, X},
+            render::{Region, Renderer},
+        },
     },
-    colour, font, metrics,
-    position::{Position, X},
-    render::{Region, Renderer},
-    split, widget,
+    split,
 };
 use crate::model::time;
 
@@ -22,7 +24,7 @@ pub struct Widget {
     rect: metrics::Rect,
 }
 
-impl widget::Widget for Widget {
+impl super::Widget for Widget {
     fn render(&mut self, r: &mut dyn Renderer, p: &Presenter) -> Result<()> {
         if let Some(e) = p.editor() {
             self.draw_editor(e, r)?;

@@ -114,7 +114,7 @@ impl<'a> Presenter<'a> {
     fn refresh_state_cursor(&mut self) {
         // TODO(@MattWindsor91): get rid of this, somehow.
         self.state
-            .set_cursor(self.mode.cursor().map(|x| x.position()))
+            .set_cursor(self.mode.cursor().map(cursor::Cursor::position));
     }
 
     /// Start the process of quitting.

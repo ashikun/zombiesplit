@@ -3,6 +3,7 @@ pub mod config;
 pub mod error;
 mod event;
 pub mod gfx;
+mod widget;
 
 use super::presenter;
 use std::{cell::RefCell, time::Duration};
@@ -53,13 +54,13 @@ impl View {
             font_manager,
             &self.cfg.colours,
         );
-        let gfx = gfx::Core::new(renderer, self.cfg.window);
+        let widgets = widget::Set::new(renderer, self.cfg.window);
 
         let events = self.sdl.event_pump().map_err(Error::Init)?;
 
         Ok(Instance {
             events,
-            gfx,
+            widgets,
             presenter,
         })
     }
@@ -68,7 +69,7 @@ impl View {
 /// An instance of the view for a particular presenter.
 pub struct Instance<'c, 'p> {
     events: sdl2::EventPump,
-    gfx: gfx::Core<'c>,
+    widgets: widget::Set<'c>,
     presenter: presenter::Presenter<'p>,
 }
 
@@ -79,7 +80,7 @@ impl<'c, 'p> Instance<'c, 'p> {
     ///
     /// Returns an error if SDL fails to perform an action.
     pub fn run(&mut self) -> error::Result<()> {
-        self.gfx.redraw(&self.presenter)?;
+        self.widgets.redraw(&self.presenter)?;
 
         while self.presenter.is_running() {
             self.cycle()?;
@@ -95,7 +96,7 @@ impl<'c, 'p> Instance<'c, 'p> {
                 self.presenter.handle_event(&x);
             }
         }
-        self.gfx.redraw(&self.presenter)?;
+        self.widgets.redraw(&self.presenter)?;
 
         std::thread::sleep(Duration::from_millis(1));
 

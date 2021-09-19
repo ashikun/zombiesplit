@@ -133,8 +133,11 @@ mod test {
         let s3s = set.get_mut(s3).expect("split 3 should exist");
         s3s.push(Time::seconds(110).unwrap());
 
-        let ags: Vec<_> = set.aggregates().collect();
-        assert_eq!(3, ags.len(), "there should be exactly three aggregates")
+        assert_eq!(
+            3,
+            set.aggregates().count(),
+            "there should be exactly three aggregates"
+        );
 
         // TODO(@MattWindsor91): investigate times
     }

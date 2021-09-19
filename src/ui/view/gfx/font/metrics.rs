@@ -115,12 +115,12 @@ mod tests {
     /// Tests that `glyph_x` works correctly without overflow on a big bitmap.
     #[test]
     fn glyph_x_overflow() {
-        assert_eq!(BIG_FONT.glyph_x(31), 310)
+        assert_eq!(BIG_FONT.glyph_x(31), 310);
     }
 
     /// Tests that `glyph_y` works correctly without overflow on a big bitmap.
     #[test]
     fn glyph_y_overflow() {
-        assert_eq!(BIG_FONT.glyph_y(255), 70)
+        assert_eq!(BIG_FONT.glyph_y(255), 70);
     }
 }

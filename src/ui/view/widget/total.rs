@@ -1,12 +1,16 @@
 //! The split total widget.
 
 use super::{
-    super::{super::presenter::Presenter, error::Result},
-    colour, font, metrics,
-    position::{Position, X},
-    render::{Region, Renderer},
+    super::{
+        super::presenter::Presenter,
+        error::Result,
+        gfx::{
+            colour, font, metrics,
+            position::{Position, X},
+            render::{Region, Renderer},
+        },
+    },
     split::time_str,
-    widget,
 };
 use crate::{model::comparison::pace, ui::presenter};
 
@@ -16,7 +20,7 @@ pub struct Widget {
     pub rect: metrics::Rect,
 }
 
-impl widget::Widget for Widget {
+impl super::Widget for Widget {
     fn render(&mut self, r: &mut dyn Renderer, p: &Presenter) -> Result<()> {
         let mut r = Region::new(r, self.rect);
 

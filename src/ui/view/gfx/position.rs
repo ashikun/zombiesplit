@@ -63,6 +63,7 @@ impl Position {
     /// apply to `rect`'s parent context.
     ///
     /// Any right/bottom relative coordinates will become top/left ones.
+    #[must_use]
     pub fn normalise_to_rect(self, rect: Rect) -> Self {
         Self {
             x: self.x.normalise_to_rect(rect),
@@ -85,6 +86,7 @@ impl X {
     /// apply to `rect`'s parent context.
     ///
     /// Any right relative coordinates will become left ones.
+    #[must_use]
     pub fn normalise_to_rect(self, rect: Rect) -> Self {
         match self {
             Self::Left(k) => Self::Left(rect.x + k),
@@ -94,6 +96,7 @@ impl X {
     }
 
     /// Converts to a left position given the current X position and width.
+    #[must_use]
     pub fn to_left(self, cur_x: i32, width: u32) -> i32 {
         match self {
             Self::Rel(dx) => cur_x + dx,
@@ -119,6 +122,7 @@ impl Y {
     /// apply to `rect`'s parent context.
     ///
     /// Any bottom relative coordinates will become top ones.
+    #[must_use]
     pub fn normalise_to_rect(self, rect: Rect) -> Self {
         match self {
             Self::Top(k) => Self::Top(rect.y + k),
@@ -128,6 +132,7 @@ impl Y {
     }
 
     /// Converts to a top position given the current Y position and height.
+    #[must_use]
     pub fn to_top(self, cur_y: i32, height: u32) -> i32 {
         match self {
             Self::Rel(dy) => cur_y + dy,

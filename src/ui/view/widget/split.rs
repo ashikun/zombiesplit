@@ -2,16 +2,16 @@
 
 use std::convert::TryFrom;
 
-use super::{
-    super::{
-        super::presenter::{cursor, Presenter},
-        error::Result,
+use super::super::{
+    super::presenter::{cursor, Presenter},
+    error::Result,
+    gfx::{
+        colour,
+        font::{self, metrics::TextSizer},
+        metrics,
+        position::{Position, X},
+        render::{Region, Renderer},
     },
-    colour,
-    font::{self, metrics::TextSizer},
-    metrics,
-    position::{Position, X},
-    render::{Region, Renderer},
 };
 use crate::{
     model::{self, aggregate},
@@ -26,7 +26,7 @@ pub struct Widget {
     split_h: i32,
 }
 
-impl super::widget::Widget for Widget {
+impl super::Widget for Widget {
     fn render(&mut self, r: &mut dyn Renderer, p: &Presenter) -> Result<()> {
         let mut r = Region::new(r, self.rect);
 

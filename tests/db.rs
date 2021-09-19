@@ -37,7 +37,7 @@ fn short_descriptor() -> ShortDescriptor {
     ShortDescriptor::new(SAMPLE_GAME_NAME, SAMPLE_CATEGORY_NAME)
 }
 
-fn init_session<'a>(handle: &'a Reader) -> Session<'a> {
+fn init_session(handle: &Reader) -> Session {
     let mut insp = handle
         .inspect(&short_descriptor())
         .expect("couldn't open category db");
@@ -103,7 +103,7 @@ fn test_sample_observe_run() {
     let time = Time::try_from(8675309).expect("time didn't parse");
 
     // This should.
-    session.set_timestamper(|| chrono::Utc::now());
+    session.set_timestamper(chrono::Utc::now);
     session.push_to(0, time);
     session.reset();
 

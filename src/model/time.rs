@@ -278,7 +278,7 @@ mod tests {
         assert_eq!(u16::from(t.hours), 0);
         assert_eq!(u16::from(t.mins), 0);
         assert_eq!(u16::from(t.secs), 0);
-        assert_eq!(u16::from(t.millis), 020);
+        assert_eq!(u16::from(t.millis), 20);
     }
 
     #[test]

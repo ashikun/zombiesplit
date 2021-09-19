@@ -1,88 +1,18 @@
-//! Graphics rendering.
+/*! Graphics rendering code for zombiesplit.
+
+This module contains the (semi-)low-level code for displaying the zombiesplit
+(reference) user interface using SDL.  It handles colour and font look-up,
+metrics, rendering,  and so on.
+*/
 
 pub mod colour;
-mod editor;
 pub mod font;
-mod header;
 pub mod metrics; // for now
 pub mod pen;
-mod position;
+pub mod position;
 pub mod render;
-mod split;
-mod total;
-mod widget;
 
-use super::{
-    super::Presenter,
-    error::{Error, Result},
-};
-
-use widget::Widget;
-
-pub struct Core<'a> {
-    renderer: render::Window<'a>,
-    widgets: Vec<Box<dyn widget::Widget>>,
-}
-
-impl<'a> Core<'a> {
-    /// Creates a new graphics core.
-    #[must_use]
-    pub fn new(renderer: render::Window<'a>, wmetrics: metrics::Window) -> Self {
-        Self {
-            renderer,
-            widgets: make_widgets(wmetrics),
-        }
-    }
-
-    /// Redraws the user interface.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if SDL fails to redraw the screen.
-    pub fn redraw(&mut self, state: &Presenter) -> Result<()> {
-        self.renderer.clear();
-
-        for w in &mut self.widgets {
-            w.render(&mut self.renderer, state)?;
-        }
-
-        self.renderer.present();
-
-        Ok(())
-    }
-}
-
-fn make_widgets(wmetrics: metrics::Window) -> Vec<Box<dyn Widget>> {
-    vec![
-        make_splits(wmetrics),
-        make_header(wmetrics),
-        make_editor(wmetrics),
-        make_total(wmetrics),
-    ]
-}
-
-fn make_splits(wmetrics: metrics::Window) -> Box<dyn Widget> {
-    Box::new(split::Widget::new(
-        wmetrics.splits_rect(),
-        metrics::sat_i32(wmetrics.split_h),
-    ))
-}
-
-fn make_header(wmetrics: metrics::Window) -> Box<dyn Widget> {
-    Box::new(header::Widget {
-        rect: wmetrics.header_rect(),
-    })
-}
-
-fn make_editor(wmetrics: metrics::Window) -> Box<dyn Widget> {
-    Box::new(editor::Widget::new(wmetrics.editor_rect()))
-}
-
-fn make_total(wmetrics: metrics::Window) -> Box<dyn Widget> {
-    Box::new(total::Widget {
-        rect: wmetrics.total_rect(),
-    })
-}
+use super::error::{Error, Result};
 
 /// Makes a zombiesplit window.
 ///
