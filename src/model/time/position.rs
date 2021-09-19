@@ -171,7 +171,7 @@ impl Position for Msec {
 }
 
 /// Names of parseable time fields.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Name {
     /// Denotes the hours field.
     Hours,

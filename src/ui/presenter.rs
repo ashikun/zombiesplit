@@ -82,12 +82,12 @@ impl<'a> Presenter<'a> {
     pub fn handle_event(&mut self, e: &event::Event) {
         match self.mode.handle_event(e, &mut self.session) {
             mode::EventResult::Transition(new_mode) => self.transition(new_mode),
-            mode::EventResult::NotHandled => self.handle_event_globally(e),
+            mode::EventResult::NotHandled => self.handle_event_globally(*e),
             mode::EventResult::Handled => self.refresh_state_cursor(),
         }
     }
 
-    fn handle_event_globally(&mut self, e: &event::Event) {
+    fn handle_event_globally(&mut self, e: event::Event) {
         use event::Event;
         match e {
             Event::Commit => self.commit_mode(),

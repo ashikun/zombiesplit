@@ -68,7 +68,7 @@ impl Cursor {
 }
 
 /// A cursor motion.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum Motion {
     /// Move the cursor up.
     Up,

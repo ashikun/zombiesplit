@@ -30,7 +30,7 @@ impl Mode for Editor {
         match e {
             Event::Undo => self.undo(),
             Event::Delete => self.delete(),
-            Event::Edit(d) => self.edit(d),
+            Event::Edit(d) => self.edit(*d),
             Event::EnterField(f) => self.enter_field(*f),
             Event::Cursor(c) => self.move_cursor(*c),
             _ => EventResult::NotHandled,
@@ -81,7 +81,7 @@ impl Editor {
         EventResult::Handled
     }
 
-    fn edit(&mut self, e: &Edit) -> EventResult {
+    fn edit(&mut self, e: Edit) -> EventResult {
         EventResult::from_handled(self.field.as_mut().map_or(false, |f| f.edit(e)))
     }
 
@@ -147,9 +147,9 @@ impl Field {
         self.position
     }
 
-    pub fn edit(&mut self, e: &Edit) -> bool {
+    pub fn edit(&mut self, e: Edit) -> bool {
         match e {
-            Edit::Add(x) => self.add(*x),
+            Edit::Add(x) => self.add(x),
             Edit::Remove => self.remove(),
         }
     }

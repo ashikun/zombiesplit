@@ -4,6 +4,7 @@ use crate::model::time::position;
 /// A high-level event.
 ///
 /// The semantics of events depends on the current editing mode.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Event {
     /// Undo something (the exact thing depends on the mode).
@@ -35,6 +36,7 @@ impl Event {
 }
 
 /// An edit event.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Edit {
     /// Add the given digit to the current editor.
