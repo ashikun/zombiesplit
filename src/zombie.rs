@@ -9,7 +9,7 @@ use std::{
 use crate::{
     db::inspect::Inspector,
     model::{
-        attempt::observer::Debug,
+        attempt::{self, observer::Debug},
         comparison::{self, Provider},
         short, Time,
     },
@@ -173,16 +173,20 @@ impl Zombie {
         let handle = self.db.reader()?;
         let insp = handle.inspect(desc)?;
 
-        let session = self.session(insp)?;
+        let mut session = self.session(insp)?;
+
+        let db_obs: Rc<dyn attempt::Observer> = Rc::new(db::Observer::new(self.db));
+        session.observers.add(Rc::downgrade(&db_obs));
+
+        let debug_obs: Rc<dyn attempt::Observer> = Rc::new(Debug);
+        session.observers.add(Rc::downgrade(&debug_obs));
+
         ui::run(self.cfg.ui, session)?;
         Ok(())
     }
 
     fn session<'a>(&self, mut insp: Inspector<'a>) -> Result<model::attempt::Session<'a>> {
         let mut session = insp.init_session()?;
-        session.observers.add(db::Observer::boxed(self.db.clone()));
-        // TODO(@MattWindsor91): allow this to be switched off.
-        session.observers.add(Box::new(Debug));
         session.set_comparison_provider(self.comparison_provider(insp));
         Ok(session)
     }

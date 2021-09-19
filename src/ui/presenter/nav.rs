@@ -1,6 +1,11 @@
 //! The [Nav] struct and its implementations.
 
-use super::{cursor::{self, Cursor}, editor::Editor, event::{self, Modal}, mode::{EventResult, Mode}};
+use super::{
+    cursor::{self, Cursor},
+    editor::Editor,
+    event::{self, Modal},
+    mode::{EventResult, Mode},
+};
 use crate::model::{attempt::Session, time::position};
 
 /// Mode for when we are navigating splits.
@@ -40,7 +45,7 @@ impl Nav {
 
     /// Performs an undo on the current split, if any.
     fn undo(&mut self) -> EventResult {
-       EventResult::Expanded(event::Attempt::Pop(self.cur.position())) 
+        EventResult::Expanded(event::Attempt::Pop(self.cur.position()))
     }
 
     /// Performs a delete on the current split, if any.

@@ -10,6 +10,8 @@ use crate::{
     Db,
 };
 
+// TODO(@MattWindsor91): can we eliminate this?
+
 /// An observer that logs runs into a database.
 pub struct Observer {
     /// A reference to the database.
@@ -28,12 +30,6 @@ impl Observer {
     #[must_use]
     pub fn new(db: Rc<Db>) -> Self {
         Observer { db }
-    }
-
-    /// Shortcut for creating a boxed database observer.
-    #[must_use]
-    pub fn boxed(db: Rc<Db>) -> Box<dyn attempt::Observer> {
-        Box::new(Self::new(db))
     }
 
     fn try_save_run(&self, run: Option<history::run::FullyTimed<ShortDescriptor>>) -> Result<()> {

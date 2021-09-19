@@ -1,5 +1,5 @@
 //! Events understood by the user interface.
-use crate::model::{Time, time::position};
+use crate::model::{time::position, Time};
 
 /// A high-level event.
 ///
@@ -11,7 +11,7 @@ pub enum Event {
     Modal(Modal),
     /// An event that directly affects the attempt, regardless of mode.
     /// These are handled globally.
-    Attempt(Attempt)
+    Attempt(Attempt),
 }
 
 impl Event {
@@ -42,7 +42,6 @@ pub enum Modal {
     Cursor(super::cursor::Motion),
 }
 
-
 /// An edit event.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
@@ -58,7 +57,6 @@ pub enum Edit {
 #[non_exhaustive]
 pub enum Attempt {
     // TODO(@MattWindsor91): move these to a session API
-
     /// Start a new run.
     NewRun,
     /// Quit the attempt.
@@ -68,6 +66,5 @@ pub enum Attempt {
     /// Pops a time from the split at the given position.
     Pop(usize),
     /// Erases the split at the given position.
-    Clear(usize)
+    Clear(usize),
 }
-

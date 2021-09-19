@@ -13,7 +13,8 @@ use zombiesplit::model::{
 /// Tests that a session doesn't send any observations until prompted.
 #[test]
 fn test_session_initial() {
-    let (_, obs) = make_session_and_obs();
+    let obs = Rc::new(Obs::default());
+    let _ = make_session_with_obs(obs.clone());
     obs.assert_empty()
 }
 
@@ -21,7 +22,8 @@ fn test_session_initial() {
 /// to dump.
 #[test]
 fn test_session_dump() {
-    let (s, obs) = make_session_and_obs();
+    let obs = Rc::new(Obs::default());
+    let s = make_session_with_obs(obs.clone());
 
     s.dump_to_observers();
 
@@ -34,12 +36,10 @@ fn test_session_dump() {
 }
 
 /// Makes a dummy session and an observer for it.
-fn make_session_and_obs() -> (Session<'static>, Obs) {
+fn make_session_with_obs(obs: Rc<dyn Observer>) -> Session<'static> {
     let mut s = make_session();
-    let obs = Obs::default();
-    s.observers.add(Box::new(obs.clone()));
-
-    (s, obs)
+    s.observers.add(Rc::downgrade(&obs));
+    s
 }
 
 fn attempt_info() -> category::AttemptInfo {

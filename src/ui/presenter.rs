@@ -18,9 +18,12 @@ pub mod mode;
 pub mod nav;
 pub mod state;
 
-use crate::model::{attempt::{self, Session, observer}, short};
+use crate::model::{
+    attempt::{self, observer, Session},
+    short,
+};
 pub use editor::Editor;
-use std::sync::mpsc;
+use std::{rc::Rc, sync::mpsc};
 
 use self::cursor::SplitPosition;
 
@@ -79,7 +82,7 @@ impl<'a> Core<'a> {
     fn handle_potentially_modal_event(&mut self, e: &event::Event) -> Option<event::Attempt> {
         match e {
             event::Event::Attempt(a) => Some(*a),
-            event::Event::Modal(m) => self.handle_modal_event(*m)
+            event::Event::Modal(m) => self.handle_modal_event(*m),
         }
     }
 
@@ -102,7 +105,9 @@ impl<'a> Core<'a> {
         match e {
             Attempt::NewRun => self.session.reset(),
             Attempt::Push(pos, time) => self.session.push_to(pos, time),
-            Attempt::Pop(pos) => {self.session.pop_from(pos);},
+            Attempt::Pop(pos) => {
+                self.session.pop_from(pos);
+            }
             Attempt::Clear(pos) => self.session.clear_at(pos),
             Attempt::Quit => self.quit(),
         }
@@ -133,14 +138,14 @@ impl<'a> Core<'a> {
         self.transition(Box::new(mode::Quitting));
     }
 
-    /// Handles the split event `ev` relating to 
+    /// Handles the split event `ev` relating to
     fn handle_split_event(&mut self, short: short::Name, ev: observer::split::Event) {
         self.state.handle_split_event(short, ev);
 
         if let observer::split::Event::Time(_, observer::time::Event::Popped) = ev {
             // We just popped a time, so we should open it into an editor.
             if let Some(cursor) = self.mode.cursor().copied() {
-                self.transition(  Box::new(Editor::new(cursor, None)));
+                self.transition(Box::new(Editor::new(cursor, None)));
             }
         }
     }
@@ -178,7 +183,8 @@ pub struct Presenter<'a> {
     /// The underlying core.
     pub core: Core<'a>,
     obs_receiver: mpsc::Receiver<attempt::observer::Event>,
-    obs_sender: mpsc::Sender<attempt::observer::Event>,
+    /// Keeps the observer feeding `obs_receiver` alive.
+    obs_sender: Rc<dyn attempt::Observer>,
 }
 
 impl<'a> Presenter<'a> {
@@ -189,19 +195,15 @@ impl<'a> Presenter<'a> {
     #[must_use]
     pub fn new(core: Core<'a>) -> Self {
         let (obs_sender, obs_receiver) = mpsc::channel();
-        let mut o = Self { core, obs_receiver, obs_sender };
-        o.core.session.observers.add(Box::new(o.observer()));
+        let obs_sender: Rc<dyn attempt::Observer> = Rc::new(Observer { sender: obs_sender });
+        let mut o = Self {
+            core,
+            obs_receiver,
+            obs_sender,
+        };
+        o.core.session.observers.add(Rc::downgrade(&o.obs_sender));
         o.core.session.dump_to_observers();
         o
-    }
-
-    /// Gets an observer that can be used to update the presenter with
-    /// session changes.
-    #[must_use]
-    fn observer(&self) -> Observer {
-        Observer {
-            sender: self.obs_sender.clone(),
-        }
     }
 
     pub fn pump(&mut self) {

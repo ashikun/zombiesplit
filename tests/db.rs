@@ -5,7 +5,7 @@ use tempfile::{tempdir, TempDir};
 use zombiesplit::{
     db::{Db, Observer, Reader},
     model::{
-        attempt::Session,
+        attempt,
         game::{self, category::ShortDescriptor},
         history, short, Loadable, Time,
     },
@@ -37,7 +37,7 @@ fn short_descriptor() -> ShortDescriptor {
     ShortDescriptor::new(SAMPLE_GAME_NAME, SAMPLE_CATEGORY_NAME)
 }
 
-fn init_session(handle: &Reader) -> Session {
+fn init_session(handle: &Reader) -> attempt::Session {
     let mut insp = handle
         .inspect(&short_descriptor())
         .expect("couldn't open category db");
@@ -95,7 +95,8 @@ fn test_sample_observe_run() {
 
     let mut session = init_session(&handle);
 
-    session.observers.add(Observer::boxed(db.clone()));
+    let obs: Rc<dyn attempt::Observer> = Rc::new(Observer::new(db.clone()));
+    session.observers.add(Rc::downgrade(&obs));
 
     // This shouldn't insert a run.
     session.reset();

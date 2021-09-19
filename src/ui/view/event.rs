@@ -1,7 +1,7 @@
 //! Mapping from SDL to presenter events.
 use super::presenter::{
     cursor,
-    event::{Edit, Attempt, Event, Modal},
+    event::{Attempt, Edit, Event, Modal},
 };
 use crate::model::time::position;
 
@@ -35,7 +35,9 @@ fn from_key(k: sdl2::keyboard::Keycode) -> Option<Event> {
         // We don't allow entering hours yet, but this may change.
         Keycode::M => Some(Event::Modal(Modal::EnterField(position::Name::Minutes))),
         Keycode::S => Some(Event::Modal(Modal::EnterField(position::Name::Seconds))),
-        Keycode::Period => Some(Event::Modal(Modal::EnterField(position::Name::Milliseconds))),
+        Keycode::Period => Some(Event::Modal(Modal::EnterField(
+            position::Name::Milliseconds,
+        ))),
         // Cursor motions
         Keycode::J | Keycode::Down | Keycode::Space | Keycode::Return => {
             Some(Event::Modal(Modal::Cursor(cursor::Motion::Down)))

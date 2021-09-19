@@ -17,9 +17,9 @@ use super::{
 /// attempted, and any comparison data being worked against.
 ///
 /// It also has zero or more observers attached that can be sent information
-/// about the run's progress, and a comparison provider.  Both feed into the
-/// session's lifetime.
-pub struct Session<'a> {
+/// about the run's progress, and a comparison provider.  The latter feeds into
+/// the session's lifetime.
+pub struct Session<'cmp> {
     /// Metadata for the game/category currently being run.
     pub metadata: category::Info,
     /// The current run.
@@ -27,11 +27,11 @@ pub struct Session<'a> {
     /// Comparison data for the game/category currently being run.
     comparison: Comparison,
     /// Any observers attached to the session.
-    pub observers: observer::Mux<'a>,
+    pub observers: observer::Mux,
     /// The function for timestamping outgoing runs.
     timestamper: fn() -> chrono::DateTime<chrono::Utc>,
     /// The comparison provider.
-    comparator: Box<dyn comparison::Provider + 'a>,
+    comparator: Box<dyn comparison::Provider + 'cmp>,
 }
 
 impl<'a> Session<'a> {
