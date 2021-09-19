@@ -54,7 +54,10 @@ fn render_label(r: &mut dyn Renderer, label: &str) -> Result<()> {
 }
 
 /// Logic common to rendering a paced time.
-fn render_paced_time(r: &mut dyn Renderer, pace::PacedTime { pace, time }: pace::PacedTime) -> Result<()> {
+fn render_paced_time(
+    r: &mut dyn Renderer,
+    pace::PacedTime { pace, time }: pace::PacedTime,
+) -> Result<()> {
     // We don't set a font, because different times have different fonts.
     r.set_fg_colour(colour::fg::Id::Pace(pace));
     r.set_pos(Position::x(X::Right(0)));

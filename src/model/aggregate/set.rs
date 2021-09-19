@@ -74,10 +74,13 @@ impl Set {
             .into_iter()
             .scan(Time::default(), |cumulative, (short, split)| {
                 *cumulative += split;
-                Some((short, Set {
-                    split,
-                    cumulative: *cumulative,
-                }))
+                Some((
+                    short,
+                    Set {
+                        split,
+                        cumulative: *cumulative,
+                    },
+                ))
             })
     }
 }

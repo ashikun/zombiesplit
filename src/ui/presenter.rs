@@ -113,7 +113,8 @@ impl<'a> Presenter<'a> {
     /// position being available outside of the mode.
     fn refresh_state_cursor(&mut self) {
         // TODO(@MattWindsor91): get rid of this, somehow.
-        self.state.set_cursor(self.mode.cursor().map(|x| x.position()))
+        self.state
+            .set_cursor(self.mode.cursor().map(|x| x.position()))
     }
 
     /// Start the process of quitting.

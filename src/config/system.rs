@@ -15,6 +15,30 @@ pub struct System {
     pub db_path: PathBuf,
     /// UI configuration.
     pub ui: view::Config,
+    /// The comparison provider.
+    pub comparison_provider: ComparisonProvider,
+}
+
+/// Enumerates the various up-front ways in which zombiesplit knows to source
+/// a comparison.
+///
+/// New methods may be added to this in future.  In addition, the lower-level
+/// zombiesplit API is open to any provider that implements the appropriate
+/// trait.
+#[derive(Copy, Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum ComparisonProvider {
+    /// Don't compare against anything.
+    None,
+    /// Compare against the PB run in the database.
+    Database,
+}
+
+/// By default, there are no comparisons.
+impl Default for ComparisonProvider {
+    fn default() -> Self {
+        Self::None
+    }
 }
 
 impl System {

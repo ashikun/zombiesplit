@@ -4,6 +4,7 @@
 # yet, so be careful!
 
 db_path = "zombiesplit.db"
+comparison_provider = "Database"
 
 # Window metrics
 [ui.window]

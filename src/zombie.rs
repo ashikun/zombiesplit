@@ -183,8 +183,15 @@ impl Zombie {
         session.observers.add(db::Observer::boxed(self.db.clone()));
         // TODO(@MattWindsor91): allow this to be switched off.
         session.observers.add(Box::new(Debug));
-        session.set_comparison_provider(Box::new(insp));
+        session.set_comparison_provider(self.comparison_provider(insp));
         Ok(session)
+    }
+
+    fn comparison_provider<'a>(&self, insp: Inspector<'a>) -> Box<dyn comparison::Provider + 'a> {
+        match self.cfg.comparison_provider {
+            config::system::ComparisonProvider::Database => Box::new(insp),
+            _ => Box::new(comparison::NullProvider),
+        }
     }
 }
 

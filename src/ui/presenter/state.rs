@@ -6,7 +6,13 @@ of change on the model.
 
 use std::fmt::Display;
 
-use crate::model::{Time, aggregate, attempt::observer::{split, time}, comparison::pace::{self, PacedTime}, game::category, short};
+use crate::model::{
+    aggregate,
+    attempt::observer::{split, time},
+    comparison::pace::{self, PacedTime},
+    game::category,
+    short, Time,
+};
 
 /// The presenter's representation of the model.
 #[derive(Debug, Default)]
@@ -68,7 +74,10 @@ impl State {
 
     /// Gets the overall cursor.
     fn total(&mut self) -> PacedTime {
-        self.splits.last().map(Split::paced_cumulative).unwrap_or_default()
+        self.splits
+            .last()
+            .map(Split::paced_cumulative)
+            .unwrap_or_default()
     }
 
     /// Inserts a split into the split list with the given display name.
@@ -203,5 +212,5 @@ pub struct Footer {
     pub total: pace::PacedTime,
 
     /// The target time of the run, if any.
-    pub target: Option<Time>
+    pub target: Option<Time>,
 }
