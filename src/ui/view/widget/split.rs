@@ -3,7 +3,7 @@
 use std::convert::TryFrom;
 
 use super::super::{
-    super::presenter::{cursor, Presenter},
+    super::presenter::{self, cursor},
     error::Result,
     gfx::{
         colour,
@@ -13,10 +13,7 @@ use super::super::{
         render::{Region, Renderer},
     },
 };
-use crate::{
-    model::{self, aggregate},
-    ui::presenter,
-};
+use crate::model::{self, aggregate};
 
 /// The split viewer widget.
 pub struct Widget {
@@ -27,7 +24,7 @@ pub struct Widget {
 }
 
 impl super::Widget for Widget {
-    fn render(&mut self, r: &mut dyn Renderer, p: &Presenter) -> Result<()> {
+    fn render(&mut self, r: &mut dyn Renderer, p: &presenter::Core) -> Result<()> {
         let mut r = Region::new(r, self.rect);
 
         for (index, state) in p.state.splits.iter().enumerate() {
@@ -60,7 +57,7 @@ struct SplitDrawer<'r, 'g, 'p> {
     index: usize,
     state: &'p presenter::state::Split,
     r: &'r mut Region<'g>,
-    p: &'p Presenter<'p>,
+    p: &'p presenter::Core<'p>,
 }
 
 impl<'r, 'g, 'p> SplitDrawer<'r, 'g, 'p> {

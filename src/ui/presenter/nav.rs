@@ -1,11 +1,6 @@
 //! The [Nav] struct and its implementations.
 
-use super::{
-    cursor::{self, Cursor},
-    editor::Editor,
-    event::Event,
-    mode::{EventResult, Mode},
-};
+use super::{cursor::{self, Cursor}, editor::Editor, event::{self, Modal}, mode::{EventResult, Mode}};
 use crate::model::{attempt::Session, time::position};
 
 /// Mode for when we are navigating splits.
@@ -15,13 +10,13 @@ pub struct Nav {
 }
 
 impl Mode for Nav {
-    fn handle_event(&mut self, e: &Event, s: &mut Session) -> EventResult {
+    fn handle_event(&mut self, e: &Modal, s: &mut Session) -> EventResult {
         match e {
-            Event::Cursor(c) => self.move_cursor(*c),
-            Event::EnterField(f) => self.enter_field(*f),
-            Event::Undo => self.undo(s),
-            Event::Delete => self.delete(s),
-            _ => EventResult::NotHandled,
+            Modal::Cursor(c) => self.move_cursor(*c),
+            Modal::EnterField(f) => self.enter_field(*f),
+            Modal::Undo => self.undo(),
+            Modal::Delete => self.delete(s),
+            _ => EventResult::Handled,
         }
     }
 
@@ -44,11 +39,8 @@ impl Nav {
     }
 
     /// Performs an undo on the current split, if any.
-    fn undo(&mut self, s: &mut Session) -> EventResult {
-        s.pop_from(self.cur.position())
-            .map_or(EventResult::Handled, |time| {
-                EventResult::transition(Editor::with_time(self.cur, time))
-            })
+    fn undo(&mut self) -> EventResult {
+       EventResult::Expanded(event::Attempt::Pop(self.cur.position())) 
     }
 
     /// Performs a delete on the current split, if any.
@@ -60,7 +52,8 @@ impl Nav {
     /// Moves the state cursor according to `c`, if possible.
     fn move_cursor(&mut self, motion: cursor::Motion) -> EventResult {
         // TODO(@MattWindsor91): cursor multiplier
-        EventResult::from_handled(self.cur.move_by(motion, 1) != 0)
+        self.cur.move_by(motion, 1);
+        EventResult::Handled
     }
 
     /// Constructs an editor entering the given field.

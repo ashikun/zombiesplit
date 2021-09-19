@@ -2,7 +2,7 @@
 
 use crate::model::attempt::Session;
 
-use super::{cursor::Cursor, editor::Editor, event::Event};
+use super::{cursor::Cursor, editor::Editor, event};
 
 /// Trait for presenter modes.
 ///
@@ -17,8 +17,8 @@ pub trait Mode {
     ///
     /// Note that the presenter also handles some events at the global
     /// level.
-    fn handle_event(&mut self, _e: &Event, _session: &mut Session) -> EventResult {
-        EventResult::NotHandled
+    fn handle_event(&mut self, _e: &event::Modal, _session: &mut Session) -> EventResult {
+        EventResult::Handled
     }
 
     /// Commits any outstanding changes the mode needs to do to the model.
@@ -56,25 +56,16 @@ impl Mode for Quitting {
 
 /// Enum of results of handling an event in a mode.
 pub enum EventResult {
-    /// The event was not handled.
-    NotHandled,
-    /// The event was handled and the mode state should be considered dirty.
+    /// The event was handled internally.
     Handled,
+    /// The event has been interpreted as a change to the attempt state, and
+    /// should be handled by the global event handler.
+    Expanded(event::Attempt),
     /// The event caused a transition to another mode.
     Transition(Box<dyn Mode>),
 }
 
 impl EventResult {
-    /// Creates an event result from a 'was handled' boolean `handled`.
-    #[must_use]
-    pub fn from_handled(handled: bool) -> Self {
-        if handled {
-            Self::Handled
-        } else {
-            Self::NotHandled
-        }
-    }
-
     /// Shorthand for creating a transition.
     #[must_use]
     pub fn transition(to: impl Mode + 'static) -> Self {

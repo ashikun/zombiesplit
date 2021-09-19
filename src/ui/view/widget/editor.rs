@@ -4,7 +4,7 @@ use super::{
     super::{
         super::presenter::{
             editor::{Editor, Field},
-            Presenter,
+            Core,
         },
         error::Result,
         gfx::{
@@ -25,7 +25,7 @@ pub struct Widget {
 }
 
 impl super::Widget for Widget {
-    fn render(&mut self, r: &mut dyn Renderer, p: &Presenter) -> Result<()> {
+    fn render(&mut self, r: &mut dyn Renderer, p: &Core) -> Result<()> {
         if let Some(e) = p.editor() {
             self.draw_editor(e, r)?;
         }

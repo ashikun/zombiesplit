@@ -19,7 +19,7 @@ pub use view::View;
 ///
 /// Propagates any errors from creating, spawning, or running the view.
 pub fn run(cfg: view::Config, session: crate::model::attempt::Session) -> view::Result<()> {
-    let p = Presenter::new(session);
+    let p = Presenter::new(presenter::Core::new(session));
     View::new(cfg)?.spawn(p)?.run()?;
     Ok(())
 }

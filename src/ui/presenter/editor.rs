@@ -4,7 +4,7 @@ use std::fmt::{Display, Formatter};
 
 use super::{
     cursor::{self, Cursor},
-    event::{Edit, Event},
+    event::{Edit, Modal},
     mode::{EventResult, Mode},
     nav::Nav,
 };
@@ -26,14 +26,14 @@ pub struct Editor {
 }
 
 impl Mode for Editor {
-    fn handle_event(&mut self, e: &Event, _: &mut Session) -> EventResult {
+    fn handle_event(&mut self, e: &Modal, _: &mut Session) -> EventResult {
         match e {
-            Event::Undo => self.undo(),
-            Event::Delete => self.delete(),
-            Event::Edit(d) => self.edit(*d),
-            Event::EnterField(f) => self.enter_field(*f),
-            Event::Cursor(c) => self.move_cursor(*c),
-            _ => EventResult::NotHandled,
+            Modal::Undo => self.undo(),
+            Modal::Delete => self.delete(),
+            Modal::Edit(d) => self.edit(*d),
+            Modal::EnterField(f) => self.enter_field(*f),
+            Modal::Cursor(c) => self.move_cursor(*c),
+            _ => EventResult::Handled,
         }
     }
 
@@ -82,20 +82,18 @@ impl Editor {
     }
 
     fn edit(&mut self, e: Edit) -> EventResult {
-        EventResult::from_handled(self.field.as_mut().map_or(false, |f| f.edit(e)))
+        if let Some(f) = self.field.as_mut() {
+            f.edit(e);
+        }
+        EventResult::Handled
     }
 
     fn undo(&mut self) -> EventResult {
-        if self.field.take().is_some() {
-            // Erased field
-            EventResult::Handled
-        } else if self.time.is_zero() {
-            // Nothing to erase
-            EventResult::NotHandled
-        } else {
+        // Try clearing the field first, then, otherwise, clear the time.
+        if self.field.take().is_none() {
             self.time = time::Time::default();
-            EventResult::Handled
         }
+        EventResult::Handled
     }
 
     fn delete(&mut self) -> EventResult {

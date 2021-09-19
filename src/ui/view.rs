@@ -80,9 +80,9 @@ impl<'c, 'p> Instance<'c, 'p> {
     ///
     /// Returns an error if SDL fails to perform an action.
     pub fn run(&mut self) -> error::Result<()> {
-        self.widgets.redraw(&self.presenter)?;
+        self.widgets.redraw(&self.presenter.core)?;
 
-        while self.presenter.is_running() {
+        while self.presenter.core.is_running() {
             self.cycle()?;
         }
 
@@ -93,10 +93,10 @@ impl<'c, 'p> Instance<'c, 'p> {
         self.presenter.pump();
         for e in self.events.poll_iter() {
             if let Some(x) = event::from_sdl(&e) {
-                self.presenter.handle_event(&x);
+                self.presenter.core.handle_event(&x);
             }
         }
-        self.widgets.redraw(&self.presenter)?;
+        self.widgets.redraw(&self.presenter.core)?;
 
         std::thread::sleep(Duration::from_millis(1));
 

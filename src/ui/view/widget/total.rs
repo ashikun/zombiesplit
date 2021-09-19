@@ -2,7 +2,7 @@
 
 use super::{
     super::{
-        super::presenter::Presenter,
+        super::presenter,
         error::Result,
         gfx::{
             colour, font, metrics,
@@ -12,7 +12,7 @@ use super::{
     },
     split::time_str,
 };
-use crate::{model::comparison::pace, ui::presenter};
+use crate::model::comparison::pace;
 
 /// Views the total time for a run.
 pub struct Widget {
@@ -21,7 +21,7 @@ pub struct Widget {
 }
 
 impl super::Widget for Widget {
-    fn render(&mut self, r: &mut dyn Renderer, p: &Presenter) -> Result<()> {
+    fn render(&mut self, r: &mut dyn Renderer, p: &presenter::Core) -> Result<()> {
         let mut r = Region::new(r, self.rect);
 
         // TODO(@MattWindsor91): clean this up into a struct etc.

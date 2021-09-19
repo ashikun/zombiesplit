@@ -10,7 +10,7 @@ mod split;
 mod total;
 
 use super::{
-    super::Presenter,
+    super::presenter,
     error::Result,
     gfx::{metrics, render},
 };
@@ -18,7 +18,7 @@ use super::{
 /// Trait for things that can render information from a presenter.
 pub trait Widget {
     /// Renders information from `p` onto the renderer `r`.
-    fn render(&mut self, r: &mut dyn render::Renderer, p: &Presenter) -> Result<()>;
+    fn render(&mut self, r: &mut dyn render::Renderer, p: &presenter::Core) -> Result<()>;
 }
 
 /// A collection of widgets, combined with their renderer.
@@ -42,7 +42,7 @@ impl<'a> Set<'a> {
     /// # Errors
     ///
     /// Returns an error if SDL fails to redraw the screen.
-    pub fn redraw(&mut self, state: &Presenter) -> Result<()> {
+    pub fn redraw(&mut self, state: &presenter::Core) -> Result<()> {
         self.renderer.clear();
 
         for w in &mut self.widgets {

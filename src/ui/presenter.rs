@@ -1,4 +1,15 @@
-//! Contains all of the state held by the user interface.
+/*! The presenter part of zombiesplit's model-view-presenter architecture.
+
+The part of zombiesplit that mediates between the model [Session] and the
+user interface.
+
+The presenter translates events (ultimately from the keyboard and windowing
+system etc.) to operations on the [Session], while translating observations
+of changes made to the [Session] into visual and modal changes to the UI.
+
+For borrowck reasons, the presenter is split into two structs: [Presenter]
+and [Core].
+*/
 
 pub mod cursor;
 pub mod editor;
@@ -7,51 +18,31 @@ pub mod mode;
 pub mod nav;
 pub mod state;
 
-use crate::model::attempt::{self, Session};
+use crate::model::{attempt::{self, Session, observer}, short};
 pub use editor::Editor;
 use std::sync::mpsc;
 
 use self::cursor::SplitPosition;
 
-/// The part of zombiesplit that mediates between the model [Session] and the
-/// user interface.
-///
-/// The presenter translates events (ultimately from the keyboard and windowing
-/// system etc.) to operations on the [Session], while translating observations
-/// of changes made to the [Session] into visual and modal changes to the UI.
-pub struct Presenter<'a> {
+/// The core of a zombiesplit presenter, containing all state and modality.
+
+pub struct Core<'a> {
     /// The current mode.
     pub mode: Box<dyn mode::Mode + 'a>,
     /// The zombiesplit session being controlled by the presenter.
     pub session: Session<'a>,
     pub state: state::State,
-    obs_receiver: mpsc::Receiver<attempt::observer::Event>,
-    obs_sender: mpsc::Sender<attempt::observer::Event>,
 }
-impl<'a> Presenter<'a> {
+
+impl<'a> Core<'a> {
     /// Constructs a new initial state for a given session.
     #[must_use]
     pub fn new(session: Session<'a>) -> Self {
         // TODO(@MattWindsor91): remove session use here
-        let (obs_sender, obs_receiver) = mpsc::channel();
-        let mut p = Self {
+        Self {
             mode: Box::new(mode::Inactive),
             state: state::State::default(),
             session,
-            obs_sender,
-            obs_receiver,
-        };
-        p.session.observers.add(Box::new(p.observer()));
-        p.session.dump_to_observers();
-        p
-    }
-
-    /// Gets an observer that can be used to update the presenter with
-    /// session changes.
-    #[must_use]
-    pub fn observer(&self) -> Observer {
-        Observer {
-            sender: self.obs_sender.clone(),
         }
     }
 
@@ -80,20 +71,40 @@ impl<'a> Presenter<'a> {
     /// Events are offered to the current mode first, and handled globally if
     /// the event is refused by the mode.
     pub fn handle_event(&mut self, e: &event::Event) {
-        match self.mode.handle_event(e, &mut self.session) {
-            mode::EventResult::Transition(new_mode) => self.transition(new_mode),
-            mode::EventResult::NotHandled => self.handle_event_globally(*e),
-            mode::EventResult::Handled => self.refresh_state_cursor(),
+        if let Some(a) = self.handle_potentially_modal_event(e) {
+            self.handle_attempt_event(a);
         }
     }
 
-    fn handle_event_globally(&mut self, e: event::Event) {
-        use event::Event;
+    fn handle_potentially_modal_event(&mut self, e: &event::Event) -> Option<event::Attempt> {
         match e {
-            Event::Commit => self.commit_mode(),
-            Event::NewRun => self.session.reset(),
-            Event::Quit => self.quit(),
-            _ => (),
+            event::Event::Attempt(a) => Some(*a),
+            event::Event::Modal(m) => self.handle_modal_event(*m)
+        }
+    }
+
+    fn handle_modal_event(&mut self, m: event::Modal) -> Option<event::Attempt> {
+        match self.mode.handle_event(&m, &mut self.session) {
+            mode::EventResult::Transition(new_mode) => {
+                self.transition(new_mode);
+                None
+            }
+            mode::EventResult::Expanded(a) => Some(a),
+            mode::EventResult::Handled => {
+                self.refresh_state_cursor();
+                None
+            }
+        }
+    }
+
+    fn handle_attempt_event(&mut self, e: event::Attempt) {
+        use event::Attempt;
+        match e {
+            Attempt::NewRun => self.session.reset(),
+            Attempt::Push(pos, time) => self.session.push_to(pos, time),
+            Attempt::Pop(pos) => {self.session.pop_from(pos);},
+            Attempt::Clear(pos) => self.session.clear_at(pos),
+            Attempt::Quit => self.quit(),
         }
     }
 
@@ -122,21 +133,38 @@ impl<'a> Presenter<'a> {
         self.transition(Box::new(mode::Quitting));
     }
 
-    pub fn pump(&mut self) {
-        let events = self.obs_receiver.try_iter();
-        for l in events {
-            use attempt::observer::Event;
-            match l {
-                Event::AddSplit(short, name) => self.state.add_split(short, name),
-                Event::Reset(_) => {
-                    let cur = cursor::Cursor::new(self.state.num_splits() - 1);
-                    // Don't commit the previous mode.
-                    self.mode = Box::new(nav::Nav::new(cur));
-                    self.state.reset();
-                }
-                Event::Attempt(a) => self.state.attempt = a,
-                Event::GameCategory(gc) => self.state.game_category = gc,
-                Event::Split(short, ev) => self.state.handle_split_event(short, ev),
+    /// Handles the split event `ev` relating to 
+    fn handle_split_event(&mut self, short: short::Name, ev: observer::split::Event) {
+        self.state.handle_split_event(short, ev);
+
+        if let observer::split::Event::Time(_, observer::time::Event::Popped) = ev {
+            // We just popped a time, so we should open it into an editor.
+            if let Some(cursor) = self.mode.cursor().copied() {
+                self.transition(  Box::new(Editor::new(cursor, None)));
+            }
+        }
+    }
+
+    fn reset(&mut self) {
+        let cur = cursor::Cursor::new(self.state.num_splits() - 1);
+        // Don't commit the previous mode.
+        self.mode = Box::new(nav::Nav::new(cur));
+        self.state.reset();
+    }
+
+    /// Observes `evt` on this presenter core.
+    pub fn observe(&mut self, evt: observer::Event) {
+        // TODO(@MattWindsor91): eventually make it possible for this to be
+        // called directly as an observe?  the mutability makes it a bit
+        // difficult though.
+        use attempt::observer::Event;
+        match evt {
+            Event::AddSplit(short, name) => self.state.add_split(short, name),
+            Event::Reset(_) => self.reset(),
+            Event::Attempt(a) => self.state.attempt = a,
+            Event::GameCategory(gc) => self.state.game_category = gc,
+            Event::Split(short, ev) => {
+                self.handle_split_event(short, ev);
             }
         }
         // TODO(@MattWindsor91): this is wasteful but borrowck won't let me do better yet.
@@ -144,7 +172,48 @@ impl<'a> Presenter<'a> {
     }
 }
 
-pub struct Observer {
+/// A functional presenter, with the ability to listen to observations from the
+/// underlying session.
+pub struct Presenter<'a> {
+    /// The underlying core.
+    pub core: Core<'a>,
+    obs_receiver: mpsc::Receiver<attempt::observer::Event>,
+    obs_sender: mpsc::Sender<attempt::observer::Event>,
+}
+
+impl<'a> Presenter<'a> {
+    /// Lifts a presenter into an observable presenter.
+    ///
+    /// This installs an observer into the [Session] that allows
+    /// events to be fed asynchronously into the [Core].
+    #[must_use]
+    pub fn new(core: Core<'a>) -> Self {
+        let (obs_sender, obs_receiver) = mpsc::channel();
+        let mut o = Self { core, obs_receiver, obs_sender };
+        o.core.session.observers.add(Box::new(o.observer()));
+        o.core.session.dump_to_observers();
+        o
+    }
+
+    /// Gets an observer that can be used to update the presenter with
+    /// session changes.
+    #[must_use]
+    fn observer(&self) -> Observer {
+        Observer {
+            sender: self.obs_sender.clone(),
+        }
+    }
+
+    pub fn pump(&mut self) {
+        let events = self.obs_receiver.try_iter();
+        for l in events {
+            self.core.observe(l);
+        }
+    }
+}
+
+/// An observer that feeds into a [Presenter].
+struct Observer {
     sender: mpsc::Sender<attempt::observer::Event>,
 }
 
