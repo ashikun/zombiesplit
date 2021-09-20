@@ -199,14 +199,14 @@ impl<'a> Session<'a> {
     }
 
     pub fn clear_at(&mut self, split: impl split::Locator) {
-        if let Some(s) = self.locate_split_mut(split) {
+        if let Some(s) = self.run.splits.get_mut(split) {
             s.clear();
             // TODO(@MattWindsor91): observe
         }
     }
 
     pub fn push_to(&mut self, split: impl split::Locator, time: Time) {
-        if let Some(s) = self.locate_split_mut(split) {
+        if let Some(s) = self.run.splits.get_mut(split) {
             s.push(time);
             let short = s.info.short;
             self.observers
@@ -216,9 +216,9 @@ impl<'a> Session<'a> {
     }
 
     pub fn pop_from(&mut self, split: impl split::Locator) -> Option<Time> {
-        let splits = &mut self.run.splits;
-        split
-            .locate_mut(splits)
+        self.run
+            .splits
+            .get_mut(split)
             .and_then(|s| {
                 let short = s.info.short;
                 s.pop().map(|time| (short, time))
@@ -229,9 +229,5 @@ impl<'a> Session<'a> {
                 self.observe_paces_and_aggregates();
                 time
             })
-    }
-
-    fn locate_split_mut(&mut self, split: impl split::Locator) -> Option<&mut split::Split> {
-        split.locate_mut(&mut self.run.splits)
     }
 }
