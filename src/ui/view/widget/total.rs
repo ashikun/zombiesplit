@@ -20,7 +20,7 @@ pub struct Widget {
     pub rect: metrics::Rect,
 }
 
-impl super::Widget for Widget {
+impl super::Widget<state::State> for Widget {
     fn render(&mut self, r: &mut dyn Renderer, s: &state::State) -> Result<()> {
         let mut r = Region::new(r, self.rect);
 

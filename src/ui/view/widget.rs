@@ -16,7 +16,7 @@ use super::{
 };
 
 /// Trait for things that can render information from a presenter.
-pub trait Widget {
+pub trait Widget<State> {
     /// Renders information from `s` onto the renderer `r`.
     fn render(&mut self, r: &mut dyn render::Renderer, s: &State) -> Result<()>;
 }
@@ -24,7 +24,7 @@ pub trait Widget {
 /// A collection of widgets, combined with their renderer.
 pub struct Set<'a> {
     renderer: render::Window<'a>,
-    widgets: Vec<Box<dyn Widget>>,
+    widgets: Vec<Box<dyn Widget<State>>>,
 }
 
 impl<'a> Set<'a> {
@@ -55,7 +55,7 @@ impl<'a> Set<'a> {
     }
 }
 
-fn make_widgets(wmetrics: metrics::Window) -> Vec<Box<dyn Widget>> {
+fn make_widgets(wmetrics: metrics::Window) -> Vec<Box<dyn Widget<State>>> {
     vec![
         make_splits(wmetrics),
         make_header(wmetrics),
@@ -63,20 +63,20 @@ fn make_widgets(wmetrics: metrics::Window) -> Vec<Box<dyn Widget>> {
     ]
 }
 
-fn make_splits(wmetrics: metrics::Window) -> Box<dyn Widget> {
+fn make_splits(wmetrics: metrics::Window) -> Box<dyn Widget<State>> {
     Box::new(split::Widget::new(
         wmetrics.splits_rect(),
         metrics::sat_i32(wmetrics.split_h),
     ))
 }
 
-fn make_header(wmetrics: metrics::Window) -> Box<dyn Widget> {
+fn make_header(wmetrics: metrics::Window) -> Box<dyn Widget<State>> {
     Box::new(header::Widget {
         rect: wmetrics.header_rect(),
     })
 }
 
-fn make_total(wmetrics: metrics::Window) -> Box<dyn Widget> {
+fn make_total(wmetrics: metrics::Window) -> Box<dyn Widget<State>> {
     Box::new(total::Widget {
         rect: wmetrics.total_rect(),
     })
