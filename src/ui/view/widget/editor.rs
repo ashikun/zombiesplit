@@ -1,122 +1,95 @@
-//! Logic for drawing the split editor.
+/*! Logic for drawing the split editor.
 
-use super::{
-    super::{
-        super::presenter::{
-            editor::{Editor, Field},
-            Core,
-        },
-        error::Result,
-        gfx::{
-            colour, font, metrics,
-            position::{Position, X},
-            render::{Region, Renderer},
-        },
-    },
-    split,
+The split editor isn't a [Widget] per se, as it lays on top of a split widget.
+*/
+
+use super::super::{
+    super::presenter::state,
+    error::Result,
+    gfx::{colour, font, metrics, position::Position, render::Renderer},
 };
-use crate::model::time;
+use crate::model::time::position::Name;
 
-/// The editor widget.
-pub struct Widget {
-    /// The bounding box for the header widget, to be offset by the split
-    /// position.
-    rect: metrics::Rect,
+/// Calculates the size of an editor rectangle, given a text sizer.
+#[must_use]
+pub fn size(t: &impl font::metrics::TextSizer) -> metrics::Size {
+    metrics::Size::from_i32s(t.span_w_str(PLACEHOLDER), t.span_h(1))
 }
 
-impl super::Widget for Widget {
-    fn render(&mut self, r: &mut dyn Renderer, p: &Core) -> Result<()> {
-        if let Some(e) = p.editor() {
-            self.draw_editor(e, r)?;
+/// The editor sub-widget, borrowing renderer and editor state.
+pub struct Editor<'r, 's, R> {
+    /// The renderer region being targeted.
+    pub r: &'r mut R,
+
+    /// The editor state being displayed.
+    pub state: &'s state::Editor,
+}
+
+const PLACEHOLDER: &str = "--'--\"---";
+
+impl<'r, 's, R: Renderer> Editor<'r, 's, R> {
+    /// Draws the foreground of any editor required by the current state.
+    pub fn render(&mut self) -> Result<()> {
+        self.draw_base()?;
+
+        self.draw_field(Name::Minutes, &self.state.mins)?;
+        self.draw_field(Name::Seconds, &self.state.secs)?;
+        self.draw_field(Name::Milliseconds, &self.state.msecs)
+    }
+
+    fn draw_base(&mut self) -> Result<()> {
+        self.r
+            .set_pos(Position::top_right(self.r.span_w_str(PLACEHOLDER), 0));
+        self.r.set_font(font::Id::Normal);
+        self.reset_colours();
+        self.fill_bg(metrics::sat_i32(PLACEHOLDER.len()))?;
+        self.r.put_str(PLACEHOLDER)?;
+        Ok(())
+    }
+
+    fn draw_field(&mut self, pos: Name, value: &str) -> Result<()> {
+        let is_editing = self.is_editing_field(pos);
+        let num_chars = metrics::sat_i32(value.len());
+
+        // Visually distinguish the currently-edited editor.
+        if is_editing {
+            self.prepare_field_editor();
+            self.fill_bg(num_chars)?;
         }
+
+        self.r.put_str(value)?;
+        self.r
+            .set_pos(Position::rel_chars(self.r, num_chars + 1, 0));
+
+        if is_editing {
+            self.reset_colours();
+        }
+
         Ok(())
     }
-}
 
-impl Widget {
-    /// Creates a new editor widget given the baseline rect.
-    pub fn new(rect: metrics::Rect) -> Self {
-        Self { rect }
+    fn is_editing_field(&self, pos: Name) -> bool {
+        Some(pos) == self.state.field
     }
 
-    /// Draws any editor required by the current state.
-    fn draw_editor(&mut self, e: &Editor, r: &mut dyn Renderer) -> Result<()> {
-        let mut rect = self.rect;
-        rect.y += metrics::sat_i32(rect.size.h) * metrics::sat_i32(e.cur.position());
-
-        // TODO(@MattWindsor91): don't hardcode this padding factor
-
-        let mut r = Region::new(r, rect);
-        draw_editor(&mut r, e)?;
-        Ok(())
+    /// Instructs the renderer to change colours to the field editor, and fill
+    /// a rectangle for the field editor to sit in.
+    ///
+    /// The foreground and background colour will need resetting afterwards.
+    fn prepare_field_editor(&mut self) {
+        self.r
+            .set_colours(colour::fg::Id::FieldEditor, colour::bg::Id::FieldEditor);
     }
-}
 
-/// Width of the editor in pixels.
-const EDITOR_WIDTH: i32 = 9;
-
-/// Draws the foreground of any editor required by the current state.
-fn draw_editor(r: &mut dyn Renderer, editor: &Editor) -> Result<()> {
-    let size = r.text_size(EDITOR_WIDTH, 1);
-
-    r.set_pos(Position::top_right(metrics::sat_i32(size.w), 0));
-    r.set_font(font::Id::Normal);
-    r.set_fg_colour(colour::fg::Id::Editor);
-    r.set_bg_colour(colour::bg::Id::Editor);
-
-    r.fill(metrics::Rect { x: 0, y: 0, size }.grow(1))?;
-
-    draw_editor_fg(r, editor)
-}
-
-/// Draws the foreground of any editor required by the current state.
-fn draw_editor_fg(r: &mut dyn Renderer, editor: &Editor) -> Result<()> {
-    // Every part of the editor uses the normal font.
-    r.set_font(font::Id::Normal);
-    r.set_pos(Position::top_right(0, 0));
-
-    draw_time(r, editor)?;
-    if let Some(ref f) = editor.field {
-        draw_field(r, f)?;
-    };
-    Ok(())
-}
-
-fn draw_time(r: &mut dyn Renderer, editor: &Editor) -> Result<()> {
-    r.set_fg_colour(colour::fg::Id::Editor);
-    r.put_str_r(&split::time_str(editor.time))
-}
-
-fn draw_field(r: &mut dyn Renderer, field: &Field) -> Result<()> {
-    let pos = field.position();
-
-    // Position floats above main editor.
-    r.set_pos(Position::x(X::Right(
-        r.span_w(EDITOR_WIDTH - field_char_offset(pos)),
-    )));
-    r.set_fg_colour(colour::fg::Id::FieldEditor);
-    r.set_bg_colour(colour::bg::Id::FieldEditor);
-
-    let size = r.text_size(field_char_width(pos), 1);
-    r.fill(metrics::Rect { x: 0, y: 0, size }.grow(1))?;
-
-    r.put_str(&field.to_string())
-}
-
-fn field_char_width(field: time::position::Name) -> i32 {
-    match field {
-        time::position::Name::Milliseconds => 3,
-        time::position::Name::Seconds | time::position::Name::Minutes => 2,
-        time::position::Name::Hours => unimplemented!(),
+    /// Resets the renderer's colours to the standard editor ones.
+    fn reset_colours(&mut self) {
+        self.r
+            .set_colours(colour::fg::Id::Editor, colour::bg::Id::Editor);
     }
-}
 
-/// Gets the field left X-offset, in chars.
-fn field_char_offset(field: time::position::Name) -> i32 {
-    match field {
-        time::position::Name::Minutes => 0,
-        time::position::Name::Seconds => 3,
-        time::position::Name::Milliseconds => 6,
-        time::position::Name::Hours => unimplemented!(),
+    /// Fills a background of `num_chars` width relative to the current position.
+    fn fill_bg(&mut self, num_chars: i32) -> Result<()> {
+        let size = self.r.text_size(num_chars, 1);
+        self.r.fill(metrics::Rect { x: 0, y: 0, size }.grow(1))
     }
 }

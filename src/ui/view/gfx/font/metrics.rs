@@ -1,7 +1,6 @@
 //! Font metrics.
-use super::super::metrics::Size;
+use super::super::metrics::{sat_i32, Size};
 use serde::{Deserialize, Serialize};
-use std::convert::TryFrom;
 
 /// A font metrics set.
 #[derive(Copy, Clone, Debug, Deserialize, Serialize)]
@@ -34,13 +33,17 @@ pub trait TextSizer {
     #[must_use]
     fn span_h(&self, size: i32) -> i32;
 
+    /// The horizontal size of `str`.
+    #[must_use]
+    fn span_w_str(&self, str: &str) -> i32 {
+        // If we ever implement proportional fonts, this'll change.
+        self.span_w(sat_i32(str.len()))
+    }
+
     /// Converts a size in chars into a size in pixels.
     #[must_use]
     fn text_size(&self, w_chars: i32, h_chars: i32) -> Size {
-        Size {
-            w: u32::try_from(self.span_w(w_chars)).unwrap_or_default(),
-            h: u32::try_from(self.span_w(h_chars)).unwrap_or_default(),
-        }
+        Size::from_i32s(self.span_w(w_chars), self.span_h(h_chars))
     }
 }
 

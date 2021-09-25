@@ -23,9 +23,8 @@ use crate::model::{
     short,
 };
 pub use editor::Editor;
+pub use state::State;
 use std::{rc::Rc, sync::mpsc};
-
-use self::cursor::SplitPosition;
 
 /// The core of a zombiesplit presenter, containing all state and modality.
 
@@ -47,14 +46,6 @@ impl<'a> Core<'a> {
             state: state::State::default(),
             session,
         }
-    }
-
-    /// Gets the split position, if any.
-    #[must_use]
-    pub fn split_position(&self, index: usize) -> SplitPosition {
-        self.mode
-            .cursor()
-            .map_or(SplitPosition::default(), |x| x.split_position(index))
     }
 
     /// Gets whether the UI should be running.
@@ -131,6 +122,14 @@ impl<'a> Core<'a> {
         // TODO(@MattWindsor91): get rid of this, somehow.
         self.state
             .set_cursor(self.mode.cursor().map(cursor::Cursor::position));
+
+        // TODO(@MattWindsor91): this too is a hack.
+        if let Some(c) = self.state.cursor_pos {
+            for s in &mut self.state.splits {
+                s.set_editor(None);
+            }
+            self.state.splits[c].set_editor(self.mode.editor());
+        }
     }
 
     /// Start the process of quitting.

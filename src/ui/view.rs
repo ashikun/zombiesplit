@@ -80,7 +80,7 @@ impl<'c, 'p> Instance<'c, 'p> {
     ///
     /// Returns an error if SDL fails to perform an action.
     pub fn run(&mut self) -> error::Result<()> {
-        self.widgets.redraw(&self.presenter.core)?;
+        self.widgets.redraw(&self.presenter.core.state)?;
 
         while self.presenter.core.is_running() {
             self.cycle()?;
@@ -96,7 +96,7 @@ impl<'c, 'p> Instance<'c, 'p> {
                 self.presenter.core.handle_event(&x);
             }
         }
-        self.widgets.redraw(&self.presenter.core)?;
+        self.widgets.redraw(&self.presenter.core.state)?;
 
         std::thread::sleep(Duration::from_millis(1));
 

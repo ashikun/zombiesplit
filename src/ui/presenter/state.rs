@@ -11,8 +11,12 @@ use crate::model::{
     attempt::observer::{split, time},
     comparison::pace::{self, PacedTime},
     game::category,
-    short, Time,
+    short,
+    time::position,
+    Time,
 };
+
+use super::cursor::SplitPosition;
 
 /// The presenter's representation of the model.
 #[derive(Debug, Default)]
@@ -127,6 +131,13 @@ impl State {
     pub fn num_splits(&self) -> usize {
         self.splits.len()
     }
+
+    /// Gets the relative position of the split at `usize` relative to the
+    /// cursor last logged in the split state.
+    #[must_use]
+    pub fn split_position(&self, split_pos: usize) -> SplitPosition {
+        SplitPosition::new(split_pos, self.cursor_pos)
+    }
 }
 
 /// Presenter state about one split.
@@ -140,6 +151,8 @@ pub struct Split {
     pub aggregates: aggregate::Full,
     /// The pace of this split in the run-so-far.
     pub pace_in_run: pace::SplitInRun,
+    /// Any editor active on this split.
+    pub editor: Option<Editor>,
 }
 
 impl Split {
@@ -200,6 +213,36 @@ impl Split {
             }
         }
     }
+
+    /// Populates this split state with the current state of `editor`.
+    ///
+    /// # Panics
+    ///
+    /// If the field position is set to hours.
+    pub fn set_editor(&mut self, editor: Option<&super::editor::Editor>) {
+        self.editor = editor.map(|e| {
+            let mut out = Editor {
+                mins: e.time.mins.to_string(),
+                secs: e.time.secs.to_string(),
+                msecs: e.time.millis.to_string(),
+                field: None,
+            };
+
+            if let Some(ref field) = e.field {
+                let pos = field.position();
+                out.field = Some(pos);
+                let target = match pos {
+                    position::Name::Minutes => &mut out.mins,
+                    position::Name::Seconds => &mut out.secs,
+                    position::Name::Milliseconds => &mut out.msecs,
+                    position::Name::Hours => unimplemented!("hours"),
+                };
+                *target = field.to_string();
+            }
+
+            out
+        });
+    }
 }
 
 /// Contains presenter state used in the footer.
@@ -213,4 +256,17 @@ pub struct Footer {
 
     /// The target time of the run, if any.
     pub target: Option<Time>,
+}
+
+/// Presenter state about an editor.
+#[derive(Debug, Default, Clone)]
+pub struct Editor {
+    /// The current field being edited, if any.
+    pub field: Option<position::Name>,
+    /// The current minutes string.
+    pub mins: String,
+    /// The current seconds string.
+    pub secs: String,
+    /// The current milliseconds string.
+    pub msecs: String,
 }

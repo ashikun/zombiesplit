@@ -13,6 +13,9 @@ use sdl2::{
 
 /// Trait of things that provide rendering facilities.
 pub trait Renderer: font::metrics::TextSizer {
+    /// Gets the size of this renderer's bounding box.
+    fn size(&self) -> metrics::Size;
+
     /// Sets the plotter to the given position.
     fn set_pos(&mut self, pos: Position);
 
@@ -24,6 +27,12 @@ pub trait Renderer: font::metrics::TextSizer {
 
     /// Sets the current foreground colour.
     fn set_fg_colour(&mut self, colour: colour::fg::Id);
+
+    /// Sets both colours at the same time.
+    fn set_colours(&mut self, fg: colour::fg::Id, bg: colour::bg::Id) {
+        self.set_fg_colour(fg);
+        self.set_bg_colour(bg);
+    }
 
     /// Puts a string `str` onto the screen at the current coordinate.
     ///
@@ -68,6 +77,13 @@ pub struct Window<'a> {
 }
 
 impl<'a> Renderer for Window<'a> {
+    fn size(&self) -> metrics::Size {
+        metrics::Size {
+            w: self.w_metrics.win_w,
+            h: self.w_metrics.win_h,
+        }
+    }
+
     fn set_pos(&mut self, pos: Position) {
         self.pos = Point::new(
             pos.x.to_left(self.pos.x, self.w_metrics.win_w),
@@ -99,7 +115,7 @@ impl<'a> Renderer for Window<'a> {
     }
 
     fn put_str_r(&mut self, str: &str) -> Result<()> {
-        let w = self.span_w(-metrics::sat_i32(str.len()));
+        let w = -self.span_w_str(str);
         self.put_str_at(self.pos.offset(w, 0), str)
     }
 }
@@ -220,6 +236,10 @@ impl<'a> Region<'a> {
 }
 
 impl<'a> Renderer for Region<'a> {
+    fn size(&self) -> metrics::Size {
+        self.rect.size
+    }
+
     fn set_pos(&mut self, pos: Position) {
         self.renderer.set_pos(pos.normalise_to_rect(self.rect));
     }

@@ -1,7 +1,7 @@
 //! Font and window metrics (most of which will be un-hardcoded later).
 use serde::{Deserialize, Serialize};
 
-use std::convert::TryFrom;
+use std::convert::{TryFrom, TryInto};
 
 /// Window metrics.
 #[derive(Copy, Clone, Debug, Deserialize, Serialize)]
@@ -95,6 +95,11 @@ where
     i32::try_from(x).unwrap_or(i32::MAX)
 }
 
+/// Convert `x` to u32, set to 0 if negative.
+pub(crate) fn u32_or_zero(x: impl TryInto<u32>) -> u32 {
+    x.try_into().unwrap_or_default()
+}
+
 /// A two-dimensional size.
 #[derive(Clone, Copy, Debug)]
 pub struct Size {
@@ -133,6 +138,26 @@ impl Size {
     #[must_use]
     pub fn h_i32(self) -> i32 {
         sat_i32(self.h)
+    }
+
+    /// Constructs a [Size] from a pair of signed width and height.
+    /// Negative values are clipped to zero.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use zombiesplit::ui::view::gfx::metrics;
+    ///
+    /// let size = Size::from_i32s(-5, 10);
+    /// assert_eq!(0, size.w)
+    /// assert_eq!(10, size.h)
+    /// ```
+    #[must_use]
+    pub fn from_i32s(w: i32, h: i32) -> Self {
+        Self {
+            w: u32_or_zero(w),
+            h: u32_or_zero(h),
+        }
     }
 }
 

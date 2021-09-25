@@ -2,16 +2,19 @@
 
 use std::convert::TryFrom;
 
-use super::super::{
-    super::presenter::{self, cursor},
-    error::Result,
-    gfx::{
-        colour,
-        font::{self, metrics::TextSizer},
-        metrics,
-        position::{Position, X},
-        render::{Region, Renderer},
+use super::{
+    super::{
+        super::presenter::{cursor, state},
+        error::Result,
+        gfx::{
+            colour,
+            font::{self, metrics::TextSizer},
+            metrics,
+            position::{Position, X},
+            render::{Region, Renderer},
+        },
     },
+    editor,
 };
 use crate::model::{self, aggregate};
 
@@ -24,16 +27,16 @@ pub struct Widget {
 }
 
 impl super::Widget for Widget {
-    fn render(&mut self, r: &mut dyn Renderer, p: &presenter::Core) -> Result<()> {
+    fn render(&mut self, r: &mut dyn Renderer, s: &state::State) -> Result<()> {
         let mut r = Region::new(r, self.rect);
 
-        for (index, state) in p.state.splits.iter().enumerate() {
-            r.set_pos(self.split_pos(index));
+        for (index, state) in s.splits.iter().enumerate() {
             SplitDrawer {
                 index,
                 state,
                 r: &mut r,
-                p,
+                split_pos: self.split_pos(index),
+                s,
             }
             .draw()?;
         }
@@ -55,17 +58,28 @@ impl Widget {
 /// Contains all state useful to draw one split.
 struct SplitDrawer<'r, 'g, 'p> {
     index: usize,
-    state: &'p presenter::state::Split,
+    state: &'p state::Split,
+    split_pos: Position,
     r: &'r mut Region<'g>,
-    p: &'p presenter::Core<'p>,
+    s: &'p state::State,
 }
 
 impl<'r, 'g, 'p> SplitDrawer<'r, 'g, 'p> {
     fn draw(&mut self) -> Result<()> {
+        self.r.set_pos(self.split_pos);
         self.draw_name()?;
-        self.draw_time()?;
-        self.draw_num_times()?;
-        Ok(())
+        self.draw_time_display()?;
+        self.draw_num_times()
+    }
+
+    #[allow(clippy::option_if_let_else)]
+    fn draw_time_display(&mut self) -> Result<()> {
+        let mut r = make_time_display_region(self.r, self.split_pos);
+        if let Some(ref state) = self.state.editor {
+            editor::Editor { r: &mut r, state }.render()
+        } else {
+            draw_time(&mut r, self.state)
+        }
     }
 
     fn draw_name(&mut self) -> Result<()> {
@@ -75,36 +89,10 @@ impl<'r, 'g, 'p> SplitDrawer<'r, 'g, 'p> {
         Ok(())
     }
 
-    fn draw_time(&mut self) -> Result<()> {
-        self.r.set_pos(Position::x(X::Right(0)));
-        self.r.set_fg_colour(self.time_colour());
-        self.r.put_str_r(&self.time_str())
-    }
-
-    fn time_str(&self) -> String {
-        time_str(self.state.aggregates[self.aggregate_source()][aggregate::Scope::Split])
-    }
-
-    fn time_colour(&self) -> colour::fg::Id {
-        colour::fg::Id::SplitInRunPace(self.state.pace_in_run)
-    }
-
-    /// Decide which source to use for the aggregate displayed on this split.
-    ///
-    /// Currently, this is always the comparison if there are no times logged
-    /// for the attempt, and the attempt otherwise.
-    fn aggregate_source(&self) -> aggregate::Source {
-        if 0 < self.state.num_times {
-            aggregate::Source::Attempt
-        } else {
-            aggregate::Source::Comparison
-        }
-    }
-
     /// Draws a representation of the number of times this split has logged.
     fn draw_num_times(&mut self) -> Result<()> {
         // TODO(@MattWindsor91): jog to position more accurately.
-        self.r.set_pos(Position::x(X::Rel(self.r.span_w(-10))));
+        self.r.set_pos(Position::x(X::Right(self.r.span_w(10))));
         self.r.set_font(font::Id::Small);
         // TODO(@MattWindsor91): better key?
         self.r.set_fg_colour(colour::fg::Id::Header);
@@ -112,7 +100,7 @@ impl<'r, 'g, 'p> SplitDrawer<'r, 'g, 'p> {
     }
 
     fn position(&self) -> cursor::SplitPosition {
-        self.p.split_position(self.index)
+        self.s.split_position(self.index)
     }
 }
 
@@ -120,4 +108,46 @@ impl<'r, 'g, 'p> SplitDrawer<'r, 'g, 'p> {
 pub fn time_str(time: model::time::Time) -> String {
     // TODO(@MattWindsor91): hours?
     format!("{}'{}\"{}", time.mins, time.secs, time.millis)
+}
+
+fn state_time_str(state: &state::Split) -> String {
+    time_str(state.aggregates[aggregate_source(state)][aggregate::Scope::Split])
+}
+
+fn time_colour(state: &state::Split) -> colour::fg::Id {
+    colour::fg::Id::SplitInRunPace(state.pace_in_run)
+}
+
+fn make_time_display_region<'a>(parent: &'a mut Region, split_pos: Position) -> Region<'a> {
+    // work out where the x position of the time display is
+    let parent_size = parent.size();
+    let size = editor::size(parent);
+    let x = metrics::sat_i32(parent_size.w - size.w);
+
+    let rect = metrics::Rect {
+        x,
+        y: split_pos.y.to_top(0, 0),
+        size,
+    };
+
+    Region::new(parent, rect)
+}
+
+fn draw_time(r: &mut Region, state: &state::Split) -> Result<()> {
+    r.set_pos(Position::top_left(0, 0));
+    r.set_font(font::Id::Normal);
+    r.set_fg_colour(time_colour(state));
+    r.put_str(&state_time_str(state))
+}
+
+/// Decide which source to use for the aggregate displayed on this split.
+///
+/// Currently, this is always the comparison if there are no times logged
+/// for the attempt, and the attempt otherwise.
+fn aggregate_source(state: &state::Split) -> aggregate::Source {
+    if 0 < state.num_times {
+        aggregate::Source::Attempt
+    } else {
+        aggregate::Source::Comparison
+    }
 }

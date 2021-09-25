@@ -27,11 +27,7 @@ impl Cursor {
     /// Gets the relative position of `split` to this cursor.
     #[must_use]
     pub fn split_position(&self, split: usize) -> SplitPosition {
-        match split.cmp(&self.pos) {
-            Ordering::Less => SplitPosition::Done,
-            Ordering::Equal => SplitPosition::Cursor,
-            Ordering::Greater => SplitPosition::Coming,
-        }
+        SplitPosition::from(split.cmp(&self.pos))
     }
 
     /// Moves the cursor up by `n`, returning the amount by which the position moved.
@@ -91,5 +87,61 @@ pub enum SplitPosition {
 impl Default for SplitPosition {
     fn default() -> Self {
         Self::Coming
+    }
+}
+
+impl SplitPosition {
+    /// Constructs a new split position by comparing a split position
+    /// `split_pos` to an optional cursor position `cur_pos`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use zombiesplit::presenter::cursor::SplitPosition;
+    ///
+    /// // no cursor is given
+    /// assert_eq!(SplitPosition::default(), SplitPosition::new(0, None))
+    ///
+    /// // split is before the cursor
+    /// assert_eq!(SplitPosition::Done, SplitPosition::new(0, Some(5)))
+    ///
+    /// // split is on the cursor
+    /// assert_eq!(SplitPosition::Cursor, SplitPosition::new(5, Some(5)))
+    ///
+    /// // split is after the cursor
+    /// assert_eq!(SplitPosition::Coming, SplitPosition::from(10, Some(5)))
+    /// ```
+    #[must_use]
+    pub fn new(split_pos: usize, cur_pos: Option<usize>) -> Self {
+        cur_pos.map_or(SplitPosition::default(), |cur_pos| {
+            SplitPosition::from(split_pos.cmp(&cur_pos))
+        })
+    }
+}
+
+/// Converting an ordering between split (on LHS) and cursor (on RHS) positions
+/// into a relative position for the split.
+///
+/// # Example
+///
+/// ```
+/// use zombiesplit::presenter::cursor::SplitPosition;
+///
+/// // split is before the cursor
+/// assert_eq!(SplitPosition::Done, SplitPosition::from(0.cmp(5)))
+///
+/// // split is on the cursor
+/// assert_eq!(SplitPosition::Cursor, SplitPosition::from(5.cmp(5)))
+///
+/// // split is after the cursor
+/// assert_eq!(SplitPosition::Coming, SplitPosition::from(10.cmp(5)))
+/// ```
+impl From<Ordering> for SplitPosition {
+    fn from(split_cmp_cur: std::cmp::Ordering) -> Self {
+        match split_cmp_cur {
+            Ordering::Less => Self::Done,
+            Ordering::Equal => Self::Cursor,
+            Ordering::Greater => Self::Coming,
+        }
     }
 }

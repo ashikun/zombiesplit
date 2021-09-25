@@ -1,7 +1,7 @@
 //! Header display.
 
 use super::super::{
-    super::presenter,
+    super::presenter::State,
     error::Result,
     gfx::{
         colour, font, metrics,
@@ -18,13 +18,13 @@ pub struct Widget {
 }
 
 impl super::Widget for Widget {
-    fn render(&mut self, r: &mut dyn Renderer, p: &presenter::Core) -> Result<()> {
+    fn render(&mut self, r: &mut dyn Renderer, s: &State) -> Result<()> {
         let mut r = Region::new(r, self.rect);
 
         r.set_fg_colour(colour::fg::Id::Header);
 
-        render_meta(&mut r, &p.state.game_category)?;
-        render_attempt(&mut r, &p.state.attempt)?;
+        render_meta(&mut r, &s.game_category)?;
+        render_attempt(&mut r, &s.attempt)?;
         Ok(())
     }
 }
