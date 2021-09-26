@@ -1,8 +1,7 @@
 //! Header display.
 
 use super::super::{
-    super::presenter::State,
-    error::Result,
+    super::{Result, presenter::State},
     gfx::{
         colour, font, metrics,
         position::{Position, X},
@@ -14,11 +13,23 @@ use crate::model::game::category::{AttemptInfo, Info};
 /// Views information about the run in the form of a header.
 pub struct Widget {
     /// The bounding box for the header widget.
-    pub rect: metrics::Rect,
+    rect: metrics::Rect,
+}
+
+impl Widget {
+    /// Constructs a new [Widget] using the given layout context.
+    pub fn new(ctx: super::LayoutContext) -> Self {
+        Self{rect: ctx.bounds}
+    }
 }
 
 impl super::Widget<State> for Widget {
-    fn render(&mut self, r: &mut dyn Renderer, s: &State) -> Result<()> {
+    fn layout(&mut self, ctx: super::LayoutContext) {
+        // TODO(@MattWindsor91): this is the parent bounds set.
+        self.rect = ctx.bounds;
+    }
+
+    fn render(&self, r: &mut dyn Renderer, s: &State) -> Result<()> {
         let mut r = Region::new(r, self.rect);
 
         r.set_fg_colour(colour::fg::Id::Header);

@@ -224,7 +224,7 @@ pub enum Error {
     #[error("IO error")]
     Io(#[from] std::io::Error),
     #[error("UI error")]
-    View(#[from] ui::view::Error),
+    View(#[from] ui::Error),
     #[error("error loading data from file")]
     GameLoad(#[from] model::load::Error),
     #[error("couldn't deduce game short-name")]

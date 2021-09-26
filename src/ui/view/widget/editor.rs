@@ -4,8 +4,7 @@ The split editor isn't a [Widget] per se, as it lays on top of a split widget.
 */
 
 use super::super::{
-    super::presenter::state,
-    error::Result,
+    super::{Result, presenter::state},
     gfx::{colour, font, metrics, position::Position, render::Renderer},
 };
 use crate::model::time::position::Name;

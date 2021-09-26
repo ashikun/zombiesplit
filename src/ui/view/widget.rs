@@ -9,75 +9,89 @@ mod header;
 mod split;
 mod total;
 
-use super::{
-    super::presenter::State,
-    error::Result,
-    gfx::{metrics, render},
-};
+use super::{super::{presenter::State, error::Result}, gfx::{metrics, render}};
 
 /// Trait for things that can render information from a presenter.
 pub trait Widget<State> {
-    /// Renders information from `s` onto the renderer `r`.
-    fn render(&mut self, r: &mut dyn render::Renderer, s: &State) -> Result<()>;
-}
+    /// Asks the widget to calculate a layout based on the context `ctx`.
+    fn layout(&mut self, ctx: LayoutContext);
 
-/// A collection of widgets, combined with their renderer.
-pub struct Set<'a> {
-    renderer: render::Window<'a>,
-    widgets: Vec<Box<dyn Widget<State>>>,
-}
-
-impl<'a> Set<'a> {
-    /// Creates a new graphics core.
-    #[must_use]
-    pub fn new(renderer: render::Window<'a>, wmetrics: metrics::Window) -> Self {
-        Self {
-            renderer,
-            widgets: make_widgets(wmetrics),
-        }
-    }
-
-    /// Redraws the user interface.
+    /// Renders the widget (excluding its children).
     ///
-    /// # Errors
-    ///
-    /// Returns an error if SDL fails to redraw the screen.
-    pub fn redraw(&mut self, state: &State) -> Result<()> {
-        self.renderer.clear();
-
-        for w in &mut self.widgets {
-            w.render(&mut self.renderer, state)?;
-        }
-
-        self.renderer.present();
-
+    /// By default, implementations do nothing here.
+    fn render(&self, _r: &mut dyn render::Renderer, _s: &State) -> Result<()> {
         Ok(())
     }
+
+    /// Gets all immediate children of this widget.
+    ///
+    /// By default, widgets have no children.
+    fn children(&self) -> Vec<&dyn Widget<State>> {
+        vec![]
+    }
 }
 
-fn make_widgets(wmetrics: metrics::Window) -> Vec<Box<dyn Widget<State>>> {
-    vec![
-        make_splits(wmetrics),
-        make_header(wmetrics),
-        make_total(wmetrics),
-    ]
+/// Context used when performing a layout change.
+#[derive(Clone, Copy)]
+pub struct LayoutContext {
+    /// The configured metrics for this split display window.
+    ///
+    /// Note that the window itself may not be the same size as the target
+    /// size in these metrics, owing to possible resizing.
+    pub wmetrics: metrics::Window,
+
+    /// The bounding box of the widget itself.
+    ///
+    /// All widgets are placed and sized by their parents.
+    pub bounds: metrics::Rect,
+
+    /*
+    /// An object for checking text sizing.
+    ///
+    /// This can be used for working out how large a piece of text might be.
+    pub sizer: &'s dyn TextSizer,
+    */
 }
 
-fn make_splits(wmetrics: metrics::Window) -> Box<dyn Widget<State>> {
-    Box::new(split::Widget::new(
-        wmetrics.splits_rect(),
-        metrics::sat_i32(wmetrics.split_h),
-    ))
+impl LayoutContext {
+    /// Makes a copy of this layout context with the given new bounding box.
+    pub fn with_bounds(self, new_bounds: metrics::Rect) -> Self {
+        Self{bounds: new_bounds, ..self}
+    }
 }
 
-fn make_header(wmetrics: metrics::Window) -> Box<dyn Widget<State>> {
-    Box::new(header::Widget {
-        rect: wmetrics.header_rect(),
-    })
+/// The root widget.
+///
+/// Widgets 
+pub struct Root {
+    /// The header widget.
+    header: header::Widget,
+    /// The splits widget.
+    splits: split::Widget,
+    /// The footer widget.
+    footer: total::Widget
 }
 
-fn make_total(wmetrics: metrics::Window) -> Box<dyn Widget<State>> {
-    Box::new(total::Widget {
-        rect: wmetrics.total_rect(),
-    })
+impl Root {
+    /// Creates a new root widget using `ctx` to govern initial layout.
+    #[must_use]
+    pub fn new(ctx: LayoutContext) -> Self {
+        Self {
+            header: header::Widget::new(ctx),
+            footer: total::Widget::new(ctx),
+            splits: split::Widget::new(ctx),
+        }
+    }
+}
+
+impl Widget<State> for Root {
+    fn layout(&mut self, ctx: LayoutContext) {
+        self.header.layout(ctx.with_bounds(ctx.wmetrics.header_rect()));
+        self.splits.layout(ctx.with_bounds(ctx.wmetrics.splits_rect()));
+        self.footer.layout(ctx.with_bounds(ctx.wmetrics.total_rect()));
+    }
+
+    fn children(&self) -> Vec<&dyn Widget<State>> {
+        vec![&self.header, &self.splits, &self.footer]
+    }
 }

@@ -2,9 +2,10 @@
 
 use std::{cell::RefMut, rc::Rc};
 
-use super::super::error::{Error, Result};
-use super::font::metrics::TextSizer;
-use super::{colour, font, metrics, pen, position::Position};
+use super::{
+    super::super::{Error, Result},
+    colour, font::{self, metrics::TextSizer}, metrics, pen, position::Position
+};
 use sdl2::{
     rect::{Point, Rect},
     render::{Canvas, Texture},

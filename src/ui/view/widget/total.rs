@@ -2,8 +2,7 @@
 
 use super::{
     super::{
-        super::presenter::state,
-        error::Result,
+        super::{Result, presenter::state},
         gfx::{
             colour, font, metrics,
             position::{Position, X},
@@ -16,12 +15,23 @@ use crate::model::comparison::pace;
 
 /// Views the total time for a run.
 pub struct Widget {
-    /// The bounding box for the header widget.
+    /// The bounding box for the footer widget.
     pub rect: metrics::Rect,
 }
 
+impl Widget {
+    /// Constructs a new [Widget] using the given layout context.
+    pub fn new(ctx: super::LayoutContext) -> Self {
+        Self{rect: ctx.bounds}
+    }
+}
+
 impl super::Widget<state::State> for Widget {
-    fn render(&mut self, r: &mut dyn Renderer, s: &state::State) -> Result<()> {
+    fn layout(&mut self, ctx: super::LayoutContext) {
+        self.rect = ctx.bounds;
+    }
+
+    fn render(&self, r: &mut dyn Renderer, s: &state::State) -> Result<()> {
         let mut r = Region::new(r, self.rect);
 
         // TODO(@MattWindsor91): clean this up into a struct etc.
@@ -35,6 +45,7 @@ impl super::Widget<state::State> for Widget {
 
         Ok(())
     }
+
 }
 
 fn render_total(r: &mut dyn Renderer, s: &state::Footer) -> Result<()> {

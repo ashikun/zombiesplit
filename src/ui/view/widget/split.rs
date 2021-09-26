@@ -1,11 +1,7 @@
 //! Logic for drawing splits.
 
-use std::convert::TryFrom;
-
-use super::{
-    super::{
-        super::presenter::{cursor, state},
-        error::Result,
+use super::{super::{
+        super::{Result, presenter::{cursor, state}},
         gfx::{
             colour,
             font::{self, metrics::TextSizer},
@@ -13,9 +9,7 @@ use super::{
             position::{Position, X},
             render::{Region, Renderer},
         },
-    },
-    editor,
-};
+    }, editor};
 use crate::model::{self, aggregate};
 
 /// The split viewer widget.
@@ -23,11 +17,15 @@ pub struct Widget {
     /// The bounding box used for the widget.
     rect: metrics::Rect,
     /// The height of one split.
-    split_h: i32,
+    split_h: u32,
 }
 
 impl super::Widget<state::State> for Widget {
-    fn render(&mut self, r: &mut dyn Renderer, s: &state::State) -> Result<()> {
+    fn layout(&mut self, ctx: super::LayoutContext) {
+        self.rect = ctx.bounds;
+    }
+
+    fn render(&self, r: &mut dyn Renderer, s: &state::State) -> Result<()> {
         let mut r = Region::new(r, self.rect);
 
         for (index, state) in s.splits.iter().enumerate() {
@@ -45,13 +43,13 @@ impl super::Widget<state::State> for Widget {
 }
 
 impl Widget {
-    /// Creates a new view using the given bounding box and split height.
-    pub fn new(rect: metrics::Rect, split_h: i32) -> Self {
-        Self { rect, split_h }
+    /// Creates a new view using the given initial layout context.
+    pub fn new(ctx: super::LayoutContext) -> Self {
+        Self { rect: ctx.wmetrics.splits_rect(), split_h: ctx.wmetrics.split_h }
     }
 
     fn split_pos(&self, index: usize) -> Position {
-        Position::top_left(0, i32::try_from(index).unwrap_or_default() * self.split_h)
+        Position::top_left(0, metrics::sat_i32(index) * metrics::sat_i32(self.split_h))
     }
 }
 

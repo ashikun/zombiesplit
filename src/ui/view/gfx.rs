@@ -12,7 +12,7 @@ pub mod pen;
 pub mod position;
 pub mod render;
 
-use super::error::{Error, Result};
+use super::super::{Error, Result};
 
 /// Makes a zombiesplit window.
 ///

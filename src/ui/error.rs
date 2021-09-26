@@ -10,7 +10,7 @@ pub enum Error {
 
     /// An error occurred while handling a font.
     #[error("font error: {0}")]
-    LoadFont(#[from] super::gfx::font::Error),
+    LoadFont(#[from] super::view::gfx::font::Error),
 
     /// An error occurred while blitting the font.
     #[error("SDL couldn't blit font: {0}")]
