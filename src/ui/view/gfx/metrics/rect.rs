@@ -1,6 +1,10 @@
 //! The [Rect] struct and related functionality.
 
-use super::conv::sat_i32;
+use super::{
+    anchor::{self, Anchor},
+    point::Point,
+    conv::sat_i32
+};
 
 /// Output-independent rectangle.
 #[derive(Clone, Copy, Debug)]
@@ -12,16 +16,28 @@ pub struct Rect {
 }
 
 impl Rect {
-    /// Gets the right X co-ordinate.
-    #[must_use]
-    pub fn x2(self) -> i32 {
-        self.top_left.x + self.size.w_i32()
+    /// Resolves a point within a rectangle, given an offset (`dx`, `dy`) from
+    /// `anchor`.
+    pub fn point(self, dx: i32, dy: i32, anchor: Anchor) -> Point {
+        Point { x: self.x(dx, anchor.x), y: self.y(dy, anchor.y) }
     }
 
-    /// Gets the bottom Y co-ordinate.
-    #[must_use]
-    pub fn y2(self) -> i32 {
-        self.top_left.y + self.size.h_i32()
+    /// Resolves an X coordinate within a rectangle, given an offset `dx` from
+    /// `anchor`.
+    pub fn x(self, dx: i32, anchor: anchor::X) -> i32 {
+        self.top_left.x + dx + match anchor {
+            anchor::X::Left => 0,
+            anchor::X::Right => self.size.w_i32()
+        }
+    }
+
+    /// Resolves an Y coordinate within a rectangle, given an offset `dy` from
+    /// `anchor`.
+    pub fn y(self, dy: i32, anchor: anchor::Y) -> i32 {
+        self.top_left.y + dy + match anchor {
+            anchor::Y::Top => 0,
+            anchor::Y::Bottom => self.size.h_i32()
+        }
     }
 
     /// Produces a new [Rect] by shrinking the given [Rect] by `amount` on each side.

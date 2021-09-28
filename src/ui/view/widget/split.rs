@@ -1,51 +1,27 @@
 //! Logic for drawing splits.
 
-use super::{
-    super::{
+use std::convert::TryFrom;
+use super::{super::{
         super::{
-            presenter::{cursor, state},
+            presenter::state,
             Result,
         },
         gfx::{
             colour,
-            font::{self, metrics::TextSizer},
-            metrics,
+            font,
+            metrics::{conv::sat_i32, Anchor, Size, Rect},
             position::{Position, X},
-            render::{Region, Renderer},
+            Renderer
         },
-    },
-    editor,
-};
+    }, LayoutContext, editor};
 use crate::model::{self, aggregate};
 
 /// The split viewer widget.
 pub struct Widget {
     /// The bounding box used for the widget.
-    rect: metrics::Rect,
-    /// The height of one split.
-    split_h: u32,
-}
-
-impl super::Widget<state::State> for Widget {
-    fn layout(&mut self, ctx: super::LayoutContext) {
-        self.rect = ctx.bounds;
-    }
-
-    fn render(&self, r: &mut dyn Renderer, s: &state::State) -> Result<()> {
-        let mut r = Region::new(r, self.rect);
-
-        for (index, state) in s.splits.iter().enumerate() {
-            SplitDrawer {
-                index,
-                state,
-                r: &mut r,
-                split_pos: self.split_pos(index),
-                s,
-            }
-            .draw()?;
-        }
-        Ok(())
-    }
+    rect: Rect,
+    /// The split drawer set, containing enough drawers for one layout.
+    splits: Vec<SplitDrawer>
 }
 
 impl Widget {
@@ -53,71 +29,92 @@ impl Widget {
     pub fn new(ctx: super::LayoutContext) -> Self {
         Self {
             rect: ctx.wmetrics.splits_rect(),
-            split_h: ctx.wmetrics.split_h,
+            splits: splits(ctx)
         }
     }
+}
 
-    fn split_pos(&self, index: usize) -> Position {
-        Position::top_left(
-            0,
-            metrics::conv::sat_i32(index) * metrics::conv::sat_i32(self.split_h),
-        )
+
+impl super::Widget<state::State> for Widget {
+    fn layout(&mut self, ctx: super::LayoutContext) {
+        self.rect = ctx.bounds;
+    }
+
+    fn children(&self) -> Vec<&dyn super::Widget<state::State>> {
+        self.splits.iter().map(|x| x as &dyn super::Widget<state::State>).collect()
     }
 }
 
 /// Contains all state useful to draw one split.
-struct SplitDrawer<'r, 'g, 'p> {
+struct SplitDrawer {
+    /// The position of the drawer in the split view.
+    /// This is not necessarily the index of the split displayed.
     index: usize,
-    state: &'p state::Split,
-    split_pos: Position,
-    r: &'r mut Region<'g>,
-    s: &'p state::State,
+    /// The bounding box used for the widget.
+    rect: Rect,
 }
 
-impl<'r, 'g, 'p> SplitDrawer<'r, 'g, 'p> {
-    fn draw(&mut self) -> Result<()> {
-        self.r.set_pos(self.split_pos);
-        self.draw_name()?;
-        self.draw_time_display()?;
-        self.draw_num_times()
+impl super::Widget<state::State> for SplitDrawer {
+    fn layout(&mut self, ctx: super::LayoutContext) {
+        super::Widget::<state::Split>::layout(self, ctx)
     }
 
+    fn render(&self, r: &mut dyn Renderer, s: &state::State) -> Result<()> {
+        // TODO(@MattWindsor91): calculate which split should be here based on
+        // cursor position.
+        if let Some(split) = s.splits.get(self.index) {
+            super::Widget::<state::Split>::render(self, r, split)?;
+        }
+
+        Ok(())
+    }
+}
+
+/// Use of a split widget when we have resolved which split is inside the drawer.
+impl super::Widget<state::Split> for SplitDrawer {
+    fn layout(&mut self, ctx: super::LayoutContext) {
+        self.rect = ctx.bounds;
+    }
+
+    fn render(&self, r: &mut dyn Renderer, s: &state::Split) -> Result<()> {
+        r.set_pos(self.rect.top_left.into());
+        draw_name(r, s)?;
+        self.draw_time_display(r, s)?;
+        draw_num_times(r, s)?;
+        Ok(())
+    }
+}
+
+impl SplitDrawer {
     #[allow(clippy::option_if_let_else)]
-    fn draw_time_display(&mut self) -> Result<()> {
-        let mut r = make_time_display_region(self.r, self.split_pos);
-        if let Some(ref state) = self.state.editor {
-            editor::Editor { r: &mut r, state }.render()
+    fn draw_time_display(&self, r: &mut dyn Renderer, state: &state::Split) -> Result<()> {
+        let rect = self.time_display_rect(r);
+        if let Some(ref state) = state.editor {
+            use super::Widget;
+            editor::Editor { rect }.render(r, state)
         } else {
-            draw_time(&mut r, self.state)
+            draw_time(r, state)
         }
     }
 
-    fn draw_name(&mut self) -> Result<()> {
-        self.r.set_font(font::Id::Normal);
-        self.r.set_fg_colour(colour::fg::Id::Name(self.position()));
-        self.r.put_str(&self.state.name)?;
-        Ok(())
+    fn time_display_rect(&self, r: &mut dyn Renderer) -> Rect {
+        let size = editor::size(r);
+        Rect {top_left: self.rect.point(-sat_i32(size.w), 0, Anchor::TOP_RIGHT), size}
     }
 
-    /// Draws a representation of the number of times this split has logged.
-    fn draw_num_times(&mut self) -> Result<()> {
-        // TODO(@MattWindsor91): jog to position more accurately.
-        self.r.set_pos(Position::x(X::Right(self.r.span_w(10))));
-        self.r.set_font(font::Id::Small);
-        // TODO(@MattWindsor91): better key?
-        self.r.set_fg_colour(colour::fg::Id::Header);
-        self.r.put_str_r(&format!("{}x", self.state.num_times))
-    }
-
-    fn position(&self) -> cursor::SplitPosition {
-        self.s.split_position(self.index)
-    }
 }
 
 #[must_use]
 pub fn time_str(time: model::time::Time) -> String {
     // TODO(@MattWindsor91): hours?
     format!("{}'{}\"{}", time.mins, time.secs, time.millis)
+}
+
+fn draw_name(r: &mut dyn Renderer, state: &state::Split) -> Result<()> {
+    r.set_font(font::Id::Normal);
+    r.set_fg_colour(colour::fg::Id::Name(state.position));
+    r.put_str(&state.name)?;
+    Ok(())
 }
 
 fn state_time_str(state: &state::Split) -> String {
@@ -128,28 +125,21 @@ fn time_colour(state: &state::Split) -> colour::fg::Id {
     colour::fg::Id::SplitInRunPace(state.pace_in_run)
 }
 
-fn make_time_display_region<'a>(parent: &'a mut Region, split_pos: Position) -> Region<'a> {
-    // work out where the x position of the time display is
-    let parent_size = parent.size();
-    let size = editor::size(parent);
-    let x = metrics::conv::sat_i32(parent_size.w - size.w);
 
-    let rect = metrics::Rect {
-        top_left: metrics::Point {
-            x,
-            y: split_pos.y.to_top(0, 0),
-        },
-        size,
-    };
-
-    Region::new(parent, rect)
-}
-
-fn draw_time(r: &mut Region, state: &state::Split) -> Result<()> {
-    r.set_pos(Position::top_left(0, 0));
+fn draw_time(r: &mut dyn Renderer, state: &state::Split) -> Result<()> {
     r.set_font(font::Id::Normal);
     r.set_fg_colour(time_colour(state));
     r.put_str(&state_time_str(state))
+}
+
+/// Draws a representation of the number of times this split has logged.
+fn draw_num_times(r: &mut dyn Renderer, state: &state::Split) -> Result<()> {
+    // TODO(@MattWindsor91): jog to position more accurately.
+    r.set_pos(Position::x(X::Rel(r.span_w(-10))));
+    r.set_font(font::Id::Small);
+    // TODO(@MattWindsor91): better key?
+    r.set_fg_colour(colour::fg::Id::Header);
+    r.put_str_r(&format!("{}x", state.num_times))
 }
 
 /// Decide which source to use for the aggregate displayed on this split.
@@ -162,4 +152,22 @@ fn aggregate_source(state: &state::Split) -> aggregate::Source {
     } else {
         aggregate::Source::Comparison
     }
+}
+
+/// Constructs a vector of split drawing widgets according to `ctx`.
+fn splits(ctx: LayoutContext) -> Vec<SplitDrawer> {
+    // TODO(@MattWindsor91): padding
+    let n_splits = usize::try_from(ctx.bounds.size.h / ctx.wmetrics.split_h).unwrap_or_default();
+    (0..n_splits).map(|n| SplitDrawer{
+        index: n,
+        rect: Rect{
+            top_left: ctx.bounds.point(0, 
+                sat_i32(n) * sat_i32(ctx.wmetrics.split_h),
+                Anchor::TOP_LEFT),
+            size: Size{
+                w: ctx.bounds.size.w,
+                h: ctx.wmetrics.split_h
+            }
+        }
+    }).collect()
 }

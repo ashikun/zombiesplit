@@ -57,6 +57,7 @@ impl State {
     pub fn set_cursor(&mut self, cursor_at: Option<usize>) {
         self.cursor_pos = cursor_at;
         self.footer.at_cursor = self.total_at_cursor();
+        self.refresh_split_cursors()
     }
 
     /// Recalculates the state's footer totals.
@@ -68,6 +69,22 @@ impl State {
         self.footer.total = self.total();
     }
 
+    fn refresh_split_cursors(&mut self) {
+        let c = self.cursor_pos;
+        for (i, s) in &mut self.splits.iter_mut().enumerate() {
+            s.position = SplitPosition::new(i, c)
+        }
+    }
+
+    /// Sets the editor at the current cursor to `editor`.
+    pub fn set_editor(&mut self, editor: Option<&super::Editor>) {
+        let c = self.cursor_pos;
+        // TODO(@MattWindsor91): this is a bit of a hack.
+        for (i, s) in &mut self.splits.iter_mut().enumerate() {
+            s.set_editor(editor.filter(|_| Some(i) == c))
+        }
+    }
+    
     /// Gets the total up to and excluding the current cursor position.
     fn total_at_cursor(&mut self) -> PacedTime {
         self.cursor_pos
@@ -151,6 +168,8 @@ pub struct Split {
     pub aggregates: aggregate::Full,
     /// The pace of this split in the run-so-far.
     pub pace_in_run: pace::SplitInRun,
+    /// The last logged cursor-relative position for this split.
+    pub position: SplitPosition,
     /// Any editor active on this split.
     pub editor: Option<Editor>,
 }
@@ -269,4 +288,16 @@ pub struct Editor {
     pub secs: String,
     /// The current milliseconds string.
     pub msecs: String,
+}
+
+impl Editor {
+    /// Gets a readout of the field at position `name`.
+    pub fn field(&self, name: position::Name) -> &str {
+        match name {
+            position::Name::Minutes => &self.mins,
+            position::Name::Seconds => &self.secs,
+            position::Name::Milliseconds => &self.msecs,
+            position::Name::Hours => &"--"
+        }
+    }
 }

@@ -85,7 +85,7 @@ impl<'a> Core<'a> {
             }
             mode::EventResult::Expanded(a) => Some(a),
             mode::EventResult::Handled => {
-                self.refresh_state_cursor();
+                self.refresh_state();
                 None
             }
         }
@@ -113,23 +113,14 @@ impl<'a> Core<'a> {
         self.mode.commit(&mut self.session);
     }
 
-    /// Refreshes the presenter state's view of the cursor.
+    /// Refreshes the presenter state's view of the cursor and editor.
     ///
-    /// This is done after any presenter event that may have moved the cursor,
-    /// since various parts of the state (eg totals) depend on the cursor
-    /// position being available outside of the mode.
-    fn refresh_state_cursor(&mut self) {
+    /// This is done after any presenter event that may have changed these
+    /// things.
+    fn refresh_state(&mut self) {
         // TODO(@MattWindsor91): get rid of this, somehow.
         self.state
             .set_cursor(self.mode.cursor().map(cursor::Cursor::position));
-
-        // TODO(@MattWindsor91): this too is a hack.
-        if let Some(c) = self.state.cursor_pos {
-            for s in &mut self.state.splits {
-                s.set_editor(None);
-            }
-            self.state.splits[c].set_editor(self.mode.editor());
-        }
     }
 
     /// Start the process of quitting.
@@ -172,7 +163,7 @@ impl<'a> Core<'a> {
             }
         }
         // TODO(@MattWindsor91): this is wasteful but borrowck won't let me do better yet.
-        self.refresh_state_cursor();
+        self.refresh_state();
     }
 }
 

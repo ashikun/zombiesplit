@@ -1,5 +1,5 @@
 //! Positioning setup for rendering.
-use super::metrics::{conv::sat_i32, Rect};
+use super::metrics::{Point, Rect, anchor, conv::sat_i32};
 
 // TODO(@MattWindsor91): slated for removal/simplification.
 
@@ -14,6 +14,14 @@ pub struct Position {
     pub x: X,
     /// The specification for the Y coordinate.
     pub y: Y,
+}
+
+/// Points can be turned into absolute positions.
+impl From<Point> for Position {
+    fn from(p: Point) -> Self {
+       // TODO(@MattWindsor91): this'll become simpler soon.
+       Position::top_left(p.x, p.y)
+    }
 }
 
 impl Position {
@@ -100,7 +108,7 @@ impl X {
     pub fn normalise_to_rect(self, rect: Rect) -> Self {
         match self {
             Self::Left(k) => Self::Left(rect.top_left.x + k),
-            Self::Right(k) => Self::Left(rect.x2() - k),
+            Self::Right(k) => Self::Left(rect.x(-k, anchor::X::Right)),
             x @ Self::Rel(_) => x,
         }
     }
@@ -147,7 +155,7 @@ impl Y {
     pub fn normalise_to_rect(self, rect: Rect) -> Self {
         match self {
             Self::Top(k) => Self::Top(rect.top_left.y + k),
-            Self::Bottom(k) => Self::Top(rect.y2() - k),
+            Self::Bottom(k) => Self::Top(rect.y(-k, anchor::Y::Top)),
             x @ Self::Rel(_) => x,
         }
     }
