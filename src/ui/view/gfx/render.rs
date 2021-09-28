@@ -1,6 +1,10 @@
 //! Traits for low-level rendering.
 
-use super::{super::super::Result, colour, font, metrics::{self, Point}};
+use super::{
+    super::super::Result,
+    colour, font,
+    metrics::{self, Point},
+};
 
 /// Trait of things that provide rendering facilities.
 pub trait Renderer: font::metrics::TextSizer {

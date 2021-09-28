@@ -31,11 +31,10 @@ impl<R: Renderer> View<R> {
             },
         };
         let ctx = widget::LayoutContext { wmetrics, bounds };
+        let mut root = widget::Root::default();
+        root.layout(ctx);
 
-        Self {
-            renderer,
-            root: widget::Root::new(ctx),
-        }
+        Self { renderer, root }
     }
 
     /// Redraws the user interface.

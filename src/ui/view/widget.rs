@@ -68,6 +68,7 @@ impl LayoutContext {
 /// The root widget.
 ///
 /// Widgets
+#[derive(Default)]
 pub struct Root {
     /// The header widget.
     header: header::Widget,
@@ -75,18 +76,6 @@ pub struct Root {
     splits: split::Widget,
     /// The footer widget.
     footer: total::Widget,
-}
-
-impl Root {
-    /// Creates a new root widget using `ctx` to govern initial layout.
-    #[must_use]
-    pub fn new(ctx: LayoutContext) -> Self {
-        Self {
-            header: header::Widget::new(ctx),
-            footer: total::Widget::new(ctx),
-            splits: split::Widget::new(ctx),
-        }
-    }
 }
 
 impl Widget<State> for Root {

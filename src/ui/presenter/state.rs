@@ -84,7 +84,7 @@ impl State {
             s.set_editor(editor.filter(|_| Some(i) == c))
         }
     }
-    
+
     /// Gets the total up to and excluding the current cursor position.
     fn total_at_cursor(&mut self) -> PacedTime {
         self.cursor_pos
@@ -292,12 +292,13 @@ pub struct Editor {
 
 impl Editor {
     /// Gets a readout of the field at position `name`.
+    #[must_use]
     pub fn field(&self, name: position::Name) -> &str {
         match name {
             position::Name::Minutes => &self.mins,
             position::Name::Seconds => &self.secs,
             position::Name::Milliseconds => &self.msecs,
-            position::Name::Hours => &"--"
+            position::Name::Hours => "--",
         }
     }
 }

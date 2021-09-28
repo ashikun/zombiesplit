@@ -1,46 +1,39 @@
 //! Logic for drawing splits.
 
-use std::convert::TryFrom;
-use super::{super::{
-        super::{
-            presenter::state,
-            Result,
-        },
+use super::{
+    super::{
+        super::{presenter::state, Result},
         gfx::{
-            colour,
-            font,
-            metrics::{conv::sat_i32, Anchor, Size, Rect},
-            Renderer
+            colour, font,
+            metrics::{conv::sat_i32, Anchor, Rect, Size},
+            Renderer,
         },
-    }, LayoutContext, editor};
+    },
+    editor, LayoutContext,
+};
 use crate::model::{self, aggregate};
+use std::convert::TryFrom;
 
 /// The split viewer widget.
+#[derive(Default)]
 pub struct Widget {
     /// The bounding box used for the widget.
     rect: Rect,
     /// The split drawer set, containing enough drawers for one layout.
-    splits: Vec<SplitDrawer>
+    splits: Vec<SplitDrawer>,
 }
-
-impl Widget {
-    /// Creates a new view using the given initial layout context.
-    pub fn new(ctx: super::LayoutContext) -> Self {
-        Self {
-            rect: ctx.wmetrics.splits_rect(),
-            splits: splits(ctx)
-        }
-    }
-}
-
 
 impl super::Widget<state::State> for Widget {
     fn layout(&mut self, ctx: super::LayoutContext) {
         self.rect = ctx.bounds;
+        self.splits = splits(ctx);
     }
 
     fn children(&self) -> Vec<&dyn super::Widget<state::State>> {
-        self.splits.iter().map(|x| x as &dyn super::Widget<state::State>).collect()
+        self.splits
+            .iter()
+            .map(|x| x as &dyn super::Widget<state::State>)
+            .collect()
     }
 }
 
@@ -55,7 +48,7 @@ struct SplitDrawer {
 
 impl super::Widget<state::State> for SplitDrawer {
     fn layout(&mut self, ctx: super::LayoutContext) {
-        super::Widget::<state::Split>::layout(self, ctx)
+        super::Widget::<state::Split>::layout(self, ctx);
     }
 
     fn render(&self, r: &mut dyn Renderer, s: &state::State) -> Result<()> {
@@ -91,6 +84,7 @@ impl SplitDrawer {
     #[allow(clippy::option_if_let_else)]
     fn draw_time_display(&self, r: &mut dyn Renderer, state: &state::Split) -> Result<()> {
         let rect = self.time_display_rect(r);
+        r.set_pos(rect.top_left);
         if let Some(ref state) = state.editor {
             use super::Widget;
             editor::Editor { rect }.render(r, state)
@@ -101,9 +95,11 @@ impl SplitDrawer {
 
     fn time_display_rect(&self, r: &mut dyn Renderer) -> Rect {
         let size = editor::size(r);
-        Rect {top_left: self.rect.point(-sat_i32(size.w), 0, Anchor::TOP_RIGHT), size}
+        Rect {
+            top_left: self.rect.point(-sat_i32(size.w), 0, Anchor::TOP_RIGHT),
+            size,
+        }
     }
-
 }
 
 #[must_use]
@@ -126,7 +122,6 @@ fn state_time_str(state: &state::Split) -> String {
 fn time_colour(state: &state::Split) -> colour::fg::Id {
     colour::fg::Id::SplitInRunPace(state.pace_in_run)
 }
-
 
 fn draw_time(r: &mut dyn Renderer, state: &state::Split) -> Result<()> {
     r.set_font(font::Id::Normal);
@@ -158,16 +153,20 @@ fn aggregate_source(state: &state::Split) -> aggregate::Source {
 fn splits(ctx: LayoutContext) -> Vec<SplitDrawer> {
     // TODO(@MattWindsor91): padding
     let n_splits = usize::try_from(ctx.bounds.size.h / ctx.wmetrics.split_h).unwrap_or_default();
-    (0..n_splits).map(|n| SplitDrawer{
-        index: n,
-        rect: Rect{
-            top_left: ctx.bounds.point(0, 
-                sat_i32(n) * sat_i32(ctx.wmetrics.split_h),
-                Anchor::TOP_LEFT),
-            size: Size{
-                w: ctx.bounds.size.w,
-                h: ctx.wmetrics.split_h
-            }
-        }
-    }).collect()
+    (0..n_splits)
+        .map(|n| SplitDrawer {
+            index: n,
+            rect: Rect {
+                top_left: ctx.bounds.point(
+                    0,
+                    sat_i32(n) * sat_i32(ctx.wmetrics.split_h),
+                    Anchor::TOP_LEFT,
+                ),
+                size: Size {
+                    w: ctx.bounds.size.w,
+                    h: ctx.wmetrics.split_h,
+                },
+            },
+        })
+        .collect()
 }

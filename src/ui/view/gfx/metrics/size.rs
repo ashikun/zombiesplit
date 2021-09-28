@@ -3,7 +3,7 @@
 use super::conv::{sat_i32, u32_or_zero};
 
 /// A two-dimensional size.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 pub struct Size {
     /// Width in pixels.
     pub w: u32,

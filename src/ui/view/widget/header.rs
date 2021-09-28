@@ -3,23 +3,18 @@
 use super::super::{
     super::{presenter::State, Result},
     gfx::{
-        colour, font, metrics::{self, Anchor},
+        colour, font,
+        metrics::{self, Anchor},
         Renderer,
     },
 };
-use crate::{model::game::category::{AttemptInfo, Info}};
+use crate::model::game::category::{AttemptInfo, Info};
 
 /// Views information about the run in the form of a header.
+#[derive(Default)]
 pub struct Widget {
     /// The bounding box for the header widget.
     rect: metrics::Rect,
-}
-
-impl Widget {
-    /// Constructs a new [Widget] using the given layout context.
-    pub fn new(ctx: super::LayoutContext) -> Self {
-        Self { rect: ctx.bounds }
-    }
 }
 
 impl super::Widget<State> for Widget {
@@ -43,14 +38,14 @@ impl Widget {
         r.set_font(font::Id::Large);
         r.put_str(&meta.game)?;
 
-        r.set_pos(self.rect.point(0, r.span_h(1), Anchor::TOP_LEFT));
         r.set_font(font::Id::Normal);
+        r.set_pos(self.rect.point(0, r.span_h(-1), Anchor::BOTTOM_LEFT));
         r.put_str(&meta.category)?;
         Ok(())
     }
 
     fn render_attempt(&self, r: &mut dyn Renderer, attempt: &AttemptInfo) -> Result<()> {
-        r.set_pos(self.rect.point(0, 0, Anchor::TOP_RIGHT));
+        r.set_pos(self.rect.point(0, r.span_h(-1), Anchor::BOTTOM_RIGHT));
         r.put_str_r(&format!("#{} ({})", attempt.total, attempt.completed))
     }
 }

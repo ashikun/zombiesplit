@@ -75,14 +75,6 @@ impl Window {
         .shrink(self.padding)
     }
 
-    /// Gets the unshifted bounding box of the editor part of the window.
-    #[must_use]
-    pub fn editor_rect(&self) -> Rect {
-        let mut r = self.splits_rect();
-        r.size.h = self.split_h;
-        r
-    }
-
     /// Gets the Y position of the splits part of the window.
     fn splits_y(&self) -> i32 {
         conv::sat_i32(self.header_h)

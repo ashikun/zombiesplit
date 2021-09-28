@@ -6,8 +6,7 @@ use super::super::{
     view::gfx::{
         colour,
         font::{self, metrics::TextSizer},
-        metrics, pen,
-        render,
+        metrics, pen, render,
     },
     Error, Result,
 };

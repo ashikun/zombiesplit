@@ -5,7 +5,11 @@ The split editor isn't a [Widget] per se, as it lays on top of a split widget.
 
 use super::super::{
     super::{presenter::state, Result},
-    gfx::{colour, font, metrics::{self, Anchor, Rect}, render::Renderer},
+    gfx::{
+        colour, font,
+        metrics::{self, Anchor, Rect},
+        render::Renderer,
+    },
 };
 use crate::model::time::position::Name;
 
@@ -30,13 +34,13 @@ impl super::Widget<state::Editor> for Editor {
 
     fn render(&self, r: &mut dyn Renderer, s: &state::Editor) -> Result<()> {
         self.draw_base(r)?;
-        
+
         // TODO(@MattWindsor91): this is temporary.
         let mut pos = self.rect.point(0, 0, Anchor::TOP_LEFT);
         for field in [Name::Minutes, Name::Seconds, Name::Milliseconds] {
             r.set_pos(pos);
             pos.offset_mut(r.span_w(2), 0);
-            self.draw_field(r, s.field(field), s.field == Some(field))?;
+            draw_field(r, s.field(field), s.field == Some(field))?;
         }
 
         Ok(())
@@ -45,31 +49,31 @@ impl super::Widget<state::Editor> for Editor {
 
 impl Editor {
     fn draw_base(&self, r: &mut dyn Renderer) -> Result<()> {
-        r.set_pos(self.rect.top_left.into());
+        r.set_pos(self.rect.top_left);
         r.set_font(font::Id::Normal);
         reset_colours(r);
         fill_bg(r, metrics::conv::sat_i32(PLACEHOLDER.len()))?;
         r.put_str(PLACEHOLDER)?;
         Ok(())
     }
+}
 
-    fn draw_field(&self, r: &mut dyn Renderer, value: &str, is_editing: bool) -> Result<()> {
-        let num_chars = metrics::conv::sat_i32(value.len());
+fn draw_field(r: &mut dyn Renderer, value: &str, is_editing: bool) -> Result<()> {
+    let num_chars = metrics::conv::sat_i32(value.len());
 
-        // Visually distinguish the currently-edited editor.
-        if is_editing {
-            prepare_field_editor(r);
-            fill_bg(r, num_chars)?;
-        }
-
-        r.put_str(value)?;
-
-        if is_editing {
-            reset_colours(r);
-        }
-
-        Ok(())
+    // Visually distinguish the currently-edited editor.
+    if is_editing {
+        prepare_field_editor(r);
+        fill_bg(r, num_chars)?;
     }
+
+    r.put_str(value)?;
+
+    if is_editing {
+        reset_colours(r);
+    }
+
+    Ok(())
 }
 
 /// Fills a background of `num_chars` width relative to the current position.

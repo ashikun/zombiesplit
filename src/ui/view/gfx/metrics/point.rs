@@ -3,7 +3,7 @@
 /// A two-dimensional point.
 ///
 /// Points can have negative coordinates, to allow relative offsetting.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 pub struct Point {
     pub x: i32,
     pub y: i32,

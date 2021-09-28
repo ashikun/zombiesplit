@@ -4,7 +4,8 @@ use super::{
     super::{
         super::{presenter::state, Result},
         gfx::{
-            colour, font, metrics::{self, Anchor},
+            colour, font,
+            metrics::{self, Anchor},
             Renderer,
         },
     },
@@ -13,16 +14,10 @@ use super::{
 use crate::model::comparison::pace;
 
 /// Views the total time for a run.
+#[derive(Default)]
 pub struct Widget {
     /// The bounding box for the footer widget.
     pub rect: metrics::Rect,
-}
-
-impl Widget {
-    /// Constructs a new [Widget] using the given layout context.
-    pub fn new(ctx: super::LayoutContext) -> Self {
-        Self { rect: ctx.bounds }
-    }
 }
 
 impl super::Widget<state::State> for Widget {
@@ -45,7 +40,8 @@ impl Widget {
     fn render_total(&self, r: &mut dyn Renderer, s: &state::Footer) -> Result<()> {
         render_label(r, "Total")?;
         r.set_font(font::Id::Large);
-        self.render_paced_time(r, s.total)
+        r.set_pos(self.rect.point(0, 0, Anchor::TOP_RIGHT));
+        render_paced_time(r, s.total)
     }
 
     fn render_at_cursor(&self, r: &mut dyn Renderer, s: &state::Footer) -> Result<()> {
@@ -54,19 +50,18 @@ impl Widget {
         r.set_font(font::Id::Large);
         r.set_pos(self.rect.point(0, r.span_h(1), Anchor::TOP_RIGHT));
         r.set_font(font::Id::Normal);
-        self.render_paced_time(r, s.at_cursor)
+        render_paced_time(r, s.at_cursor)
     }
+}
 
-    /// Logic common to rendering a paced time.
-    fn render_paced_time(
-        &self,
-        r: &mut dyn Renderer,
-        pace::PacedTime { pace, time }: pace::PacedTime,
-    ) -> Result<()> {
-        // We don't set a font, because different times have different fonts.
-        r.set_fg_colour(colour::fg::Id::Pace(pace));
-        r.put_str_r(&time_str(time))
-    }
+/// Logic common to rendering a paced time.
+fn render_paced_time(
+    r: &mut dyn Renderer,
+    pace::PacedTime { pace, time }: pace::PacedTime,
+) -> Result<()> {
+    // We don't set a font, because different times have different fonts.
+    r.set_fg_colour(colour::fg::Id::Pace(pace));
+    r.put_str_r(&time_str(time))
 }
 
 /// Logic common to rendering a label.
@@ -75,4 +70,3 @@ fn render_label(r: &mut dyn Renderer, label: &str) -> Result<()> {
     r.set_fg_colour(colour::fg::Id::Header);
     r.put_str(label)
 }
-
