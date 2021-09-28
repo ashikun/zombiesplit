@@ -5,24 +5,24 @@ mod widget;
 
 use crate::ui::view::widget::Widget;
 
-use self::gfx::metrics;
+use self::gfx::{metrics, render::Renderer};
 
 use super::{presenter, Result};
 
 pub use config::Config;
 
 /// The top-level view structure.
-pub struct View<'a> {
+pub struct View<R> {
     /// The renderer to use for the view.
-    renderer: gfx::render::Window<'a>,
+    renderer: R,
     /// The root widget of the user interface.
     root: widget::Root,
 }
 
-impl<'a> View<'a> {
+impl<R: Renderer> View<R> {
     /// Creates a new graphics core.
     #[must_use]
-    pub fn new(renderer: gfx::render::Window<'a>, wmetrics: gfx::metrics::Window) -> Self {
+    pub fn new(renderer: R, wmetrics: gfx::metrics::Window) -> Self {
         let bounds = metrics::Rect {
             top_left: metrics::Point { x: 0, y: 0 },
             size: metrics::Size {

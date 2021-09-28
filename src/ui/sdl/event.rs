@@ -1,5 +1,6 @@
-//! Mapping from SDL to presenter events.
-use super::presenter::{
+//! Mapping between SDL events and presenter events.
+
+use super::super::presenter::{
     cursor,
     event::{Attempt, Edit, Event, Modal},
 };

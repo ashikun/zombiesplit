@@ -13,6 +13,7 @@ pub mod position;
 pub mod render;
 
 use super::super::{Error, Result};
+pub use render::Renderer;
 
 /// Makes a zombiesplit window.
 ///

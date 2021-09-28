@@ -38,8 +38,8 @@ impl Pen {
 
     /// Gets the pen's current font spec.
     #[must_use]
-    pub fn font_spec(&self) -> font::manager::Spec {
-        font::manager::Spec {
+    pub fn font_spec(&self) -> font::Spec {
+        font::Spec {
             id: self.font,
             colour: self.fg_colour,
         }

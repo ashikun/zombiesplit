@@ -7,11 +7,13 @@ use sdl2::{
     video::WindowContext,
 };
 
-use super::{
-    super::colour,
-    error::{Error, Result},
-    metrics::{self, Metrics},
-    set::{Id, Set},
+use super::super::view::gfx::{
+    colour,
+    font::{
+        metrics::{self, Metrics},
+        set::{Id, Set, Spec},
+        Error, Result,
+    },
 };
 
 /// A font manager, using a SDL texture creator.
@@ -31,7 +33,7 @@ impl<'a> Manager<'a> {
     #[must_use]
     pub fn new(
         creator: &'a TextureCreator<WindowContext>,
-        font_set: &'a super::Set,
+        font_set: &'a Set,
         colour_set: &'a colour::fg::Set,
     ) -> Self {
         Self {
@@ -82,13 +84,4 @@ impl<'a> metrics::Source<Id> for Manager<'a> {
     fn metrics(&self, id: Id) -> Metrics {
         self.font_set.get(id).metrics
     }
-}
-
-// A font specification (ID and colour).
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-pub struct Spec {
-    /// The identifier of the font.
-    pub id: Id,
-    /// The colour key for the font.
-    pub colour: colour::fg::Id,
 }

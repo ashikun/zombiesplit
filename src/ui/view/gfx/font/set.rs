@@ -38,6 +38,15 @@ pub enum Id {
     Large,
 }
 
+// A font specification (ID and colour).
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub struct Spec {
+    /// The identifier of the font.
+    pub id: Id,
+    /// The colour key for the font.
+    pub colour: super::super::colour::fg::Id,
+}
+
 /// A font configuration.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {

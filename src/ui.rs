@@ -8,8 +8,8 @@ attempt session forming the model).
 */
 
 pub mod error;
-pub mod event;
 pub mod presenter;
+mod sdl;
 pub mod view;
 
 use std::cell::RefCell;
@@ -54,8 +54,8 @@ impl Manager {
     /// Returns an error if SDL can't spawn an event pump.
     pub fn spawn<'p>(&self, presenter: presenter::Presenter<'p>) -> Result<Instance<'_, 'p>> {
         let font_manager =
-            view::gfx::font::Manager::new(&self.textures, &self.cfg.fonts, &self.cfg.colours.fg);
-        let renderer = view::gfx::render::Window::new(
+            sdl::font::Manager::new(&self.textures, &self.cfg.fonts, &self.cfg.colours.fg);
+        let renderer = sdl::Renderer::new(
             self.screen.borrow_mut(),
             self.cfg.window,
             font_manager,
@@ -76,7 +76,7 @@ impl Manager {
 /// An instance of the view for a particular presenter.
 pub struct Instance<'c, 'p> {
     events: sdl2::EventPump,
-    view: view::View<'c>,
+    view: view::View<sdl::Renderer<'c>>,
     presenter: presenter::Presenter<'p>,
 }
 
@@ -99,7 +99,7 @@ impl<'c, 'p> Instance<'c, 'p> {
     fn cycle(&mut self) -> Result<()> {
         self.presenter.pump();
         for e in self.events.poll_iter() {
-            if let Some(x) = event::from_sdl(&e) {
+            if let Some(x) = sdl::event::from_sdl(&e) {
                 self.presenter.core.handle_event(&x);
             }
         }
