@@ -97,19 +97,19 @@ impl SplitPosition {
     /// # Example
     ///
     /// ```
-    /// use zombiesplit::presenter::cursor::SplitPosition;
+    /// use zombiesplit::ui::presenter::cursor::SplitPosition;
     ///
     /// // no cursor is given
-    /// assert_eq!(SplitPosition::default(), SplitPosition::new(0, None))
+    /// assert_eq!(SplitPosition::default(), SplitPosition::new(0, None));
     ///
     /// // split is before the cursor
-    /// assert_eq!(SplitPosition::Done, SplitPosition::new(0, Some(5)))
+    /// assert_eq!(SplitPosition::Done, SplitPosition::new(0, Some(5)));
     ///
     /// // split is on the cursor
-    /// assert_eq!(SplitPosition::Cursor, SplitPosition::new(5, Some(5)))
+    /// assert_eq!(SplitPosition::Cursor, SplitPosition::new(5, Some(5)));
     ///
     /// // split is after the cursor
-    /// assert_eq!(SplitPosition::Coming, SplitPosition::from(10, Some(5)))
+    /// assert_eq!(SplitPosition::Coming, SplitPosition::new(10, Some(5)));
     /// ```
     #[must_use]
     pub fn new(split_pos: usize, cur_pos: Option<usize>) -> Self {
@@ -125,16 +125,16 @@ impl SplitPosition {
 /// # Example
 ///
 /// ```
-/// use zombiesplit::presenter::cursor::SplitPosition;
+/// use zombiesplit::ui::presenter::cursor::SplitPosition;
 ///
 /// // split is before the cursor
-/// assert_eq!(SplitPosition::Done, SplitPosition::from(0.cmp(5)))
+/// assert_eq!(SplitPosition::Done, SplitPosition::from(0.cmp(&5)));
 ///
 /// // split is on the cursor
-/// assert_eq!(SplitPosition::Cursor, SplitPosition::from(5.cmp(5)))
+/// assert_eq!(SplitPosition::Cursor, SplitPosition::from(5.cmp(&5)));
 ///
 /// // split is after the cursor
-/// assert_eq!(SplitPosition::Coming, SplitPosition::from(10.cmp(5)))
+/// assert_eq!(SplitPosition::Coming, SplitPosition::from(10.cmp(&5)));
 /// ```
 impl From<Ordering> for SplitPosition {
     fn from(split_cmp_cur: std::cmp::Ordering) -> Self {

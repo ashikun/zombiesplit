@@ -9,7 +9,10 @@ mod header;
 mod split;
 mod total;
 
-use super::{super::{presenter::State, error::Result}, gfx::{metrics, render}};
+use super::{
+    super::{error::Result, presenter::State},
+    gfx::{metrics, render},
+};
 
 /// Trait for things that can render information from a presenter.
 pub trait Widget<State> {
@@ -44,7 +47,6 @@ pub struct LayoutContext {
     ///
     /// All widgets are placed and sized by their parents.
     pub bounds: metrics::Rect,
-
     /*
     /// An object for checking text sizing.
     ///
@@ -56,20 +58,23 @@ pub struct LayoutContext {
 impl LayoutContext {
     /// Makes a copy of this layout context with the given new bounding box.
     pub fn with_bounds(self, new_bounds: metrics::Rect) -> Self {
-        Self{bounds: new_bounds, ..self}
+        Self {
+            bounds: new_bounds,
+            ..self
+        }
     }
 }
 
 /// The root widget.
 ///
-/// Widgets 
+/// Widgets
 pub struct Root {
     /// The header widget.
     header: header::Widget,
     /// The splits widget.
     splits: split::Widget,
     /// The footer widget.
-    footer: total::Widget
+    footer: total::Widget,
 }
 
 impl Root {
@@ -86,9 +91,12 @@ impl Root {
 
 impl Widget<State> for Root {
     fn layout(&mut self, ctx: LayoutContext) {
-        self.header.layout(ctx.with_bounds(ctx.wmetrics.header_rect()));
-        self.splits.layout(ctx.with_bounds(ctx.wmetrics.splits_rect()));
-        self.footer.layout(ctx.with_bounds(ctx.wmetrics.total_rect()));
+        self.header
+            .layout(ctx.with_bounds(ctx.wmetrics.header_rect()));
+        self.splits
+            .layout(ctx.with_bounds(ctx.wmetrics.splits_rect()));
+        self.footer
+            .layout(ctx.with_bounds(ctx.wmetrics.total_rect()));
     }
 
     fn children(&self) -> Vec<&dyn Widget<State>> {

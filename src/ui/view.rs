@@ -7,7 +7,7 @@ use crate::ui::view::widget::Widget;
 
 use self::gfx::metrics;
 
-use super::{Result, presenter};
+use super::{presenter, Result};
 
 pub use config::Config;
 
@@ -23,12 +23,18 @@ impl<'a> View<'a> {
     /// Creates a new graphics core.
     #[must_use]
     pub fn new(renderer: gfx::render::Window<'a>, wmetrics: gfx::metrics::Window) -> Self {
-        let bounds = metrics::Rect { x: 0, y: 0, size: metrics::Size{w: wmetrics.win_w, h: wmetrics.win_h}};
+        let bounds = metrics::Rect {
+            top_left: metrics::Point { x: 0, y: 0 },
+            size: metrics::Size {
+                w: wmetrics.win_w,
+                h: wmetrics.win_h,
+            },
+        };
         let ctx = widget::LayoutContext { wmetrics, bounds };
-         
+
         Self {
             renderer,
-            root: widget::Root::new(ctx)
+            root: widget::Root::new(ctx),
         }
     }
 
@@ -49,7 +55,7 @@ impl<'a> View<'a> {
         let mut widgets: Vec<&dyn Widget<presenter::State>> = vec![&mut self.root];
         while let Some(w) = widgets.pop() {
             w.render(&mut self.renderer, state)?;
-            widgets.append(&mut w.children())
+            widgets.append(&mut w.children());
         }
         Ok(())
     }

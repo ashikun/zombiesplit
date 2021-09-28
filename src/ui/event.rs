@@ -6,6 +6,7 @@ use super::presenter::{
 use crate::model::time::position;
 
 /// Maps an event from SDL into [Event].
+#[must_use]
 pub fn from_sdl(e: &sdl2::event::Event) -> Option<Event> {
     match e {
         sdl2::event::Event::Quit { .. } => Some(Event::Attempt(Attempt::Quit)),

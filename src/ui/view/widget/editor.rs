@@ -4,7 +4,7 @@ The split editor isn't a [Widget] per se, as it lays on top of a split widget.
 */
 
 use super::super::{
-    super::{Result, presenter::state},
+    super::{presenter::state, Result},
     gfx::{colour, font, metrics, position::Position, render::Renderer},
 };
 use crate::model::time::position::Name;
@@ -41,14 +41,14 @@ impl<'r, 's, R: Renderer> Editor<'r, 's, R> {
             .set_pos(Position::top_right(self.r.span_w_str(PLACEHOLDER), 0));
         self.r.set_font(font::Id::Normal);
         self.reset_colours();
-        self.fill_bg(metrics::sat_i32(PLACEHOLDER.len()))?;
+        self.fill_bg(metrics::conv::sat_i32(PLACEHOLDER.len()))?;
         self.r.put_str(PLACEHOLDER)?;
         Ok(())
     }
 
     fn draw_field(&mut self, pos: Name, value: &str) -> Result<()> {
         let is_editing = self.is_editing_field(pos);
-        let num_chars = metrics::sat_i32(value.len());
+        let num_chars = metrics::conv::sat_i32(value.len());
 
         // Visually distinguish the currently-edited editor.
         if is_editing {
@@ -89,6 +89,12 @@ impl<'r, 's, R: Renderer> Editor<'r, 's, R> {
     /// Fills a background of `num_chars` width relative to the current position.
     fn fill_bg(&mut self, num_chars: i32) -> Result<()> {
         let size = self.r.text_size(num_chars, 1);
-        self.r.fill(metrics::Rect { x: 0, y: 0, size }.grow(1))
+        self.r.fill(
+            metrics::Rect {
+                top_left: metrics::Point { x: 0, y: 0 },
+                size,
+            }
+            .grow(1),
+        )
     }
 }

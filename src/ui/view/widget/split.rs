@@ -1,7 +1,11 @@
 //! Logic for drawing splits.
 
-use super::{super::{
-        super::{Result, presenter::{cursor, state}},
+use super::{
+    super::{
+        super::{
+            presenter::{cursor, state},
+            Result,
+        },
         gfx::{
             colour,
             font::{self, metrics::TextSizer},
@@ -9,7 +13,9 @@ use super::{super::{
             position::{Position, X},
             render::{Region, Renderer},
         },
-    }, editor};
+    },
+    editor,
+};
 use crate::model::{self, aggregate};
 
 /// The split viewer widget.
@@ -45,11 +51,17 @@ impl super::Widget<state::State> for Widget {
 impl Widget {
     /// Creates a new view using the given initial layout context.
     pub fn new(ctx: super::LayoutContext) -> Self {
-        Self { rect: ctx.wmetrics.splits_rect(), split_h: ctx.wmetrics.split_h }
+        Self {
+            rect: ctx.wmetrics.splits_rect(),
+            split_h: ctx.wmetrics.split_h,
+        }
     }
 
     fn split_pos(&self, index: usize) -> Position {
-        Position::top_left(0, metrics::sat_i32(index) * metrics::sat_i32(self.split_h))
+        Position::top_left(
+            0,
+            metrics::conv::sat_i32(index) * metrics::conv::sat_i32(self.split_h),
+        )
     }
 }
 
@@ -120,11 +132,13 @@ fn make_time_display_region<'a>(parent: &'a mut Region, split_pos: Position) -> 
     // work out where the x position of the time display is
     let parent_size = parent.size();
     let size = editor::size(parent);
-    let x = metrics::sat_i32(parent_size.w - size.w);
+    let x = metrics::conv::sat_i32(parent_size.w - size.w);
 
     let rect = metrics::Rect {
-        x,
-        y: split_pos.y.to_top(0, 0),
+        top_left: metrics::Point {
+            x,
+            y: split_pos.y.to_top(0, 0),
+        },
         size,
     };
 

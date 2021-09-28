@@ -1,5 +1,7 @@
 //! Positioning setup for rendering.
-use super::metrics::{sat_i32, Rect};
+use super::metrics::{conv::sat_i32, Rect};
+
+// TODO(@MattWindsor91): slated for removal/simplification.
 
 /// A position specification, used for moving the renderer's plotter.
 ///
@@ -97,7 +99,7 @@ impl X {
     #[must_use]
     pub fn normalise_to_rect(self, rect: Rect) -> Self {
         match self {
-            Self::Left(k) => Self::Left(rect.x + k),
+            Self::Left(k) => Self::Left(rect.top_left.x + k),
             Self::Right(k) => Self::Left(rect.x2() - k),
             x @ Self::Rel(_) => x,
         }
@@ -144,7 +146,7 @@ impl Y {
     #[must_use]
     pub fn normalise_to_rect(self, rect: Rect) -> Self {
         match self {
-            Self::Top(k) => Self::Top(rect.y + k),
+            Self::Top(k) => Self::Top(rect.top_left.y + k),
             Self::Bottom(k) => Self::Top(rect.y2() - k),
             x @ Self::Rel(_) => x,
         }

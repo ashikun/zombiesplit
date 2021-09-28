@@ -4,7 +4,10 @@ use std::{cell::RefMut, rc::Rc};
 
 use super::{
     super::super::{Error, Result},
-    colour, font::{self, metrics::TextSizer}, metrics, pen, position::Position
+    colour,
+    font::{self, metrics::TextSizer},
+    metrics, pen,
+    position::Position,
 };
 use sdl2::{
     rect::{Point, Rect},
@@ -178,7 +181,7 @@ impl<'a> Window<'a> {
     }
 
     fn convert_rect(&self, rect: metrics::Rect) -> sdl2::rect::Rect {
-        let pos = self.pos.offset(rect.x, rect.y);
+        let pos = self.pos.offset(rect.top_left.x, rect.top_left.y);
         sdl2::rect::Rect::new(pos.x, pos.y, rect.size.w, rect.size.h)
     }
 

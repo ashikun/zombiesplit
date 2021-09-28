@@ -111,7 +111,6 @@ impl<'c, 'p> Instance<'c, 'p> {
     }
 }
 
-
 /// Runs the user interface, configured by `cfg`, over `session`.
 ///
 /// # Errors

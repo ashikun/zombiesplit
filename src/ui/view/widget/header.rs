@@ -1,7 +1,7 @@
 //! Header display.
 
 use super::super::{
-    super::{Result, presenter::State},
+    super::{presenter::State, Result},
     gfx::{
         colour, font, metrics,
         position::{Position, X},
@@ -19,7 +19,7 @@ pub struct Widget {
 impl Widget {
     /// Constructs a new [Widget] using the given layout context.
     pub fn new(ctx: super::LayoutContext) -> Self {
-        Self{rect: ctx.bounds}
+        Self { rect: ctx.bounds }
     }
 }
 

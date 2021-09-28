@@ -1,5 +1,5 @@
 //! Font metrics.
-use super::super::metrics::{sat_i32, Size};
+use super::super::metrics::{conv::sat_i32, Size};
 use serde::{Deserialize, Serialize};
 
 /// A font metrics set.
