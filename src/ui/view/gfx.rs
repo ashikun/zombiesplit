@@ -9,7 +9,6 @@ pub mod colour;
 pub mod font;
 pub mod metrics; // for now
 pub mod pen;
-pub mod position;
 pub mod render;
 
 use super::super::{Error, Result};

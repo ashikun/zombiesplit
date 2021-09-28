@@ -5,7 +5,7 @@ The split editor isn't a [Widget] per se, as it lays on top of a split widget.
 
 use super::super::{
     super::{presenter::state, Result},
-    gfx::{colour, font, metrics::{self, Rect}, position::Position, render::Renderer},
+    gfx::{colour, font, metrics::{self, Anchor, Rect}, render::Renderer},
 };
 use crate::model::time::position::Name;
 
@@ -31,7 +31,11 @@ impl super::Widget<state::Editor> for Editor {
     fn render(&self, r: &mut dyn Renderer, s: &state::Editor) -> Result<()> {
         self.draw_base(r)?;
         
+        // TODO(@MattWindsor91): this is temporary.
+        let mut pos = self.rect.point(0, 0, Anchor::TOP_LEFT);
         for field in [Name::Minutes, Name::Seconds, Name::Milliseconds] {
+            r.set_pos(pos);
+            pos.offset_mut(r.span_w(2), 0);
             self.draw_field(r, s.field(field), s.field == Some(field))?;
         }
 
@@ -59,7 +63,6 @@ impl Editor {
         }
 
         r.put_str(value)?;
-        r.set_pos(Position::rel_chars(r, num_chars + 1, 0));
 
         if is_editing {
             reset_colours(r);

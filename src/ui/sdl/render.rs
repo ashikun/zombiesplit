@@ -7,7 +7,6 @@ use super::super::{
         colour,
         font::{self, metrics::TextSizer},
         metrics, pen,
-        position::Position,
         render,
     },
     Error, Result,
@@ -42,11 +41,8 @@ impl<'a> render::Renderer for Renderer<'a> {
         }
     }
 
-    fn set_pos(&mut self, pos: Position) {
-        self.pos = Point::new(
-            pos.x.to_left(self.pos.x, self.w_metrics.win_w),
-            pos.y.to_top(self.pos.y, self.w_metrics.win_h),
-        );
+    fn set_pos(&mut self, pos: metrics::Point) {
+        self.pos = Point::new(pos.x, pos.y);
     }
 
     fn fill(&mut self, rect: metrics::Rect) -> Result<()> {

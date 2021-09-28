@@ -10,7 +10,6 @@ use super::{super::{
             colour,
             font,
             metrics::{conv::sat_i32, Anchor, Size, Rect},
-            position::{Position, X},
             Renderer
         },
     }, LayoutContext, editor};
@@ -77,9 +76,12 @@ impl super::Widget<state::Split> for SplitDrawer {
     }
 
     fn render(&self, r: &mut dyn Renderer, s: &state::Split) -> Result<()> {
-        r.set_pos(self.rect.top_left.into());
+        r.set_pos(self.rect.top_left);
         draw_name(r, s)?;
         self.draw_time_display(r, s)?;
+
+        // TODO(@MattWindsor91): jog to position more accurately.
+        r.set_pos(self.rect.point(r.span_w(-10), 0, Anchor::TOP_RIGHT));
         draw_num_times(r, s)?;
         Ok(())
     }
@@ -134,8 +136,6 @@ fn draw_time(r: &mut dyn Renderer, state: &state::Split) -> Result<()> {
 
 /// Draws a representation of the number of times this split has logged.
 fn draw_num_times(r: &mut dyn Renderer, state: &state::Split) -> Result<()> {
-    // TODO(@MattWindsor91): jog to position more accurately.
-    r.set_pos(Position::x(X::Rel(r.span_w(-10))));
     r.set_font(font::Id::Small);
     // TODO(@MattWindsor91): better key?
     r.set_fg_colour(colour::fg::Id::Header);

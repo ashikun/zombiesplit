@@ -4,8 +4,7 @@ use super::{
     super::{
         super::{presenter::state, Result},
         gfx::{
-            colour, font, metrics::{self, anchor, Anchor},
-            position::{Position, X},
+            colour, font, metrics::{self, Anchor},
             Renderer,
         },
     },
@@ -32,12 +31,10 @@ impl super::Widget<state::State> for Widget {
     }
 
     fn render(&self, r: &mut dyn Renderer, s: &state::State) -> Result<()> {
-        r.set_pos(self.rect.point(0, 0, Anchor::TOP_LEFT).into());
+        r.set_pos(self.rect.point(0, 0, Anchor::TOP_LEFT));
         self.render_total(r, &s.footer)?;
 
-        // TODO(@MattWindsor91): don't jiggle the position like this.
-        r.set_pos(Position::x(X::Left(0)));
-        r.set_pos(Position::rel_chars(r, 0, 1));
+        r.set_pos(self.rect.point(0, r.span_h(1), Anchor::TOP_LEFT));
         self.render_at_cursor(r, &s.footer)?;
 
         Ok(())
@@ -53,6 +50,9 @@ impl Widget {
 
     fn render_at_cursor(&self, r: &mut dyn Renderer, s: &state::Footer) -> Result<()> {
         render_label(r, "Up to cursor")?;
+        // TODO(@MattWindsor91): positioning hack here.
+        r.set_font(font::Id::Large);
+        r.set_pos(self.rect.point(0, r.span_h(1), Anchor::TOP_RIGHT));
         r.set_font(font::Id::Normal);
         self.render_paced_time(r, s.at_cursor)
     }
@@ -65,7 +65,6 @@ impl Widget {
     ) -> Result<()> {
         // We don't set a font, because different times have different fonts.
         r.set_fg_colour(colour::fg::Id::Pace(pace));
-        r.set_pos(Position::x(X::Left(self.rect.x(0, anchor::X::Right))).into());
         r.put_str_r(&time_str(time))
     }
 }

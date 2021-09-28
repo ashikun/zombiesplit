@@ -1,19 +1,14 @@
 //! Traits for low-level rendering.
 
-use super::{super::super::Result, colour, font, metrics::{self, Point}, position::Position};
+use super::{super::super::Result, colour, font, metrics::{self, Point}};
 
 /// Trait of things that provide rendering facilities.
 pub trait Renderer: font::metrics::TextSizer {
     /// Gets the size of this renderer's bounding box.
     fn size(&self) -> metrics::Size;
 
-    /// Sets the plotter to the given point.
-    fn move_to(&mut self, point: Point) {
-        self.set_pos(Position::top_left(point.x, point.y))
-    }
-
     /// Sets the plotter to the given position.
-    fn set_pos(&mut self, pos: Position);
+    fn set_pos(&mut self, pos: Point);
 
     /// Sets the current font.
     fn set_font(&mut self, font: font::Id);

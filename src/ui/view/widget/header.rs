@@ -4,7 +4,6 @@ use super::super::{
     super::{presenter::State, Result},
     gfx::{
         colour, font, metrics::{self, Anchor},
-        position::Position,
         Renderer,
     },
 };
@@ -40,17 +39,18 @@ impl super::Widget<State> for Widget {
 
 impl Widget {
     fn render_meta(&self, r: &mut dyn Renderer, meta: &Info) -> Result<()> {
-        r.set_pos(self.rect.point(0, 0, Anchor::TOP_LEFT).into());
+        r.set_pos(self.rect.point(0, 0, Anchor::TOP_LEFT));
         r.set_font(font::Id::Large);
         r.put_str(&meta.game)?;
-        r.set_pos(Position::rel_chars(r, 0, 1));
+
+        r.set_pos(self.rect.point(0, r.span_h(1), Anchor::TOP_LEFT));
         r.set_font(font::Id::Normal);
         r.put_str(&meta.category)?;
         Ok(())
     }
 
     fn render_attempt(&self, r: &mut dyn Renderer, attempt: &AttemptInfo) -> Result<()> {
-        r.set_pos(self.rect.point(0, 0, Anchor::TOP_RIGHT).into());
+        r.set_pos(self.rect.point(0, 0, Anchor::TOP_RIGHT));
         r.put_str_r(&format!("#{} ({})", attempt.total, attempt.completed))
     }
 }
