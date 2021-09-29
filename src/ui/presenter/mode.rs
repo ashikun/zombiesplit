@@ -1,8 +1,14 @@
 //! The Mode trait and associated functionality.
 
+pub mod editor;
+pub mod nav;
+
 use crate::model::attempt::Session;
 
-use super::{cursor::Cursor, editor::Editor, event};
+pub use editor::Editor;
+pub use nav::Nav;
+
+use super::{cursor::Cursor, event};
 
 /// Trait for presenter modes.
 ///

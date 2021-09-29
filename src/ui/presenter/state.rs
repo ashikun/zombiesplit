@@ -57,7 +57,7 @@ impl State {
     pub fn set_cursor(&mut self, cursor_at: Option<usize>) {
         self.cursor_pos = cursor_at;
         self.footer.at_cursor = self.total_at_cursor();
-        self.refresh_split_cursors()
+        self.refresh_split_cursors();
     }
 
     /// Recalculates the state's footer totals.
@@ -72,7 +72,7 @@ impl State {
     fn refresh_split_cursors(&mut self) {
         let c = self.cursor_pos;
         for (i, s) in &mut self.splits.iter_mut().enumerate() {
-            s.position = SplitPosition::new(i, c)
+            s.position = SplitPosition::new(i, c);
         }
     }
 
@@ -81,7 +81,7 @@ impl State {
         let c = self.cursor_pos;
         // TODO(@MattWindsor91): this is a bit of a hack.
         for (i, s) in &mut self.splits.iter_mut().enumerate() {
-            s.set_editor(editor.filter(|_| Some(i) == c))
+            s.set_editor(editor.filter(|_| Some(i) == c));
         }
     }
 
@@ -238,7 +238,7 @@ impl Split {
     /// # Panics
     ///
     /// If the field position is set to hours.
-    pub fn set_editor(&mut self, editor: Option<&super::editor::Editor>) {
+    pub fn set_editor(&mut self, editor: Option<&super::mode::Editor>) {
         self.editor = editor.map(|e| {
             let mut out = Editor {
                 mins: e.time.mins.to_string(),

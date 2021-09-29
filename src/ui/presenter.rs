@@ -12,17 +12,15 @@ and [Core].
 */
 
 pub mod cursor;
-pub mod editor;
 pub mod event;
 pub mod mode;
-pub mod nav;
 pub mod state;
 
 use crate::model::{
     attempt::{self, observer, Session},
     short,
 };
-pub use editor::Editor;
+pub use mode::Editor;
 pub use state::State;
 use std::{rc::Rc, sync::mpsc};
 
@@ -143,7 +141,7 @@ impl<'a> Core<'a> {
     fn reset(&mut self) {
         let cur = cursor::Cursor::new(self.state.num_splits() - 1);
         // Don't commit the previous mode.
-        self.mode = Box::new(nav::Nav::new(cur));
+        self.mode = Box::new(mode::Nav::new(cur));
         self.state.reset();
     }
 

@@ -1,10 +1,10 @@
 //! The [Nav] struct and its implementations.
 
 use super::{
-    cursor::{self, Cursor},
+    super::cursor::{self, Cursor},
     editor::Editor,
     event::{self, Modal},
-    mode::{EventResult, Mode},
+    EventResult, Mode,
 };
 use crate::model::{attempt::Session, time::position};
 

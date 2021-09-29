@@ -3,10 +3,10 @@
 use std::fmt::{Display, Formatter};
 
 use super::{
-    cursor::{self, Cursor},
+    super::cursor::{self, Cursor},
     event::{Edit, Modal},
-    mode::{EventResult, Mode},
     nav::Nav,
+    EventResult, Mode,
 };
 use crate::model::{
     attempt::Session,
