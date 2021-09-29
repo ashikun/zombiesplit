@@ -39,7 +39,7 @@ impl super::Widget<state::Editor> for Editor {
         let mut pos = self.rect.point(0, 0, Anchor::TOP_LEFT);
         for field in [Name::Minutes, Name::Seconds, Name::Milliseconds] {
             r.set_pos(pos);
-            pos.offset_mut(r.span_w(2), 0);
+            pos.offset_mut(r.span_w(3), 0);
             draw_field(r, s.field(field), s.field == Some(field))?;
         }
 

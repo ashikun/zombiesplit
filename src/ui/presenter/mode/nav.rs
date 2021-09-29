@@ -19,7 +19,7 @@ pub struct Nav {
 
 impl Mode for Nav {
     fn on_entry(&mut self, state: &mut State) {
-        state.set_cursor(Some(self.cur.position()));
+        self.update_cursor(state);
     }
 
     fn on_event(&mut self, ctx: EventContext) -> EventResult {
@@ -69,7 +69,7 @@ impl Nav {
     ) -> EventResult {
         // TODO(@MattWindsor91): cursor multiplier
         self.cur.move_by(motion, 1);
-        state.set_cursor(Some(self.cur.position()));
+        self.update_cursor(state);
 
         EventResult::Handled
     }
@@ -78,5 +78,9 @@ impl Nav {
     fn enter_field(&self, field: position::Name) -> EventResult {
         let editor = Editor::new(self.cur, Some(field));
         EventResult::transition(editor)
+    }
+
+    fn update_cursor(&self, state: &mut super::super::State) {
+        state.set_cursor(Some(self.cur.position()));
     }
 }

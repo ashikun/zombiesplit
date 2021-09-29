@@ -32,14 +32,18 @@ impl Mode for Editor {
     }
 
     fn on_event(&mut self, ctx: super::EventContext) -> EventResult {
-        match ctx.event {
+        let result = match ctx.event {
             Modal::Undo => self.undo(),
             Modal::Delete => self.delete(),
             Modal::Edit(d) => self.edit(d),
             Modal::EnterField(f) => self.enter_field(f),
             Modal::Cursor(c) => self.move_cursor(c),
             _ => EventResult::Handled,
-        }
+        };
+        // TODO(@MattWindsor91): this is suboptimal; we should only modify the
+        // specific parts changed by the event.
+        ctx.state.set_editor(Some(self));
+        result
     }
 
     fn on_exit(&mut self, state: &mut State) -> Option<event::Attempt> {

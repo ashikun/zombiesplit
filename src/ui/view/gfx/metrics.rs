@@ -1,4 +1,4 @@
-//! Font and window metrics (most of which will be un-hardcoded later).
+//! Font and window metrics.
 use serde::{Deserialize, Serialize};
 
 pub mod anchor;
@@ -30,6 +30,21 @@ pub struct Window {
 }
 
 impl Window {
+    /// Gets the configured rectangle for the window.
+    ///
+    /// This determines the size that the window will take up initially; the
+    /// window may be resized later on.
+    #[must_use]
+    pub fn win_rect(&self) -> Rect {
+        Rect {
+            top_left: Point { x: 0, y: 0 },
+            size: Size {
+                w: self.win_w,
+                h: self.win_h,
+            },
+        }
+    }
+
     /// Gets the bounding box of the header part of the window.
     #[must_use]
     pub fn header_rect(&self) -> Rect {

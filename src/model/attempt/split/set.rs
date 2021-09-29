@@ -15,14 +15,12 @@ pub struct Set {
     contents: Vec<Split>,
     /// Lookup cache from short names to positions in the vector.
     ///
-    /// Used for implementing [Locaotr] for short names.
+    /// Used for implementing [Locator] for short names.
     cache: short::Map<usize>,
 }
 
-/// We can construct a [Set] from any iterator that yields us split data.
+/// We can construct a [Set] from any iterator that yields us split information.
 impl FromIterator<game::Split> for Set {
-    // TODO(@MattWindsor91): remove the use of Rc here.
-
     fn from_iter<T: IntoIterator<Item = game::Split>>(iter: T) -> Self {
         let contents: Vec<Split> = iter.into_iter().map(Split::new).collect();
         let cache = make_cache(&contents);

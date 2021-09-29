@@ -5,7 +5,7 @@ mod widget;
 
 use crate::ui::view::widget::Widget;
 
-use self::gfx::{metrics, render::Renderer};
+use self::gfx::render::Renderer;
 
 use super::{presenter, Result};
 
@@ -23,16 +23,9 @@ impl<R: Renderer> View<R> {
     /// Creates a new graphics core.
     #[must_use]
     pub fn new(renderer: R, wmetrics: gfx::metrics::Window) -> Self {
-        let bounds = metrics::Rect {
-            top_left: metrics::Point { x: 0, y: 0 },
-            size: metrics::Size {
-                w: wmetrics.win_w,
-                h: wmetrics.win_h,
-            },
-        };
-        let ctx = widget::LayoutContext { wmetrics, bounds };
+        let bounds = wmetrics.win_rect();
         let mut root = widget::Root::default();
-        root.layout(ctx);
+        root.layout(widget::LayoutContext { wmetrics, bounds });
 
         Self { renderer, root }
     }
@@ -50,6 +43,10 @@ impl<R: Renderer> View<R> {
         Ok(())
     }
 
+    /// Redraws all of the widgets reachable from the root.
+    ///
+    /// Drawing proceeds breath-first with each widget's children being added
+    /// to the end of the redraw queue after drawing the widget itself.
     fn redraw_widgets(&mut self, state: &presenter::State) -> Result<()> {
         let mut widgets: Vec<&dyn Widget<presenter::State>> = vec![&mut self.root];
         while let Some(w) = widgets.pop() {

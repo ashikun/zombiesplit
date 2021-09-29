@@ -26,12 +26,12 @@ pub use state::State;
 use std::{rc::Rc, sync::mpsc};
 
 /// The core of a zombiesplit presenter, containing all state and modality.
-
 pub struct Core<'a> {
     /// The current mode.
     pub mode: Box<dyn mode::Mode + 'a>,
     /// The zombiesplit session being controlled by the presenter.
     pub session: Session<'a>,
+    /// The visual state being updated by the presenter.
     pub state: state::State,
 }
 
@@ -53,10 +53,14 @@ impl<'a> Core<'a> {
         self.mode.is_running()
     }
 
-    /// Handles an event.
+    /// Handles an event `e`.
     ///
-    /// Events are offered to the current mode first, and handled globally if
-    /// the event is refused by the mode.
+    /// Modal events are handled by the current mode, which may interpret them
+    /// as an internal change, rephrase them as a non-modal event, or request a
+    /// transition to another mode.
+    ///
+    /// Non-modal events are generally handled by forwarding them to the
+    /// current [Session].
     pub fn handle_event(&mut self, e: &event::Event) {
         if let Some(a) = self.handle_potentially_modal_event(e) {
             self.handle_attempt_event(a);
@@ -76,7 +80,7 @@ impl<'a> Core<'a> {
             state: &mut self.state,
         };
         match self.mode.on_event(ctx) {
-            mode::EventResult::Transition(new_mode) => self.transition(new_mode),
+            mode::EventResult::Transition(new_mode) => self.transition_with_exit(new_mode),
             mode::EventResult::Expanded(a) => Some(a),
             mode::EventResult::Handled => None,
         }
@@ -95,48 +99,16 @@ impl<'a> Core<'a> {
         }
     }
 
-    fn transition(&mut self, new_mode: Box<dyn mode::Mode>) -> Option<event::Attempt> {
-        let follow_on = self.mode.on_exit(&mut self.state);
-        self.mode = new_mode;
-        self.mode.on_entry(&mut self.state);
-        follow_on
-    }
-
-    /// Start the process of quitting.
+    /// Starts the process of quitting.
     fn quit(&mut self) {
-        self.transition(Box::new(mode::Quitting));
-    }
-
-    /// Handles the split event `ev` relating to the split `short`.
-    fn handle_split_event(&mut self, short: short::Name, ev: observer::split::Event) {
-        self.state.handle_split_event(short, ev);
-
-        if let observer::split::Event::Time(t, observer::time::Event::Popped) = ev {
-            self.open_editor(short, t);
-        }
-    }
-
-    /// Opens a new split editor at the short named `short`, and preloads it
-    /// with the time `time`.
-    fn open_editor(&mut self, short: short::Name, time: Time) {
-        if let Some(cursor) = self.make_cursor_at(short) {
-            let mut editor = Box::new(Editor::new(cursor, None));
-            editor.time = time;
-            self.transition(editor);
-        }
-    }
-
-    fn make_cursor_at(&self, short: short::Name) -> Option<Cursor> {
-        let max = self.session.num_splits() - 1;
-        self.session
-            .position_of(short)
-            .and_then(|pos| Cursor::new_at(pos, max))
+        self.transition_with_exit(Box::new(mode::Quitting));
     }
 
     fn reset(&mut self) {
         let cur = cursor::Cursor::new(self.state.num_splits() - 1);
-        // Don't commit the previous mode.
-        self.mode = Box::new(mode::Nav::new(cur));
+        // Don't call exit the previous mode's exit hook; it may modify the run
+        // in ways we don't want to happen.
+        self.transition(Box::new(mode::Nav::new(cur)));
         self.state.reset();
     }
 
@@ -152,9 +124,50 @@ impl<'a> Core<'a> {
             Event::Attempt(a) => self.state.attempt = a,
             Event::GameCategory(gc) => self.state.game_category = gc,
             Event::Split(short, ev) => {
-                self.handle_split_event(short, ev);
+                self.observe_split(short, ev);
             }
         }
+    }
+
+    /// Handles the split event `ev` relating to the split `short`.
+    fn observe_split(&mut self, short: short::Name, ev: observer::split::Event) {
+        self.state.handle_split_event(short, ev);
+
+        if let observer::split::Event::Time(t, observer::time::Event::Popped) = ev {
+            self.open_editor(short, t);
+        }
+    }
+
+    /// Opens a new split editor at the short named `short`, and preloads it
+    /// with the time `time`.
+    fn open_editor(&mut self, short: short::Name, time: Time) {
+        if let Some(cursor) = self.make_cursor_at(short) {
+            let mut editor = Box::new(Editor::new(cursor, None));
+            editor.time = time;
+            self.transition_with_exit(editor);
+        }
+    }
+
+    fn make_cursor_at(&self, short: short::Name) -> Option<Cursor> {
+        let max = self.session.num_splits() - 1;
+        self.session
+            .position_of(short)
+            .and_then(|pos| Cursor::new_at(pos, max))
+    }
+
+    /// Performs a full clean transition between two modes.
+    ///
+    /// This calls both exit and entry hooks.
+    fn transition_with_exit(&mut self, new_mode: Box<dyn mode::Mode>) -> Option<event::Attempt> {
+        let follow_on = self.mode.on_exit(&mut self.state);
+        self.transition(new_mode);
+        follow_on
+    }
+
+    /// Performs a transition between two modes, calling the entry hook only.
+    fn transition(&mut self, new_mode: Box<dyn mode::Mode>) {
+        self.mode = new_mode;
+        self.mode.on_entry(&mut self.state);
     }
 }
 
