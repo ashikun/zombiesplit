@@ -52,12 +52,6 @@ impl<'a> Core<'a> {
         self.mode.is_running()
     }
 
-    /// Borrows the current editor (immutably), if one exists.
-    #[must_use]
-    pub fn editor(&self) -> Option<&Editor> {
-        self.mode.editor()
-    }
-
     /// Handles an event.
     ///
     /// Events are offered to the current mode first, and handled globally if
@@ -75,17 +69,15 @@ impl<'a> Core<'a> {
         }
     }
 
-    fn handle_modal_event(&mut self, m: event::Modal) -> Option<event::Attempt> {
-        match self.mode.handle_event(&m, &mut self.session) {
-            mode::EventResult::Transition(new_mode) => {
-                self.transition(new_mode);
-                None
-            }
+    fn handle_modal_event(&mut self, event: event::Modal) -> Option<event::Attempt> {
+        let ctx = mode::EventContext {
+            event,
+            state: &mut self.state,
+        };
+        match self.mode.on_event(ctx) {
+            mode::EventResult::Transition(new_mode) => self.transition(new_mode),
             mode::EventResult::Expanded(a) => Some(a),
-            mode::EventResult::Handled => {
-                self.refresh_state();
-                None
-            }
+            mode::EventResult::Handled => None,
         }
     }
 
@@ -102,23 +94,11 @@ impl<'a> Core<'a> {
         }
     }
 
-    fn transition(&mut self, new_mode: Box<dyn mode::Mode>) {
-        self.commit_mode();
+    fn transition(&mut self, new_mode: Box<dyn mode::Mode>) -> Option<event::Attempt> {
+        let follow_on = self.mode.on_exit(&mut self.state);
         self.mode = new_mode;
-    }
-
-    fn commit_mode(&mut self) {
-        self.mode.commit(&mut self.session);
-    }
-
-    /// Refreshes the presenter state's view of the cursor and editor.
-    ///
-    /// This is done after any presenter event that may have changed these
-    /// things.
-    fn refresh_state(&mut self) {
-        // TODO(@MattWindsor91): get rid of this, somehow.
-        self.state
-            .set_cursor(self.mode.cursor().map(cursor::Cursor::position));
+        self.mode.on_entry(&mut self.state);
+        follow_on
     }
 
     /// Start the process of quitting.
@@ -130,12 +110,15 @@ impl<'a> Core<'a> {
     fn handle_split_event(&mut self, short: short::Name, ev: observer::split::Event) {
         self.state.handle_split_event(short, ev);
 
+        // TODO(@MattWindsor91): fix this.
+        /*
         if let observer::split::Event::Time(_, observer::time::Event::Popped) = ev {
             // We just popped a time, so we should open it into an editor.
             if let Some(cursor) = self.mode.cursor().copied() {
                 self.transition(Box::new(Editor::new(cursor, None)));
             }
         }
+        */
     }
 
     fn reset(&mut self) {
@@ -160,8 +143,6 @@ impl<'a> Core<'a> {
                 self.handle_split_event(short, ev);
             }
         }
-        // TODO(@MattWindsor91): this is wasteful but borrowck won't let me do better yet.
-        self.refresh_state();
     }
 }
 

@@ -3,42 +3,44 @@
 pub mod editor;
 pub mod nav;
 
-use crate::model::attempt::Session;
-
 pub use editor::Editor;
 pub use nav::Nav;
 
-use super::{cursor::Cursor, event};
+use super::{event, State};
 
 /// Trait for presenter modes.
 ///
 /// zombiesplit is heavily modal, so most of the current presenter state
 /// depends on the current mode.
+///
+/// Modes can:
+///
+/// - interpret a certain subset of UI events, turning them into events on the
+///   model or transitions to other modes;
+/// - modify the presenter's visual state;
+/// - retain their own state, such as a split editor or a cursor.
 pub trait Mode {
-    /// Handles the given event according to the mode.
+    /// Called when the mode has been swapped in.
     ///
-    /// The mode can modify the model in-place if needed, but `commit` will get
-    /// called as the mode is transitioning out, and any modifications can be
-    /// batched until then.
+    /// The [Mode] can perform any initialisation on the visual `state` here.
+    fn on_entry(&mut self, state: &mut State);
+
+    /// Handles the mode-specific event given in `ctx`.
     ///
-    /// Note that the presenter also handles some events at the global
-    /// level.
-    fn handle_event(&mut self, _e: &event::Modal, _session: &mut Session) -> EventResult {
-        EventResult::Handled
-    }
+    /// The mode also receives, in `ctx`, the ability to modify both the view
+    /// state being displayed in the UI and parts of the downstream.  Note
+    /// however that `commit` will get when this mode transitions out, and any
+    /// modifications can be batched until then.
+    ///
+    /// Note that the presenter also handles some events at the global level.
+    fn on_event(&mut self, ctx: EventContext) -> EventResult;
 
-    /// Commits any outstanding changes the mode needs to do to the model.
-    fn commit(&mut self, _session: &mut Session) {}
-
-    /// If this mode has a cursor, retrieves it.
-    fn cursor(&self) -> Option<&Cursor> {
-        None
-    }
-
-    /// If this mode has an editor, immutably borrows it.
-    fn editor(&self) -> Option<&Editor> {
-        None
-    }
+    /// Called when the mode is about to be swapped out.
+    ///
+    /// The [Mode] can perform any last-minute adjustments to the visual
+    /// `state`, and optionally return a follow-on event representing the
+    /// application of this mode's efforts to the model.
+    fn on_exit(&mut self, state: &mut State) -> Option<event::Attempt>;
 
     /// Is zombiesplit running while this mode is active?
     fn is_running(&self) -> bool {
@@ -49,15 +51,45 @@ pub trait Mode {
 /// Mode for when there is no run active.
 pub struct Inactive;
 
-impl Mode for Inactive {}
+impl Mode for Inactive {
+    fn on_entry(&mut self, state: &mut State) {
+        state.disable_everything();
+    }
+
+    fn on_event(&mut self, _ctx: EventContext) -> EventResult {
+        EventResult::Handled
+    }
+
+    fn on_exit(&mut self, _state: &mut State) -> Option<event::Attempt> {
+        None
+    }
+}
 
 /// Mode for when we are quitting.
 pub struct Quitting;
 
 impl Mode for Quitting {
+    fn on_entry(&mut self, _state: &mut State) {}
+
+    fn on_event(&mut self, _ctx: EventContext) -> EventResult {
+        EventResult::Handled
+    }
+
+    fn on_exit(&mut self, _state: &mut State) -> Option<event::Attempt> {
+        unreachable!("should not be able to exit out of the Quitting state")
+    }
+
     fn is_running(&self) -> bool {
         false
     }
+}
+
+#[derive(Debug)]
+pub struct EventContext<'p> {
+    /// The event being handled.
+    pub event: event::Modal,
+    /// The visual state, which may need to be modified to reflect the event.
+    pub state: &'p mut super::State,
 }
 
 /// Enum of results of handling an event in a mode.

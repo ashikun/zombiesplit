@@ -3,15 +3,15 @@
 use std::fmt::{Display, Formatter};
 
 use super::{
-    super::cursor::{self, Cursor},
-    event::{Edit, Modal},
+    super::{
+        cursor::{self, Cursor},
+        State,
+    },
+    event::{self, Edit, Modal},
     nav::Nav,
     EventResult, Mode,
 };
-use crate::model::{
-    attempt::Session,
-    time::{self, position},
-};
+use crate::model::time::{self, position};
 
 /// A split editor.
 pub struct Editor {
@@ -26,28 +26,29 @@ pub struct Editor {
 }
 
 impl Mode for Editor {
-    fn handle_event(&mut self, e: &Modal, _: &mut Session) -> EventResult {
-        match e {
+    fn on_entry(&mut self, state: &mut State) {
+        // The cursor _should_ have been set by the preceding [Nav].
+        state.set_editor(Some(self));
+    }
+
+    fn on_event(&mut self, ctx: super::EventContext) -> EventResult {
+        match ctx.event {
             Modal::Undo => self.undo(),
             Modal::Delete => self.delete(),
-            Modal::Edit(d) => self.edit(*d),
-            Modal::EnterField(f) => self.enter_field(*f),
-            Modal::Cursor(c) => self.move_cursor(*c),
+            Modal::Edit(d) => self.edit(d),
+            Modal::EnterField(f) => self.enter_field(f),
+            Modal::Cursor(c) => self.move_cursor(c),
             _ => EventResult::Handled,
         }
     }
 
-    fn commit(&mut self, session: &mut Session) {
+    fn on_exit(&mut self, state: &mut State) -> Option<event::Attempt> {
         self.commit_field();
-        session.push_to(self.cur.position(), std::mem::take(&mut self.time));
-    }
-
-    fn cursor(&self) -> Option<&Cursor> {
-        Some(&self.cur)
-    }
-
-    fn editor(&self) -> Option<&Editor> {
-        Some(self)
+        state.set_editor(None);
+        Some(event::Attempt::Push(
+            self.cur.position(),
+            std::mem::take(&mut self.time),
+        ))
     }
 }
 

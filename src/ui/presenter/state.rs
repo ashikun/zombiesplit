@@ -53,6 +53,12 @@ impl State {
         }
     }
 
+    /// Disables every optional visual element (cursor, editor, etc).
+    pub fn disable_everything(&mut self) {
+        self.set_cursor(None);
+        self.set_editor(None);
+    }
+
     /// Sets the visible cursor position to `cursor_at`.
     pub fn set_cursor(&mut self, cursor_at: Option<usize>) {
         self.cursor_pos = cursor_at;
