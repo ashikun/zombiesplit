@@ -18,8 +18,9 @@ pub mod state;
 
 use crate::model::{
     attempt::{self, observer, Session},
-    short,
+    short, Time,
 };
+pub use cursor::Cursor;
 pub use mode::Editor;
 pub use state::State;
 use std::{rc::Rc, sync::mpsc};
@@ -106,19 +107,30 @@ impl<'a> Core<'a> {
         self.transition(Box::new(mode::Quitting));
     }
 
-    /// Handles the split event `ev` relating to
+    /// Handles the split event `ev` relating to the split `short`.
     fn handle_split_event(&mut self, short: short::Name, ev: observer::split::Event) {
         self.state.handle_split_event(short, ev);
 
-        // TODO(@MattWindsor91): fix this.
-        /*
-        if let observer::split::Event::Time(_, observer::time::Event::Popped) = ev {
-            // We just popped a time, so we should open it into an editor.
-            if let Some(cursor) = self.mode.cursor().copied() {
-                self.transition(Box::new(Editor::new(cursor, None)));
-            }
+        if let observer::split::Event::Time(t, observer::time::Event::Popped) = ev {
+            self.open_editor(short, t);
         }
-        */
+    }
+
+    /// Opens a new split editor at the short named `short`, and preloads it
+    /// with the time `time`.
+    fn open_editor(&mut self, short: short::Name, time: Time) {
+        if let Some(cursor) = self.make_cursor_at(short) {
+            let mut editor = Box::new(Editor::new(cursor, None));
+            editor.time = time;
+            self.transition(editor);
+        }
+    }
+
+    fn make_cursor_at(&self, short: short::Name) -> Option<Cursor> {
+        let max = self.session.num_splits() - 1;
+        self.session
+            .position_of(short)
+            .and_then(|pos| Cursor::new_at(pos, max))
     }
 
     fn reset(&mut self) {

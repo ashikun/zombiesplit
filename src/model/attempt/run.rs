@@ -1,7 +1,7 @@
 //! Models relating to runs.
 
 use super::split::Set;
-use crate::model::{game::category::AttemptInfo, history};
+use crate::model::{game::category::AttemptInfo, history, short};
 
 /// An in-progress run.
 pub struct Run {
@@ -14,6 +14,7 @@ pub struct Run {
 }
 
 impl Run {
+    /// Resets the run, incrementing its attempt counter.
     pub fn reset(&mut self) {
         self.increment_attempt();
         self.splits.reset();
@@ -56,6 +57,12 @@ impl Run {
     #[must_use]
     pub fn num_splits(&self) -> usize {
         self.splits.len()
+    }
+
+    /// Gets the position of the split with short name `short`.
+    #[must_use]
+    pub fn position_of(&self, short: impl Into<short::Name>) -> Option<usize> {
+        self.splits.position_of(short)
     }
 }
 

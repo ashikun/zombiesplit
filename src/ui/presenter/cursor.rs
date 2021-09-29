@@ -18,6 +18,17 @@ impl Cursor {
         Self { pos: 0, max }
     }
 
+    /// Creates a new cursor at `pos`, with the maximum index `max`.
+    /// Returns `None` if `max < pos`.
+    #[must_use]
+    pub fn new_at(pos: usize, max: usize) -> Option<Self> {
+        if max < pos {
+            None
+        } else {
+            Some(Self { pos, max })
+        }
+    }
+
     /// Gets the current cursor position.
     #[must_use]
     pub fn position(&self) -> usize {
