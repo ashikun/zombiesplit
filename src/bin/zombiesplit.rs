@@ -14,7 +14,8 @@ fn run() -> anyhow::Result<()> {
     env_logger::try_init()?;
 
     let matches = app().get_matches();
-    let cfg = config::System::load(matches.value_of("config").unwrap())?;
+    let cfg_raw = std::fs::read_to_string(matches.value_of("config").unwrap())?;
+    let cfg = config::System::load(&cfg_raw)?;
     let zombie = Zombie::new(cfg)?;
 
     match matches.subcommand() {

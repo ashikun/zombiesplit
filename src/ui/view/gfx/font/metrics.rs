@@ -60,30 +60,18 @@ impl Metrics {
         self.char.h + self.pad.h
     }
 
-    /// The column of a glyph in the font.
-    #[must_use]
-    pub fn glyph_col(self, char: u8) -> u8 {
-        char % NUM_COLS
-    }
-
-    /// The row of a glyph in the font.
-    #[must_use]
-    pub fn glyph_row(self, char: u8) -> u8 {
-        char / NUM_COLS
-    }
-
     /// The left position of a glyph in the font.
     #[must_use]
     pub fn glyph_x(self, char: u8) -> i32 {
         // Can't multiply _then_ convert, because of overflow on big fonts.
-        i32::from(self.glyph_col(char)) * i32::from(self.padded_w())
+        i32::from(glyph_col(char)) * i32::from(self.padded_w())
     }
 
     /// The top position of a glyph in the font.
     #[must_use]
     pub fn glyph_y(self, char: u8) -> i32 {
         // Can't multiply _then_ convert, because of overflow on big fonts.
-        i32::from(self.glyph_row(char)) * i32::from(self.padded_h())
+        i32::from(glyph_row(char)) * i32::from(self.padded_h())
     }
 }
 
@@ -96,6 +84,18 @@ impl TextSizer for Metrics {
     fn span_h(&self, size: i32) -> i32 {
         i32::from(self.padded_h()) * size
     }
+}
+
+/// The column of a glyph in the font.
+#[must_use]
+pub fn glyph_col(char: u8) -> u8 {
+    char % NUM_COLS
+}
+
+/// The row of a glyph in the font.
+#[must_use]
+pub fn glyph_row(char: u8) -> u8 {
+    char / NUM_COLS
 }
 
 /// Trait for things that carry font metrics.

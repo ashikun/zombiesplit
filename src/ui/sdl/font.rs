@@ -10,8 +10,9 @@ use sdl2::{
 use super::super::view::gfx::{
     colour,
     font::{
+        self,
+        map::{Id, Map, Spec},
         metrics::{self, Metrics},
-        set::{Id, Set, Spec},
         Error, Result,
     },
 };
@@ -23,7 +24,7 @@ pub struct Manager<'a> {
     /// The map of current font textures.
     textures: HashMap<Spec, Rc<Texture<'a>>>,
     /// The font set, containing configuration for each font.
-    font_set: &'a Set,
+    font_set: Map<font::Config<'a>>,
     /// The foreground colour set, used for setting up font colours.
     colour_set: &'a colour::fg::Set,
 }
@@ -33,7 +34,7 @@ impl<'a> Manager<'a> {
     #[must_use]
     pub fn new(
         creator: &'a TextureCreator<WindowContext>,
-        font_set: &'a Set,
+        font_set: Map<font::Config<'a>>,
         colour_set: &'a colour::fg::Set,
     ) -> Self {
         Self {
@@ -65,14 +66,16 @@ impl<'a> Manager<'a> {
     }
 
     fn load(&mut self, spec: Spec) -> Result<Texture<'a>> {
-        let path = &self.font_set.get(spec.id).path;
-        let mut tex = self.creator.load_texture(path).map_err(Error::Load)?;
+        let path = &self.font_set.get(spec.id).texture_path();
+        let mut tex = self
+            .creator
+            .load_texture(path)
+            .map_err(Error::TextureLoad)?;
         self.colourise(&mut tex, spec.colour);
         Ok(tex)
     }
 
     fn colourise(&self, texture: &mut Texture, colour: colour::fg::Id) {
-        // TODO(@MattWindsor91): decouple colour::SET
         let colour = sdl2::pixels::Color::from(self.colour_set.get(colour));
         texture.set_color_mod(colour.r, colour.g, colour.b);
         texture.set_alpha_mod(colour.a);

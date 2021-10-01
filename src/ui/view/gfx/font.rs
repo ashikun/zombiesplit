@@ -3,8 +3,8 @@
 // TODO(@MattWindsor91): decouple SDL here?
 
 pub mod error;
+pub mod map;
 pub mod metrics;
-pub mod set;
 pub use error::{Error, Result};
+pub use map::{Config, Id, Map, Spec};
 pub use metrics::Metrics;
-pub use set::{Config, Id, Set, Spec};

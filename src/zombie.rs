@@ -33,18 +33,18 @@ use thiserror::Error;
 ///
 /// This struct wraps most of zombiesplit's functionality in a way that is
 /// easy for the command-line app to handle.
-pub struct Zombie {
-    cfg: config::System,
+pub struct Zombie<'c> {
+    cfg: config::System<'c>,
     db: Rc<db::Db>,
 }
 
-impl Zombie {
+impl<'c> Zombie<'c> {
     /// Constructs a new instance of zombiesplit, opening a database connection.
     ///
     /// # Errors
     ///
     /// Returns any errors from trying to open the database.
-    pub fn new(cfg: config::System) -> Result<Self> {
+    pub fn new(cfg: config::System<'c>) -> Result<Self> {
         let db = Rc::new(db::Db::new(&cfg.db_path)?);
         Ok(Zombie { cfg, db })
     }

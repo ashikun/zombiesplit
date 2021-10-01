@@ -19,21 +19,22 @@ pub use presenter::Presenter;
 pub use view::View;
 
 /// Manages top-level UI resources.
-pub struct Manager {
+pub struct Manager<'c> {
     sdl: sdl2::Sdl,
     screen: RefCell<sdl2::render::Canvas<sdl2::video::Window>>,
     textures: sdl2::render::TextureCreator<sdl2::video::WindowContext>,
-    cfg: view::Config,
+    /// The system view configuration, which is borrowing parts of a config file.
+    cfg: view::Config<'c>,
 }
 
-impl Manager {
+impl<'c> Manager<'c> {
     /// Creates a new view, opening a window in the process.
     ///
     /// # Errors
     ///
     /// Returns an error if any of the SDL subsystems the UI manager requires
     /// fail to initialise.
-    pub fn new(cfg: view::Config) -> Result<Self> {
+    pub fn new(cfg: view::Config<'c>) -> Result<Self> {
         let sdl = sdl2::init().map_err(Error::Init)?;
         let video = sdl.video().map_err(Error::Init)?;
         let window = view::gfx::make_window(&video, cfg.window)?;
@@ -53,8 +54,9 @@ impl Manager {
     ///
     /// Returns an error if SDL can't spawn an event pump.
     pub fn spawn<'p>(&self, presenter: presenter::Presenter<'p>) -> Result<Instance<'_, 'p>> {
+        let font_config = self.cfg.fonts.resolve()?;
         let font_manager =
-            sdl::font::Manager::new(&self.textures, &self.cfg.fonts, &self.cfg.colours.fg);
+            sdl::font::Manager::new(&self.textures, font_config, &self.cfg.colours.fg);
         let renderer = sdl::Renderer::new(
             self.screen.borrow_mut(),
             self.cfg.window,

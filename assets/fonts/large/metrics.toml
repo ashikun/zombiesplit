@@ -1,0 +1,11 @@
+# Large font
+
+# Width and height of one character, less padding.
+[char]
+w = 12
+h = 16
+
+# Padding between characters (both on screen and in font bitmap).
+[pad]
+w = 1
+h = 1

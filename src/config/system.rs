@@ -2,19 +2,17 @@
 
 use crate::ui::view;
 use serde::{Deserialize, Serialize};
-use std::{
-    io::Read,
-    path::{Path, PathBuf},
-};
+use std::path::Path;
 use thiserror::Error;
 
 /// System configuration for zombiesplit.
 #[derive(Serialize, Deserialize, Debug)]
-pub struct System {
+pub struct System<'p> {
     /// Database location.
-    pub db_path: PathBuf,
+    pub db_path: &'p Path,
     /// UI configuration.
-    pub ui: view::Config,
+    #[serde(borrow)]
+    pub ui: view::Config<'p>,
     /// The comparison provider.
     pub comparison_provider: ComparisonProvider,
 }
@@ -41,18 +39,15 @@ impl Default for ComparisonProvider {
     }
 }
 
-impl System {
+impl<'p> System<'p> {
     /// Loads system config from TOML.
     ///
     /// # Errors
     ///
     /// Returns an error if `path` does not exist, is not readable, or does
     /// not contain valid TOML.
-    pub fn load<P: AsRef<Path>>(path: P) -> Result<Self> {
-        let mut file = std::fs::File::open(path)?;
-        let mut contents = String::new();
-        file.read_to_string(&mut contents)?;
-        Ok(toml::from_str(&contents)?)
+    pub fn load(str: &'p str) -> Result<Self> {
+        Ok(toml::from_str(str)?)
     }
 }
 

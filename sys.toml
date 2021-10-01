@@ -21,27 +21,10 @@ comparison_provider = "Database"
 	split_h = 16
 
 # Fonts
-[ui.fonts.normal]
-	# Path to the font bitmap.
-	path = "assets/font.png"
-	# Width and height of one character, less padding.
-	metrics.char.w = 7
-	metrics.char.h = 9
-	# Padding between characters (both on screen and in font bitmap).
-	metrics.pad.w = 1
-	metrics.pad.h = 1
-[ui.fonts.small]
-	path = "assets/font-s.png"
-	metrics.char.w = 5
-	metrics.char.h = 7
-	metrics.pad.w = 1
-	metrics.pad.h = 1
-[ui.fonts.large]
-	path = "assets/font-l.png"
-	metrics.char.w = 12
-	metrics.char.h = 16
-	metrics.pad.w = 1
-	metrics.pad.h = 1
+[ui.fonts]
+	large = "assets/fonts/large"
+	normal = "assets/fonts/medium"
+	small = "assets/fonts/small"
 
 # Based on the Endesga EDG32 palette
 [ui.colours.bg]
