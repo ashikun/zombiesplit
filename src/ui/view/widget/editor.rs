@@ -25,7 +25,8 @@ pub struct Editor {
     pub rect: Rect,
 }
 
-const PLACEHOLDER: &str = "--'--\"---";
+/// Template rendered underneath the editor.
+const PLACEHOLDER: &str = "  '  \"   ";
 
 impl super::Widget<state::Editor> for Editor {
     fn layout(&mut self, ctx: super::LayoutContext) {
