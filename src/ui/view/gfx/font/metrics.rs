@@ -2,12 +2,12 @@
 use super::super::metrics::{conv::sat_i32, Size};
 use serde::{Deserialize, Serialize};
 
+/// The number of columns in a font.
+const NUM_COLS: u8 = 32;
+
 /// A font metrics set.
 #[derive(Copy, Clone, Debug, Deserialize, Serialize)]
 pub struct Metrics {
-    /// Columns in the font texture.
-    /// The number of rows is 256 divided by the number of columns.
-    pub cols: u8,
     /// Dimensions of one character in the font, without padding.
     pub char: Pair,
     /// Dimensions of padding between characters in the font.
@@ -63,13 +63,13 @@ impl Metrics {
     /// The column of a glyph in the font.
     #[must_use]
     pub fn glyph_col(self, char: u8) -> u8 {
-        char % self.cols
+        char % NUM_COLS
     }
 
     /// The row of a glyph in the font.
     #[must_use]
     pub fn glyph_row(self, char: u8) -> u8 {
-        char / self.cols
+        char / NUM_COLS
     }
 
     /// The left position of a glyph in the font.
@@ -110,7 +110,6 @@ mod tests {
     use super::*;
 
     const BIG_FONT: Metrics = Metrics {
-        cols: 32,
         char: Pair { w: 9, h: 9 },
         pad: Pair { w: 1, h: 1 },
     };
