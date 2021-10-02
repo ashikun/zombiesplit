@@ -98,13 +98,6 @@ pub fn glyph_row(char: u8) -> u8 {
     char / NUM_COLS
 }
 
-/// Trait for things that carry font metrics.
-pub trait Source<Key> {
-    /// Gets the given font's metrics set.
-    #[must_use]
-    fn metrics(&self, id: Key) -> Metrics;
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

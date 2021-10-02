@@ -54,9 +54,13 @@ impl<'c> Manager<'c> {
     ///
     /// Returns an error if SDL can't spawn an event pump.
     pub fn spawn<'p>(&self, presenter: presenter::Presenter<'p>) -> Result<Instance<'_, 'p>> {
-        let font_config = self.cfg.fonts.resolve()?;
-        let font_manager =
-            sdl::font::Manager::new(&self.textures, font_config, &self.cfg.colours.fg);
+        let metrics = self.cfg.fonts.metrics()?;
+        let font_manager = sdl::font::Manager::new(
+            &self.textures,
+            self.cfg.fonts,
+            metrics,
+            &self.cfg.colours.fg,
+        );
         let renderer = sdl::Renderer::new(
             self.screen.borrow_mut(),
             self.cfg.window,

@@ -1,7 +1,5 @@
 //! View configuration.
 
-use std::path::Path;
-
 use serde::{Deserialize, Serialize};
 
 use super::gfx::{colour, font, metrics};
@@ -13,7 +11,7 @@ pub struct Config<'p> {
     pub colours: colour::Set,
     /// Font configuration.
     #[serde(borrow)]
-    pub fonts: font::Map<&'p Path>,
+    pub fonts: font::Map<font::map::Path<'p>>,
     /// Window metrics.
     pub window: metrics::Window,
 }

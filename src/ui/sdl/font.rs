@@ -9,12 +9,7 @@ use sdl2::{
 
 use super::super::view::gfx::{
     colour,
-    font::{
-        self,
-        map::{Id, Map, Spec},
-        metrics::{self, Metrics},
-        Error, Result,
-    },
+    font::{self, map::Spec, Error, Result},
 };
 
 /// A font manager, using a SDL texture creator.
@@ -23,24 +18,28 @@ pub struct Manager<'a> {
     creator: &'a TextureCreator<WindowContext>,
     /// The map of current font textures.
     textures: HashMap<Spec, Rc<Texture<'a>>>,
-    /// The font set, containing configuration for each font.
-    font_set: Map<font::Config<'a>>,
+    /// The font path set.
+    font_set: font::Map<font::map::Path<'a>>,
+    /// The font metrics set.
+    pub metrics_set: font::Map<font::Metrics>,
     /// The foreground colour set, used for setting up font colours.
     colour_set: &'a colour::fg::Set,
 }
 
 impl<'a> Manager<'a> {
-    /// Creates a font manager with the given texture creator and config hashmap.
+    /// Creates a font manager with the given texture creator and config maps.
     #[must_use]
     pub fn new(
         creator: &'a TextureCreator<WindowContext>,
-        font_set: Map<font::Config<'a>>,
+        font_set: font::Map<font::map::Path<'a>>,
+        metrics_set: font::Map<font::Metrics>,
         colour_set: &'a colour::fg::Set,
     ) -> Self {
         Self {
             creator,
             textures: HashMap::new(),
             font_set,
+            metrics_set,
             colour_set,
         }
     }
@@ -66,7 +65,7 @@ impl<'a> Manager<'a> {
     }
 
     fn load(&mut self, spec: Spec) -> Result<Texture<'a>> {
-        let path = &self.font_set.get(spec.id).texture_path();
+        let path = &self.font_set[spec.id].texture_path();
         let mut tex = self
             .creator
             .load_texture(path)
@@ -79,12 +78,5 @@ impl<'a> Manager<'a> {
         let colour = sdl2::pixels::Color::from(self.colour_set.get(colour));
         texture.set_color_mod(colour.r, colour.g, colour.b);
         texture.set_alpha_mod(colour.a);
-    }
-}
-
-impl<'a> metrics::Source<Id> for Manager<'a> {
-    #[must_use]
-    fn metrics(&self, id: Id) -> Metrics {
-        self.font_set.get(id).metrics
     }
 }

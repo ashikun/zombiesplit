@@ -20,20 +20,20 @@ pub struct Pen {
 impl Pen {
     /// Creates a new pen with the default font and colours.
     #[must_use]
-    pub fn new(metrics: &dyn font::metrics::Source<font::Id>) -> Self {
-        let font = font::Id::Normal;
+    pub fn new(metrics: &font::Map<font::Metrics>) -> Self {
+        let font = font::Id::Medium;
         Self {
             font,
-            f_metrics: metrics.metrics(font),
+            f_metrics: metrics[font],
             fg_colour: colour::fg::Id::NoTime,
             bg_colour: colour::bg::Id::Window,
         }
     }
 
     /// Sets this pen's font, also recording the font metrics in the pen.
-    pub fn set_font(&mut self, font: font::Id, metrics: &dyn font::metrics::Source<font::Id>) {
+    pub fn set_font(&mut self, font: font::Id, metrics: &font::Map<font::Metrics>) {
         self.font = font;
-        self.f_metrics = metrics.metrics(self.font);
+        self.f_metrics = metrics[self.font];
     }
 
     /// Gets the pen's current font spec.

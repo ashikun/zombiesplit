@@ -109,7 +109,7 @@ pub fn time_str(time: model::time::Time) -> String {
 }
 
 fn draw_name(r: &mut dyn Renderer, state: &state::Split) -> Result<()> {
-    r.set_font(font::Id::Normal);
+    r.set_font(font::Id::Medium);
     r.set_fg_colour(colour::fg::Id::Name(state.position));
     r.put_str(&state.name)?;
     Ok(())
@@ -124,7 +124,7 @@ fn time_colour(state: &state::Split) -> colour::fg::Id {
 }
 
 fn draw_time(r: &mut dyn Renderer, state: &state::Split) -> Result<()> {
-    r.set_font(font::Id::Normal);
+    r.set_font(font::Id::Medium);
     r.set_fg_colour(time_colour(state));
     r.put_str(&state_time_str(state))
 }

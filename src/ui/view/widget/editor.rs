@@ -51,7 +51,7 @@ impl super::Widget<state::Editor> for Editor {
 impl Editor {
     fn draw_base(&self, r: &mut dyn Renderer) -> Result<()> {
         r.set_pos(self.rect.top_left);
-        r.set_font(font::Id::Normal);
+        r.set_font(font::Id::Medium);
         reset_colours(r);
         fill_bg(r, metrics::conv::sat_i32(PLACEHOLDER.len()))?;
         r.put_str(PLACEHOLDER)?;

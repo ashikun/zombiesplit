@@ -23,7 +23,7 @@ comparison_provider = "Database"
 # Fonts
 [ui.fonts]
 	large = "assets/fonts/large"
-	normal = "assets/fonts/medium"
+	medium = "assets/fonts/medium"
 	small = "assets/fonts/small"
 
 # Based on the Endesga EDG32 palette

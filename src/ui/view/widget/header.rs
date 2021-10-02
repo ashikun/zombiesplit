@@ -38,7 +38,7 @@ impl Widget {
         r.set_font(font::Id::Large);
         r.put_str(&meta.game)?;
 
-        r.set_font(font::Id::Normal);
+        r.set_font(font::Id::Medium);
         r.set_pos(self.rect.point(0, r.span_h(-1), Anchor::BOTTOM_LEFT));
         r.put_str(&meta.category)?;
         Ok(())

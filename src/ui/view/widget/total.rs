@@ -49,7 +49,7 @@ impl Widget {
         // TODO(@MattWindsor91): positioning hack here.
         r.set_font(font::Id::Large);
         r.set_pos(self.rect.point(0, r.span_h(1), Anchor::TOP_RIGHT));
-        r.set_font(font::Id::Normal);
+        r.set_font(font::Id::Medium);
         render_paced_time(r, s.at_cursor)
     }
 }
@@ -66,7 +66,7 @@ fn render_paced_time(
 
 /// Logic common to rendering a label.
 fn render_label(r: &mut dyn Renderer, label: &str) -> Result<()> {
-    r.set_font(font::Id::Normal);
+    r.set_font(font::Id::Medium);
     r.set_fg_colour(colour::fg::Id::Header);
     r.put_str(label)
 }

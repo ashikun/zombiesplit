@@ -52,7 +52,7 @@ impl<'a> render::Renderer for Renderer<'a> {
     }
 
     fn set_font(&mut self, font: font::Id) {
-        self.pen.set_font(font, &self.font_manager);
+        self.pen.set_font(font, &self.font_manager.metrics_set);
     }
 
     fn set_bg_colour(&mut self, colour: colour::bg::Id) {
@@ -104,7 +104,7 @@ impl<'a> Renderer<'a> {
         font_manager: super::font::Manager<'a>,
         colour_set: &'a colour::Set,
     ) -> Self {
-        let pen = pen::Pen::new(&font_manager);
+        let pen = pen::Pen::new(&font_manager.metrics_set);
         Self {
             screen,
             w_metrics,
