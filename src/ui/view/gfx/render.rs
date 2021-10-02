@@ -7,7 +7,7 @@ use super::{
 };
 
 /// Trait of things that provide rendering facilities.
-pub trait Renderer: font::metrics::TextSizer {
+pub trait Renderer {
     /// Gets the size of this renderer's bounding box.
     fn size(&self) -> metrics::Size;
 
@@ -61,4 +61,9 @@ pub trait Renderer: font::metrics::TextSizer {
 
     /// Refreshes the screen.
     fn present(&mut self);
+
+    // TODO(@MattWindsor91): make the below obsolete?
+
+    /// Borrows the font metrics map.
+    fn font_metrics(&self) -> &font::Metrics;
 }

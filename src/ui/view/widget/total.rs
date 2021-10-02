@@ -29,7 +29,10 @@ impl super::Widget<state::State> for Widget {
         r.set_pos(self.rect.point(0, 0, Anchor::TOP_LEFT));
         self.render_total(r, &s.footer)?;
 
-        r.set_pos(self.rect.point(0, r.span_h(1), Anchor::TOP_LEFT));
+        r.set_pos(
+            self.rect
+                .point(0, r.font_metrics().span_h(1), Anchor::TOP_LEFT),
+        );
         self.render_at_cursor(r, &s.footer)?;
 
         Ok(())
@@ -48,7 +51,10 @@ impl Widget {
         render_label(r, "Up to cursor")?;
         // TODO(@MattWindsor91): positioning hack here.
         r.set_font(font::Id::Large);
-        r.set_pos(self.rect.point(0, r.span_h(1), Anchor::TOP_RIGHT));
+        r.set_pos(
+            self.rect
+                .point(0, r.font_metrics().span_h(1), Anchor::TOP_RIGHT),
+        );
         r.set_font(font::Id::Medium);
         render_paced_time(r, s.at_cursor)
     }

@@ -15,7 +15,7 @@ use crate::model::time::position::Name;
 
 /// Calculates the size of an editor rectangle, given a text sizer.
 #[must_use]
-pub fn size(t: &(impl font::metrics::TextSizer + ?Sized)) -> metrics::Size {
+pub fn size(t: font::Metrics) -> metrics::Size {
     metrics::Size::from_i32s(t.span_w_str(PLACEHOLDER), t.span_h(1))
 }
 
@@ -40,7 +40,7 @@ impl super::Widget<state::Editor> for Editor {
         let mut pos = self.rect.point(0, 0, Anchor::TOP_LEFT);
         for field in [Name::Minutes, Name::Seconds, Name::Milliseconds] {
             r.set_pos(pos);
-            pos.offset_mut(r.span_w(3), 0);
+            pos.offset_mut(r.font_metrics().span_w(3), 0);
             draw_field(r, s.field(field), s.field == Some(field))?;
         }
 
@@ -79,7 +79,7 @@ fn draw_field(r: &mut dyn Renderer, value: &str, is_editing: bool) -> Result<()>
 
 /// Fills a background of `num_chars` width relative to the current position.
 fn fill_bg(r: &mut dyn Renderer, num_chars: i32) -> Result<()> {
-    let size = r.text_size(num_chars, 1);
+    let size = r.font_metrics().text_size(num_chars, 1);
     r.fill(
         metrics::Rect {
             top_left: metrics::Point { x: 0, y: 0 },

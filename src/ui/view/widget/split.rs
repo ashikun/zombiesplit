@@ -74,7 +74,10 @@ impl super::Widget<state::Split> for SplitDrawer {
         self.draw_time_display(r, s)?;
 
         // TODO(@MattWindsor91): jog to position more accurately.
-        r.set_pos(self.rect.point(r.span_w(-10), 0, Anchor::TOP_RIGHT));
+        r.set_pos(
+            self.rect
+                .point(r.font_metrics().span_w(-10), 0, Anchor::TOP_RIGHT),
+        );
         draw_num_times(r, s)?;
         Ok(())
     }
@@ -94,7 +97,7 @@ impl SplitDrawer {
     }
 
     fn time_display_rect(&self, r: &mut dyn Renderer) -> Rect {
-        let size = editor::size(r);
+        let size = editor::size(*r.font_metrics());
         Rect {
             top_left: self.rect.point(-sat_i32(size.w), 0, Anchor::TOP_RIGHT),
             size,

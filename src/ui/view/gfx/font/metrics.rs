@@ -23,30 +23,6 @@ pub struct Pair {
     pub h: u8,
 }
 
-/// Trait for things that can calculate the width or height of a span of text.
-pub trait TextSizer {
-    /// The size of a horizontal padded character span.
-    #[must_use]
-    fn span_w(&self, size: i32) -> i32;
-
-    /// The size of a vertical padded character span.
-    #[must_use]
-    fn span_h(&self, size: i32) -> i32;
-
-    /// The horizontal size of `str`.
-    #[must_use]
-    fn span_w_str(&self, str: &str) -> i32 {
-        // If we ever implement proportional fonts, this'll change.
-        self.span_w(sat_i32(str.len()))
-    }
-
-    /// Converts a size in chars into a size in pixels.
-    #[must_use]
-    fn text_size(&self, w_chars: i32, h_chars: i32) -> Size {
-        Size::from_i32s(self.span_w(w_chars), self.span_h(h_chars))
-    }
-}
-
 impl Metrics {
     /// The padded width of one character in the font.
     #[must_use]
@@ -73,16 +49,47 @@ impl Metrics {
         // Can't multiply _then_ convert, because of overflow on big fonts.
         i32::from(glyph_row(char)) * i32::from(self.padded_h())
     }
-}
 
-/// A raw metrics set can calculate text sizes.
-impl TextSizer for Metrics {
-    fn span_w(&self, size: i32) -> i32 {
+    /// Signed maximal size of a horizontal span `size` characters wide.
+    ///
+    /// This is the result of multiplying `size` by the padded baseline width
+    /// of the font, ignoring any kerning or proportionality adjustments.
+    /// This is useful for aligning items on a character grid but may
+    /// overestimate widths on proportional fonts.
+    ///
+    /// If `size` is negative, the result will be negative.
+    #[must_use]
+    pub fn span_w(&self, size: i32) -> i32 {
         i32::from(self.padded_w()) * size
     }
 
-    fn span_h(&self, size: i32) -> i32 {
+    /// Like `span_w`, but accurately calculates the width of `str`.
+    ///
+    /// This performs the same positioning calculations as text rendering, and
+    /// is accurate in the face of any proportionality in the font.
+    #[must_use]
+    pub fn span_w_str(&self, str: &str) -> i32 {
+        // If we ever implement proportional fonts, this'll change.
+        // I'd recommend making a general positioning algorithm and then using
+        // it for both span_w_str and rendering.
+        self.span_w(sat_i32(str.len()))
+    }
+
+    /// Signed maximal size of a vertical span `size` characters tall.
+    ///
+    /// This is the result of multiplying `size` by the padded baseline height
+    /// of the font.
+    ///
+    /// If `size` is negative, the result will be negative.
+    #[must_use]
+    pub fn span_h(&self, size: i32) -> i32 {
         i32::from(self.padded_h()) * size
+    }
+
+    /// Converts a size in chars into a size in pixels.
+    #[must_use]
+    pub fn text_size(&self, w_chars: i32, h_chars: i32) -> Size {
+        Size::from_i32s(self.span_w(w_chars), self.span_h(h_chars))
     }
 }
 

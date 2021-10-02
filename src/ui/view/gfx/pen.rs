@@ -1,9 +1,6 @@
 //! The [Pen] struct and implementations.
 
-use super::{
-    colour,
-    font::{self, metrics::TextSizer},
-};
+use super::{colour, font};
 
 /// The pen used for rendering.
 pub struct Pen {
@@ -47,18 +44,7 @@ impl Pen {
 
     /// Gets the pen's current font metrics.
     #[must_use]
-    pub fn font_metrics(&self) -> font::Metrics {
-        self.f_metrics
-    }
-}
-
-/// Pens can calculate text size for their current font.
-impl TextSizer for Pen {
-    fn span_w(&self, size: i32) -> i32 {
-        self.f_metrics.span_w(size)
-    }
-
-    fn span_h(&self, size: i32) -> i32 {
-        self.f_metrics.span_h(size)
+    pub fn font_metrics(&self) -> &font::Metrics {
+        &self.f_metrics
     }
 }

@@ -39,13 +39,19 @@ impl Widget {
         r.put_str(&meta.game)?;
 
         r.set_font(font::Id::Medium);
-        r.set_pos(self.rect.point(0, r.span_h(-1), Anchor::BOTTOM_LEFT));
+        r.set_pos(
+            self.rect
+                .point(0, r.font_metrics().span_h(-1), Anchor::BOTTOM_LEFT),
+        );
         r.put_str(&meta.category)?;
         Ok(())
     }
 
     fn render_attempt(&self, r: &mut dyn Renderer, attempt: &AttemptInfo) -> Result<()> {
-        r.set_pos(self.rect.point(0, r.span_h(-1), Anchor::BOTTOM_RIGHT));
+        r.set_pos(
+            self.rect
+                .point(0, r.font_metrics().span_h(-1), Anchor::BOTTOM_RIGHT),
+        );
         r.put_str_r(&format!("#{} ({})", attempt.total, attempt.completed))
     }
 }

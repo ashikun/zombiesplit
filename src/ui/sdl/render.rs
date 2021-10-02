@@ -3,11 +3,7 @@
 use std::{cell::RefMut, rc::Rc};
 
 use super::super::{
-    view::gfx::{
-        colour,
-        font::{self, metrics::TextSizer},
-        metrics, pen, render,
-    },
+    view::gfx::{colour, font, metrics, pen, render},
     Error, Result,
 };
 use sdl2::{
@@ -68,7 +64,7 @@ impl<'a> render::Renderer for Renderer<'a> {
     }
 
     fn put_str_r(&mut self, str: &str) -> Result<()> {
-        let w = -self.span_w_str(str);
+        let w = -self.font_metrics().span_w_str(str);
         self.put_str_at(self.pos.offset(w, 0), str)
     }
 
@@ -83,15 +79,9 @@ impl<'a> render::Renderer for Renderer<'a> {
     fn present(&mut self) {
         self.screen.present();
     }
-}
 
-impl<'a> font::metrics::TextSizer for Renderer<'a> {
-    fn span_w(&self, size: i32) -> i32 {
-        self.pen.span_w(size)
-    }
-
-    fn span_h(&self, size: i32) -> i32 {
-        self.pen.span_h(size)
+    fn font_metrics(&self) -> &font::Metrics {
+        self.pen.font_metrics()
     }
 }
 
@@ -139,7 +129,7 @@ impl<'a> Renderer<'a> {
 
         for byte in str.as_bytes() {
             self.put_byte(&texture, *byte, pos)?;
-            pos.x += self.span_w(1);
+            pos.x += self.pen.font_metrics().span_w(1);
         }
 
         Ok(())
