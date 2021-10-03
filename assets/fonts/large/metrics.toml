@@ -9,3 +9,9 @@ h = 16
 [pad]
 w = 1
 h = 1
+
+[width_overrides]
+"(" = 8
+")" = 8
+"I" = 2
+"i" = 2

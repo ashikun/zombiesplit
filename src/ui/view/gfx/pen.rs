@@ -21,7 +21,8 @@ impl Pen {
         let font = font::Id::Medium;
         Self {
             font,
-            f_metrics: metrics[font],
+            // for now
+            f_metrics: metrics[font].clone(),
             fg_colour: colour::fg::Id::NoTime,
             bg_colour: colour::bg::Id::Window,
         }
@@ -30,7 +31,8 @@ impl Pen {
     /// Sets this pen's font, also recording the font metrics in the pen.
     pub fn set_font(&mut self, font: font::Id, metrics: &font::Map<font::Metrics>) {
         self.font = font;
-        self.f_metrics = metrics[self.font];
+        // for now
+        self.f_metrics = metrics[self.font].clone();
     }
 
     /// Gets the pen's current font spec.

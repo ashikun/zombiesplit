@@ -97,7 +97,7 @@ impl SplitDrawer {
     }
 
     fn time_display_rect(&self, r: &mut dyn Renderer) -> Rect {
-        let size = editor::size(*r.font_metrics());
+        let size = editor::size(r.font_metrics());
         Rect {
             top_left: self.rect.point(-sat_i32(size.w), 0, Anchor::TOP_RIGHT),
             size,
