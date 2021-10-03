@@ -3,11 +3,14 @@
 use std::{cell::RefMut, rc::Rc};
 
 use super::super::{
-    view::gfx::{colour, font, metrics, pen, render},
+    view::gfx::{
+        colour, font,
+        metrics::{self, Point},
+        pen, render,
+    },
     Error, Result,
 };
 use sdl2::{
-    rect::{Point, Rect},
     render::{Canvas, Texture},
     video,
 };
@@ -37,7 +40,7 @@ impl<'a> render::Renderer for Renderer<'a> {
     }
 
     fn set_pos(&mut self, pos: metrics::Point) {
-        self.pos = Point::new(pos.x, pos.y);
+        self.pos = pos;
     }
 
     fn fill(&mut self, rect: metrics::Rect) -> Result<()> {
@@ -101,7 +104,7 @@ impl<'a> Renderer<'a> {
             pen,
             font_manager,
             colour_set,
-            pos: Point::new(0, 0),
+            pos: Point::default(),
         }
     }
 
@@ -124,40 +127,16 @@ impl<'a> Renderer<'a> {
         sdl2::rect::Rect::new(pos.x, pos.y, rect.size.w, rect.size.h)
     }
 
-    fn put_str_at(&mut self, mut pos: Point, str: &str) -> Result<()> {
+    fn put_str_at(&mut self, pos: Point, str: &str) -> Result<()> {
         let texture = self.font_texture()?;
 
-        for byte in str.as_bytes() {
-            self.put_byte(&texture, *byte, pos)?;
-            pos.x += self.pen.font_metrics().span_w(1);
+        for glyph in self.pen.font_metrics().layout_str(pos, str) {
+            let src = super::metrics::convert_rect(&glyph.src);
+            let dst = super::metrics::convert_rect(&glyph.dst);
+
+            self.screen.copy(&texture, src, dst).map_err(Error::Blit)?;
         }
 
         Ok(())
-    }
-
-    fn put_byte<'b>(
-        &'b mut self,
-        texture: &'b Texture<'a>,
-        byte: u8,
-        top_left: Point,
-    ) -> Result<()> {
-        let src = self.font_rect(byte);
-        let dst = self.char_rect(top_left);
-        self.screen.copy(texture, src, dst).map_err(Error::Blit)
-    }
-
-    /// Produces a rectangle with top-left `top_left` and the size of one font
-    /// character.
-    #[must_use]
-    fn char_rect(&self, top_left: Point) -> Rect {
-        let char = self.pen.font_metrics().char;
-        Rect::new(top_left.x, top_left.y, u32::from(char.w), u32::from(char.h))
-    }
-
-    /// Produces the appropriate rectangle for looking up `char` in the font.
-    #[must_use]
-    fn font_rect(&self, char: u8) -> Rect {
-        let metrics = self.pen.font_metrics();
-        self.char_rect(Point::new(metrics.glyph_x(char), metrics.glyph_y(char)))
     }
 }

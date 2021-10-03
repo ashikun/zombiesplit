@@ -4,18 +4,28 @@ use super::{
     anchor::{self, Anchor},
     conv::sat_i32,
     point::Point,
+    size::Size,
 };
 
 /// Output-independent rectangle.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 pub struct Rect {
     /// Position of the top-left of this rectangle.
-    pub top_left: super::Point,
+    pub top_left: Point,
     /// Size of the rectangle.
-    pub size: super::Size,
+    pub size: Size,
 }
 
 impl Rect {
+    /// Makes a [Rect] with top-left at (`x`, `y`), width `w`, and height `h`.
+    #[must_use]
+    pub fn new(x: i32, y: i32, w: u32, h: u32) -> Self {
+        Self {
+            top_left: Point { x, y },
+            size: Size { w, h },
+        }
+    }
+
     /// Resolves a point within a rectangle, given an offset (`dx`, `dy`) from
     /// `anchor`.
     #[must_use]
