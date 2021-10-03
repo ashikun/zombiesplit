@@ -1,11 +1,15 @@
 //! The [Point] struct and related functionality.
 
+use super::{Rect, Size};
+
 /// A two-dimensional point.
 ///
 /// Points can have negative coordinates, to allow relative offsetting.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 pub struct Point {
+    /// The X-coordinate of the point.
     pub x: i32,
+    /// The Y-coordinate of the point.
     pub y: i32,
 }
 
@@ -52,5 +56,27 @@ impl Point {
     pub fn offset_mut(&mut self, dx: i32, dy: i32) {
         self.x += dx;
         self.y += dy;
+    }
+
+    /// Lifts this [Point] to a [Rect], with the point forming the top-left.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use zombiesplit::ui::view::gfx::metrics::{Point, Size};
+    ///
+    /// let p = Point { x: 4, y: 8 };
+    /// let s = Size { w: 10, h: 2 };
+    /// let r = p.to_rect(s);
+    ///
+    /// assert_eq!(p, r.top_left);
+    /// assert_eq!(s, r.size);
+    /// ```
+    #[must_use]
+    pub fn to_rect(self, size: Size) -> Rect {
+        Rect {
+            top_left: self,
+            size,
+        }
     }
 }

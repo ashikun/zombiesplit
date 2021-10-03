@@ -9,30 +9,21 @@ const NUM_COLS: u8 = 32;
 #[derive(Copy, Clone, Debug, Deserialize, Serialize)]
 pub struct Metrics {
     /// Dimensions of one character in the font, without padding.
-    pub char: Pair,
+    pub char: Size,
     /// Dimensions of padding between characters in the font.
-    pub pad: Pair,
-}
-
-/// A width-height pair.
-#[derive(Copy, Clone, Debug, Deserialize, Serialize)]
-pub struct Pair {
-    /// Width of a font element, in pixels.
-    pub w: u8,
-    /// Height of a font element, in pixels.
-    pub h: u8,
+    pub pad: Size,
 }
 
 impl Metrics {
     /// The padded width of one character in the font.
     #[must_use]
-    pub fn padded_w(self) -> u8 {
+    pub fn padded_w(self) -> u32 {
         self.char.w + self.pad.w
     }
 
     /// The padded height of one character in the font.
     #[must_use]
-    pub fn padded_h(self) -> u8 {
+    pub fn padded_h(self) -> u32 {
         self.char.h + self.pad.h
     }
 
@@ -46,7 +37,7 @@ impl Metrics {
     /// If `size` is negative, the result will be negative.
     #[must_use]
     pub fn span_w(&self, size: i32) -> i32 {
-        i32::from(self.padded_w()) * size
+        sat_i32(self.padded_w()) * size
     }
 
     /// Like `span_w`, but accurately calculates the width of `str`.
@@ -55,10 +46,12 @@ impl Metrics {
     /// is accurate in the face of any proportionality in the font.
     #[must_use]
     pub fn span_w_str(&self, str: &str) -> i32 {
-        // If we ever implement proportional fonts, this'll change.
-        // I'd recommend making a general positioning algorithm and then using
-        // it for both span_w_str and rendering.
-        self.span_w(sat_i32(str.len()))
+        // Pretend to lay out the string, then work out where the last character went.
+        self.layout_str(Point::default(), str)
+            .last()
+            .map_or(0, |glyph| {
+                glyph.dst.x(0, super::super::metrics::anchor::X::Right)
+            })
     }
 
     /// Signed maximal size of a vertical span `size` characters tall.
@@ -69,7 +62,7 @@ impl Metrics {
     /// If `size` is negative, the result will be negative.
     #[must_use]
     pub fn span_h(&self, size: i32) -> i32 {
-        i32::from(self.padded_h()) * size
+        sat_i32(self.padded_h()) * size
     }
 
     /// Converts a size in chars into a size in pixels.
@@ -98,30 +91,33 @@ impl Metrics {
     }
 
     /// Bounding box for a glyph in the texture.
+    #[must_use]
     fn glyph_rect(self, char: u8) -> Rect {
-        Rect::new(
-            self.glyph_x(char),
-            self.glyph_y(char),
-            self.char.w.into(),
-            self.char.h.into(),
-        )
+        self.glyph_top_left(char).to_rect(self.glyph_size(char))
     }
 
-    /// The left position of a glyph in the font.
+    /// The top-left position of the glyph for `char` in the font.
     #[must_use]
-    fn glyph_x(self, char: u8) -> i32 {
-        // TODO(@MattWindsor91): stop conflating visible padding with charmap padding
-        // Can't multiply _then_ convert, because of overflow on big fonts.
-        i32::from(glyph_col(char)) * i32::from(self.padded_w())
+    fn glyph_top_left(self, char: u8) -> Point {
+        Point {
+            x: glyph_axis(glyph_col(char), self.padded_w()),
+            y: glyph_axis(glyph_row(char), self.padded_h()),
+        }
     }
 
-    /// The top position of a glyph in the font.
+    /// The size of the glyph for `char` in the font.
     #[must_use]
-    fn glyph_y(self, char: u8) -> i32 {
-        // TODO(@MattWindsor91): stop conflating visible padding with charmap padding
-        // Can't multiply _then_ convert, because of overflow on big fonts.
-        i32::from(glyph_row(char)) * i32::from(self.padded_h())
+    fn glyph_size(self, _char: u8) -> Size {
+        // TODO(@MattWindsor91): proportionality
+        self.char
     }
+}
+
+/// Calculates one axis of the top-left of the glyph.
+#[must_use]
+fn glyph_axis(index: u8, size: u32) -> i32 {
+    // Can't multiply _then_ convert, because of overflow on big fonts.
+    i32::from(index) * sat_i32(size)
 }
 
 /// A representation of a glyph to be rendered.
@@ -150,19 +146,21 @@ mod tests {
     use super::*;
 
     const BIG_FONT: Metrics = Metrics {
-        char: Pair { w: 9, h: 9 },
-        pad: Pair { w: 1, h: 1 },
+        char: Size { w: 9, h: 9 },
+        pad: Size { w: 1, h: 1 },
     };
 
-    /// Tests that `glyph_x` works correctly without overflow on a big bitmap.
+    /// Tests that the X co-ordinate of `glyph_top_left` works correctly without
+    /// overflow on a big bitmap.
     #[test]
     fn glyph_x_overflow() {
-        assert_eq!(BIG_FONT.glyph_x(31), 310);
+        assert_eq!(BIG_FONT.glyph_top_left(31).x, 310);
     }
 
-    /// Tests that `glyph_y` works correctly without overflow on a big bitmap.
+    /// Tests that the Y co-ordinate of `glyph_top_left` works correctly without
+    /// overflow on a big bitmap.
     #[test]
     fn glyph_y_overflow() {
-        assert_eq!(BIG_FONT.glyph_y(255), 70);
+        assert_eq!(BIG_FONT.glyph_top_left(255).y, 70);
     }
 }

@@ -1,9 +1,10 @@
 //! The [Size] struct and related functionality.
 
 use super::conv::{sat_i32, u32_or_zero};
+use serde::{Deserialize, Serialize};
 
 /// A two-dimensional size.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct Size {
     /// Width in pixels.
     pub w: u32,
