@@ -26,21 +26,21 @@ comparison_provider = "Database"
 	medium = "assets/fonts/medium"
 	small = "assets/fonts/small"
 
-# Based on the Endesga EDG32 palette
+# Based on the Endesga EDG64 palette
 [ui.colours.bg]
-	window = "rgb(38,43,68)" # Shade
-	editor = "rgb(18,78,137)" # Deep
-	editor_field = "rgb(0,149,233)" # Archaeon
+	window = "#2a2f4e"
+	editor = "#0c0293"
+	editor_field = "#3003d9"
 [ui.colours.fg]
-	editor = "rgb(44,232,245)" # Ion
-	editor_field = "white"
-	cursor = "rgb(246,117,112)" # Peach
-	done = "rgb(139,155,180)" # Zinc
+	editor = "#0cf1ff"
+	editor_field = "#94fdff"
+	cursor = "#f389f5"
+	done = "#657392"
 	normal = "white"
-	header = "rgb(192,203,220)" # Aluminium
-	time_none = "rgb(90,105,136)" # Iron
-	time_ahead = "rgb(99,199,77)" # Moss
-	time_ahead_losing = "rgb(62,137,72)" # Flora
-	time_behind_gaining = "rgb(228,59,68)" # Fabric
-	time_behind = "rgb(255,0,68)" # Iiem
-	time_split_ahead = "rgb(254,174,52)" # Glow
+	header = "#fdd2ed"
+	time_none = "#c7cfdd"
+	time_ahead = "#d3fc7e"
+	time_ahead_losing = "#5ac54f"
+	time_behind_gaining = "#f68187"
+	time_behind = "#ea323c"
+	time_split_ahead = "#ffc825"
