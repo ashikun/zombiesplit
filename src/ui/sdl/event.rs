@@ -1,14 +1,27 @@
 //! Mapping between SDL events and presenter events.
 
+use crate::model::{attempt::Action, time::position};
+use crate::ui::presenter::Core;
+
 use super::super::presenter::{
     cursor,
-    event::{Edit, Event, Modal},
+    event::{self, Edit, Event, Modal},
 };
-use crate::model::{attempt::Action, time::position};
+
+/// Wrapper over SDL event pumps to promote them into `event::Pump` instances.
+pub struct Pump(pub sdl2::EventPump);
+
+impl event::Pump for Pump {
+    fn pump<'a>(&'a mut self, send_to: &'a mut Core) {
+        for e in self.0.poll_iter().filter_map(|x| from_sdl(&x)) {
+            send_to.handle_event(&e);
+        }
+    }
+}
 
 /// Maps an event from SDL into [Event].
 #[must_use]
-pub fn from_sdl(e: &sdl2::event::Event) -> Option<Event> {
+fn from_sdl(e: &sdl2::event::Event) -> Option<Event> {
     match e {
         sdl2::event::Event::Quit { .. } => Some(Event::Quit),
         sdl2::event::Event::KeyDown {

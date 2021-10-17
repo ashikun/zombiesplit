@@ -48,12 +48,15 @@ impl<'c> Manager<'c> {
         })
     }
 
-    /// Spawns a [Core] handling UI services.
+    /// Spawns an [Instance] handling UI services.
     ///
     /// # Errors
     ///
     /// Returns an error if SDL can't spawn an event pump.
-    pub fn spawn<'p>(&self, presenter: presenter::Presenter<'p>) -> Result<Instance<'_, 'p>> {
+    pub fn spawn<'p>(
+        &self,
+        presenter: presenter::Presenter<'p>,
+    ) -> Result<Instance<'_, 'p, sdl::event::Pump>> {
         let metrics = self.cfg.fonts.metrics()?;
         let font_manager = sdl::font::Manager::new(
             &self.textures,
@@ -69,7 +72,7 @@ impl<'c> Manager<'c> {
         );
         let view = view::View::new(renderer, self.cfg.window);
 
-        let events = self.sdl.event_pump().map_err(Error::Init)?;
+        let events = sdl::event::Pump(self.sdl.event_pump().map_err(Error::Init)?);
 
         Ok(Instance {
             events,
@@ -80,19 +83,19 @@ impl<'c> Manager<'c> {
 }
 
 /// An instance of the view for a particular presenter.
-pub struct Instance<'c, 'p> {
-    events: sdl2::EventPump,
-    view: view::View<sdl::Renderer<'c>>,
+pub struct Instance<'v, 'p, E> {
+    events: E,
+    view: view::View<sdl::Renderer<'v>>,
     presenter: presenter::Presenter<'p>,
 }
 
-impl<'c, 'p> Instance<'c, 'p> {
+impl<'e, 'c, 'p, E: presenter::event::Pump> Instance<'c, 'p, E> {
     /// Runs the UI loop.
     ///
     /// # Errors
     ///
     /// Returns an error if SDL fails to perform an action.
-    pub fn run(&mut self) -> Result<()> {
+    pub fn run(&'e mut self) -> Result<()> {
         self.view.redraw(&self.presenter.core.state)?;
 
         while self.presenter.core.is_running() {
@@ -104,11 +107,7 @@ impl<'c, 'p> Instance<'c, 'p> {
 
     fn cycle(&mut self) -> Result<()> {
         self.presenter.pump();
-        for e in self.events.poll_iter() {
-            if let Some(x) = sdl::event::from_sdl(&e) {
-                self.presenter.core.handle_event(&x);
-            }
-        }
+        self.events.pump(&mut self.presenter.core);
         self.view.redraw(&self.presenter.core.state)?;
 
         std::thread::sleep(std::time::Duration::from_millis(1));

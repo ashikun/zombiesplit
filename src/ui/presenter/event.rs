@@ -1,4 +1,5 @@
 //! Events understood by the user interface.
+
 use crate::model::{attempt::Action, time::position};
 
 /// A high-level event.
@@ -52,4 +53,15 @@ pub enum Edit {
     Add(u8),
     /// Remove the last item (for instance, a digit) from the current editor.
     Remove,
+}
+
+/// Trait for things that can produce events to be passed to the presenter.
+///
+/// The unusual structure of this trait, where the presenter target is made explicit, serves to
+/// avoid the use of a boxed iterator.
+pub trait Pump {
+    /// Pumps this pump's events.
+    ///
+    /// The implementation should call `send_to.handle_event` for each event detected.
+    fn pump<'a>(&'a mut self, send_to: &'a mut super::Core);
 }
