@@ -4,6 +4,7 @@ use super::{
     error::{Error, Result},
     position::{self, Position},
 };
+use std::hash::{Hash, Hasher};
 use std::{
     convert::{TryFrom, TryInto},
     fmt,
@@ -40,6 +41,12 @@ impl<P> std::fmt::Debug for Field<P> {
 impl<P> Default for Field<P> {
     fn default() -> Self {
         Self::new(0)
+    }
+}
+
+impl<P> Hash for Field<P> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.val.hash(state);
     }
 }
 

@@ -10,6 +10,7 @@ use super::{
     observer::{self, split::Observer as SO, time::Observer as TO},
     split, Observer, Run,
 };
+use crate::model::attempt::action::Action;
 
 /// Holds all data for an attempt session.
 ///
@@ -191,7 +192,17 @@ impl<'a> Session<'a> {
             .observe_time(split, time, observer::time::Event::Aggregate(kind));
     }
 
-    pub fn reset(&mut self) {
+    /// Performs the action `action` on this session's current run.
+    pub fn perform(&mut self, action: Action) {
+        match action {
+            Action::Clear(s) => self.clear_at(s),
+            Action::NewRun => self.reset(),
+            Action::Pop(s) => self.pop_from(s),
+            Action::Push(s, t) => self.push_to(s, t),
+        }
+    }
+
+    fn reset(&mut self) {
         self.observe_reset();
         self.run.reset();
         self.observe_attempt();
@@ -212,14 +223,14 @@ impl<'a> Session<'a> {
         self.run.position_of(short)
     }
 
-    pub fn clear_at(&mut self, split: impl split::Locator) {
+    fn clear_at(&mut self, split: impl split::Locator) {
         if let Some(s) = self.run.splits.get_mut(split) {
             s.clear();
             // TODO(@MattWindsor91): observe
         }
     }
 
-    pub fn push_to(&mut self, split: impl split::Locator, time: Time) {
+    fn push_to(&mut self, split: impl split::Locator, time: Time) {
         if let Some(s) = self.run.splits.get_mut(split) {
             s.push(time);
             let short = s.info.short;
@@ -229,19 +240,14 @@ impl<'a> Session<'a> {
         }
     }
 
-    pub fn pop_from(&mut self, split: impl split::Locator) -> Option<Time> {
-        self.run
-            .splits
-            .get_mut(split)
-            .and_then(|s| {
-                let short = s.info.short;
-                s.pop().map(|time| (short, time))
-            })
-            .map(|(short, time)| {
-                self.observers
-                    .observe_time(short, time, observer::time::Event::Popped);
-                self.observe_paces_and_aggregates();
-                time
-            })
+    fn pop_from(&mut self, split: impl split::Locator) {
+        if let Some((short, time)) = self.run.splits.get_mut(split).and_then(|s| {
+            let short = s.info.short;
+            s.pop().map(|time| (short, time))
+        }) {
+            self.observers
+                .observe_time(short, time, observer::time::Event::Popped);
+            self.observe_paces_and_aggregates();
+        }
     }
 }

@@ -17,7 +17,7 @@ pub mod mode;
 pub mod state;
 
 use crate::model::{
-    attempt::{self, observer, Session},
+    attempt::{self, observer, Action, Session},
     short, Time,
 };
 pub use cursor::Cursor;
@@ -55,47 +55,39 @@ impl<'a> Core<'a> {
 
     /// Handles an event `e`.
     ///
+    /// Action events are forwarded directly to the session.
+    ///
     /// Modal events are handled by the current mode, which may interpret them
-    /// as an internal change, rephrase them as a non-modal event, or request a
+    /// as an internal change, request an action on the session, or request a
     /// transition to another mode.
     ///
-    /// Non-modal events are generally handled by forwarding them to the
-    /// current [Session].
+    /// Any other events are handled directly.
     pub fn handle_event(&mut self, e: &event::Event) {
-        if let Some(a) = self.handle_potentially_modal_event(e) {
-            self.handle_attempt_event(a);
+        if let Some(a) = self.handle_local_event(e) {
+            self.session.perform(a);
         }
     }
 
-    fn handle_potentially_modal_event(&mut self, e: &event::Event) -> Option<event::Attempt> {
+    fn handle_local_event(&mut self, e: &event::Event) -> Option<Action> {
         match e {
-            event::Event::Attempt(a) => Some(*a),
+            event::Event::Action(a) => Some(*a),
             event::Event::Modal(m) => self.handle_modal_event(*m),
+            event::Event::Quit => {
+                self.quit();
+                None
+            }
         }
     }
 
-    fn handle_modal_event(&mut self, event: event::Modal) -> Option<event::Attempt> {
+    fn handle_modal_event(&mut self, event: event::Modal) -> Option<Action> {
         let ctx = mode::EventContext {
             event,
             state: &mut self.state,
         };
         match self.mode.on_event(ctx) {
             mode::EventResult::Transition(new_mode) => self.transition_with_exit(new_mode),
-            mode::EventResult::Expanded(a) => Some(a),
+            mode::EventResult::Action(a) => Some(a),
             mode::EventResult::Handled => None,
-        }
-    }
-
-    fn handle_attempt_event(&mut self, e: event::Attempt) {
-        use event::Attempt;
-        match e {
-            Attempt::NewRun => self.session.reset(),
-            Attempt::Push(pos, time) => self.session.push_to(pos, time),
-            Attempt::Pop(pos) => {
-                self.session.pop_from(pos);
-            }
-            Attempt::Clear(pos) => self.session.clear_at(pos),
-            Attempt::Quit => self.quit(),
         }
     }
 
@@ -158,7 +150,7 @@ impl<'a> Core<'a> {
     /// Performs a full clean transition between two modes.
     ///
     /// This calls both exit and entry hooks.
-    fn transition_with_exit(&mut self, new_mode: Box<dyn mode::Mode>) -> Option<event::Attempt> {
+    fn transition_with_exit(&mut self, new_mode: Box<dyn mode::Mode>) -> Option<Action> {
         let follow_on = self.mode.on_exit(&mut self.state);
         self.transition(new_mode);
         follow_on

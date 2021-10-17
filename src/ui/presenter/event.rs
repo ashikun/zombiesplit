@@ -1,5 +1,5 @@
 //! Events understood by the user interface.
-use crate::model::{time::position, Time};
+use crate::model::{attempt::Action, time::position};
 
 /// A high-level event.
 ///
@@ -9,9 +9,11 @@ use crate::model::{time::position, Time};
 pub enum Event {
     /// An event that should be interpreted by the current mode.
     Modal(Modal),
-    /// An event that directly affects the attempt, regardless of mode.
+    /// An event that translates directly into an action on the current attempt.
     /// These are handled globally.
-    Attempt(Attempt),
+    Action(Action),
+    /// A request to quit the user interface.
+    Quit,
 }
 
 impl Event {
@@ -50,21 +52,4 @@ pub enum Edit {
     Add(u8),
     /// Remove the last item (for instance, a digit) from the current editor.
     Remove,
-}
-
-/// An event that manipulates the current event.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[non_exhaustive]
-pub enum Attempt {
-    // TODO(@MattWindsor91): move these to a session API
-    /// Start a new run.
-    NewRun,
-    /// Quit the attempt.
-    Quit,
-    /// Pushes a time to the split at the given position.
-    Push(usize, Time),
-    /// Pops a time from the split at the given position.
-    Pop(usize),
-    /// Erases the split at the given position.
-    Clear(usize),
 }

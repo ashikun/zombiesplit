@@ -17,7 +17,7 @@ pub use field::{Field, Hour, Minute, Msec, Second};
 
 /// A hh:mm:ss:ms timing.
 #[derive(
-    Copy, Clone, SerializeDisplay, DeserializeFromStr, Debug, PartialEq, Eq, PartialOrd, Ord,
+    Copy, Clone, SerializeDisplay, DeserializeFromStr, Debug, PartialEq, Eq, PartialOrd, Ord, Hash,
 )]
 pub struct Time {
     /// Number of hours.

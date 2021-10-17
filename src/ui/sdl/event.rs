@@ -2,15 +2,15 @@
 
 use super::super::presenter::{
     cursor,
-    event::{Attempt, Edit, Event, Modal},
+    event::{Edit, Event, Modal},
 };
-use crate::model::time::position;
+use crate::model::{attempt::Action, time::position};
 
 /// Maps an event from SDL into [Event].
 #[must_use]
 pub fn from_sdl(e: &sdl2::event::Event) -> Option<Event> {
     match e {
-        sdl2::event::Event::Quit { .. } => Some(Event::Attempt(Attempt::Quit)),
+        sdl2::event::Event::Quit { .. } => Some(Event::Quit),
         sdl2::event::Event::KeyDown {
             keycode: Some(k), ..
         } => from_key(*k),
@@ -49,8 +49,8 @@ fn from_key(k: sdl2::keyboard::Keycode) -> Option<Event> {
         Keycode::H | Keycode::Left => Some(Event::Modal(Modal::Undo)),
         Keycode::L | Keycode::Right => Some(Event::Modal(Modal::Commit)),
         Keycode::X | Keycode::Delete => Some(Event::Modal(Modal::Delete)),
-        Keycode::Z => Some(Event::Attempt(Attempt::NewRun)),
-        Keycode::Escape => Some(Event::Attempt(Attempt::Quit)),
+        Keycode::Z => Some(Event::Action(Action::NewRun)),
+        Keycode::Escape => Some(Event::Quit),
         _ => None,
     }
 }

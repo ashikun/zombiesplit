@@ -7,11 +7,14 @@ use super::{
         cursor::{self, Cursor},
         State,
     },
-    event::{self, Edit, Modal},
+    event::{Edit, Modal},
     nav::Nav,
     EventResult, Mode,
 };
-use crate::model::time::{self, position};
+use crate::model::{
+    attempt::Action,
+    time::{self, position},
+};
 
 /// A split editor.
 pub struct Editor {
@@ -46,10 +49,10 @@ impl Mode for Editor {
         result
     }
 
-    fn on_exit(&mut self, state: &mut State) -> Option<event::Attempt> {
+    fn on_exit(&mut self, state: &mut State) -> Option<Action> {
         self.commit_field();
         state.set_editor(None);
-        Some(event::Attempt::Push(
+        Some(Action::Push(
             self.cur.position(),
             std::mem::take(&mut self.time),
         ))

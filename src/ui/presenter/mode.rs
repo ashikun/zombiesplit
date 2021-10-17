@@ -7,6 +7,7 @@ pub use editor::Editor;
 pub use nav::Nav;
 
 use super::{event, State};
+use crate::model::attempt::Action;
 
 /// Trait for presenter modes.
 ///
@@ -38,9 +39,9 @@ pub trait Mode {
     /// Called when the mode is about to be swapped out.
     ///
     /// The [Mode] can perform any last-minute adjustments to the visual
-    /// `state`, and optionally return a follow-on event representing the
+    /// `state`, and optionally return a follow-on [Action] representing the
     /// application of this mode's efforts to the model.
-    fn on_exit(&mut self, state: &mut State) -> Option<event::Attempt>;
+    fn on_exit(&mut self, state: &mut State) -> Option<Action>;
 
     /// Is zombiesplit running while this mode is active?
     fn is_running(&self) -> bool {
@@ -60,7 +61,7 @@ impl Mode for Inactive {
         EventResult::Handled
     }
 
-    fn on_exit(&mut self, _state: &mut State) -> Option<event::Attempt> {
+    fn on_exit(&mut self, _state: &mut State) -> Option<Action> {
         None
     }
 }
@@ -75,7 +76,7 @@ impl Mode for Quitting {
         EventResult::Handled
     }
 
-    fn on_exit(&mut self, _state: &mut State) -> Option<event::Attempt> {
+    fn on_exit(&mut self, _state: &mut State) -> Option<Action> {
         unreachable!("should not be able to exit out of the Quitting state")
     }
 
@@ -96,9 +97,8 @@ pub struct EventContext<'p> {
 pub enum EventResult {
     /// The event was handled internally.
     Handled,
-    /// The event has been interpreted as a change to the attempt state, and
-    /// should be handled by the global event handler.
-    Expanded(event::Attempt),
+    /// The event raised an action to be applied to the attempt model.
+    Action(Action),
     /// The event caused a transition to another mode.
     Transition(Box<dyn Mode>),
 }

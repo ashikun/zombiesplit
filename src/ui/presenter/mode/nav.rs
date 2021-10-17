@@ -6,10 +6,10 @@ use super::{
         State,
     },
     editor::Editor,
-    event::{self, Modal},
+    event::Modal,
     EventContext, EventResult, Mode,
 };
-use crate::model::time::position;
+use crate::model::{attempt::Action, time::position};
 
 /// Mode for when we are navigating splits.
 pub struct Nav {
@@ -32,7 +32,7 @@ impl Mode for Nav {
         }
     }
 
-    fn on_exit(&mut self, _state: &mut crate::ui::presenter::State) -> Option<event::Attempt> {
+    fn on_exit(&mut self, _state: &mut crate::ui::presenter::State) -> Option<Action> {
         // Don't clear the cursor, it'll probably be used by the new state.
         None
     }
@@ -53,12 +53,12 @@ impl Nav {
 
     /// Performs an undo on the current split, if any.
     fn undo(&mut self) -> EventResult {
-        EventResult::Expanded(event::Attempt::Pop(self.cur.position()))
+        EventResult::Action(Action::Pop(self.cur.position()))
     }
 
     /// Performs a delete on the current split, if any.
     fn delete(&mut self) -> EventResult {
-        EventResult::Expanded(event::Attempt::Clear(self.cur.position()))
+        EventResult::Action(Action::Clear(self.cur.position()))
     }
 
     /// Moves the state cursor according to `c`, if possible.
