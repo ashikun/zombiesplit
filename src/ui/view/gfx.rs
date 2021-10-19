@@ -1,8 +1,7 @@
-/*! Graphics rendering code for zombiesplit.
+/*! Low-ish graphics primitives and traits used by the zombiesplit UI.
 
-This module contains the (semi-)low-level code for displaying the zombiesplit
-(reference) user interface using SDL.  It handles colour and font look-up,
-metrics, rendering,  and so on.
+This module contains traits used for low-level rendering (implemented by UI
+backends such as SDL), as well as concepts such as colours, fonts, and metrics.
 */
 
 pub mod colour;
@@ -11,22 +10,4 @@ pub mod metrics; // for now
 pub mod pen;
 pub mod render;
 
-use super::super::{Error, Result};
 pub use render::Renderer;
-
-/// Makes a zombiesplit window.
-///
-/// # Errors
-///
-/// Returns an error if SDL fails to make the window.
-pub fn make_window(
-    video: &sdl2::VideoSubsystem,
-    wmetrics: metrics::Window,
-) -> Result<sdl2::video::Window> {
-    let window = video
-        .window("zombiesplit", wmetrics.win_w, wmetrics.win_h)
-        .position_centered()
-        .build()
-        .map_err(Error::Window)?;
-    Ok(window)
-}
