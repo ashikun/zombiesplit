@@ -2,6 +2,7 @@
 
 use std::{convert::TryFrom, ops::Add, rc::Rc};
 use tempfile::{tempdir, TempDir};
+use zombiesplit::model::attempt::Action;
 use zombiesplit::{
     db::{Db, Observer, Reader},
     model::{
@@ -99,22 +100,22 @@ fn test_sample_observe_run() {
     session.observers.add(Rc::downgrade(&obs));
 
     // This shouldn't insert a run.
-    session.reset();
+    session.perform(Action::NewRun);
 
     let time = Time::try_from(8675309).expect("time didn't parse");
 
     // This should.
     session.set_timestamper(chrono::Utc::now);
-    session.push_to(0, time);
-    session.reset();
+    session.perform(Action::Push(0, time));
+    session.perform(Action::NewRun);
 
     // As should this.
     // (We change the timestamp to avoid having the database reject the run as
     // a duplicate.)
     session.set_timestamper(|| chrono::Utc::now().add(chrono::Duration::weeks(1)));
-    session.push_to(0, time);
-    session.push_to(1, time);
-    session.reset();
+    session.perform(Action::Push(0, time));
+    session.perform(Action::Push(1, time));
+    session.perform(Action::NewRun);
 
     let runs = db
         .runs_for(&short_descriptor())
