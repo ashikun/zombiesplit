@@ -10,10 +10,12 @@ use super::{
 pub trait Renderer {
     /// Writes the string `s` at position `pos` with the font `font`.
     ///
+    /// Returns the position that the next character would be written to, if we continued writing.
+    ///
     /// # Errors
     ///
     /// Fails if the renderer can't render the writing.
-    fn write(&mut self, pos: Point, font: font::Spec, s: &str) -> Result<()>;
+    fn write(&mut self, pos: Point, font: font::Spec, s: &str) -> Result<Point>;
 
     /// Sets the plotter to the given position.
     fn set_pos(&mut self, pos: Point);

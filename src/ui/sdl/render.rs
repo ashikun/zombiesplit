@@ -51,12 +51,14 @@ impl<'a> render::Renderer for Renderer<'a> {
     }
 
     fn put_str(&mut self, str: &str) -> Result<()> {
-        self.put_str_at(self.pos, str.as_ref())
+        self.put_str_at(self.pos, str.as_ref())?;
+        Ok(())
     }
 
     fn put_str_r(&mut self, str: &str) -> Result<()> {
         let w = -self.pen.font_metrics().span_w_str(str);
-        self.put_str_at(self.pos.offset(w, 0), str.as_ref())
+        self.put_str_at(self.pos.offset(w, 0), str.as_ref())?;
+        Ok(())
     }
 
     /// Clears the screen.
@@ -75,7 +77,7 @@ impl<'a> render::Renderer for Renderer<'a> {
         &self.font_manager.metrics_set
     }
 
-    fn write(&mut self, pos: Point, font: Spec, s: &str) -> Result<()> {
+    fn write(&mut self, pos: Point, font: Spec, s: &str) -> Result<Point> {
         self.set_pos(pos);
         self.set_fg_colour(font.colour);
         self.set_font(font.id);
@@ -116,17 +118,24 @@ impl<'a> Renderer<'a> {
         sdl2::rect::Rect::new(pos.x, pos.y, rect.size.w, rect.size.h)
     }
 
-    fn put_str_at(&mut self, pos: Point, str: &[u8]) -> Result<()> {
+    fn put_str_at(&mut self, mut pos: Point, str: &[u8]) -> Result<Point> {
         let texture = self.font_texture()?;
 
         for glyph in self.pen.font_metrics().layout_str(pos, str) {
             let src = super::metrics::convert_rect(&glyph.src);
             let dst = super::metrics::convert_rect(&glyph.dst);
 
+            // Move from the end of the last character to the start of the next one.
+            pos = glyph.dst.point(
+                self.pen.font_metrics().pad.w_i32(),
+                0,
+                metrics::Anchor::TOP_RIGHT,
+            );
+
             self.screen.copy(&texture, src, dst).map_err(Error::Blit)?;
         }
 
-        Ok(())
+        Ok(pos)
     }
 
     fn font_texture(&mut self) -> Result<Rc<Texture<'a>>> {

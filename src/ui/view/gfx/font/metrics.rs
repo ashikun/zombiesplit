@@ -1,7 +1,7 @@
 //! Font metrics.
 use std::collections::HashMap;
 
-use super::super::metrics::{conv::sat_i32, Point, Rect, Size};
+use super::super::metrics::{anchor, conv::sat_i32, Point, Rect, Size};
 use serde::{Deserialize, Serialize};
 
 // We hardcode the general layout of a font texture using the following
@@ -65,6 +65,17 @@ impl Metrics {
             .map_or(0, |glyph| {
                 glyph.dst.x(0, super::super::metrics::anchor::X::Right)
             })
+    }
+
+    /// Calculates the relative X-coordinate of `anchor` within `str`.
+    #[must_use]
+    pub fn x_anchor_of_str(&self, str: &str, anchor: anchor::X) -> i32 {
+        // No need to do layout calculations if we're already at the left.
+        if matches!(anchor, anchor::X::Left) {
+            0
+        } else {
+            anchor.offset(self.span_w_str(str))
+        }
     }
 
     /// Signed maximal size of a vertical span `size` characters tall.

@@ -40,24 +40,14 @@ impl Rect {
     /// `anchor`.
     #[must_use]
     pub fn x(self, dx: i32, anchor: anchor::X) -> i32 {
-        self.top_left.x
-            + dx
-            + match anchor {
-                anchor::X::Left => 0,
-                anchor::X::Right => self.size.w_i32(),
-            }
+        self.top_left.x + dx + anchor.offset(self.size.w_i32())
     }
 
     /// Resolves an Y coordinate within a rectangle, given an offset `dy` from
     /// `anchor`.
     #[must_use]
     pub fn y(self, dy: i32, anchor: anchor::Y) -> i32 {
-        self.top_left.y
-            + dy
-            + match anchor {
-                anchor::Y::Top => 0,
-                anchor::Y::Bottom => self.size.h_i32(),
-            }
+        self.top_left.y + dy + anchor.offset(self.size.h_i32())
     }
 
     /// Produces a new [Rect] by shrinking the given [Rect] by `amount` on each side.

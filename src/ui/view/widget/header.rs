@@ -4,11 +4,7 @@ use std::fmt::Write;
 
 use super::super::{
     super::presenter::State,
-    gfx::{
-        self, colour, font,
-        metrics::{self, Anchor},
-        Renderer, Writer,
-    },
+    gfx::{self, colour, font, metrics, Renderer, Writer},
 };
 use crate::model::game::category::{AttemptInfo, Info};
 
@@ -20,6 +16,9 @@ pub struct Widget {
 
     /// The position of the category name.
     category_pos: metrics::Point,
+
+    /// The position of the top-right of the attempts counter.
+    attempts_pos: metrics::Point,
 }
 
 impl super::Widget<State> for Widget {
@@ -28,12 +27,15 @@ impl super::Widget<State> for Widget {
         self.rect = ctx.bounds;
 
         let header_metrics = &ctx.font_metrics[HEADER_FONT_SPEC.id];
+        let one_below_header = header_metrics.span_h(1);
 
-        self.category_pos = self.rect.point(
-            0,
-            header_metrics.span_h(1),
-            super::metrics::Anchor::TOP_LEFT,
-        );
+        self.category_pos = self
+            .rect
+            .point(0, one_below_header, super::metrics::Anchor::TOP_LEFT);
+
+        self.attempts_pos = self
+            .rect
+            .point(0, one_below_header, super::metrics::Anchor::TOP_RIGHT);
     }
 
     fn render(&self, r: &mut dyn Renderer, s: &State) -> gfx::Result<()> {
@@ -58,7 +60,7 @@ const CATEGORY_FONT_SPEC: font::Spec = font::Spec {
 impl Widget {
     fn render_meta(&self, r: &mut dyn Renderer, meta: &Info) -> gfx::Result<()> {
         self.write_header(r, meta)?;
-        self.write_category(r, &meta)?;
+        self.write_category(r, meta)?;
         Ok(())
     }
 
@@ -79,11 +81,11 @@ impl Widget {
     }
 
     fn render_attempt(&self, r: &mut dyn Renderer, attempt: &AttemptInfo) -> gfx::Result<()> {
-        r.set_pos(self.rect.point(
-            0,
-            r.font_metrics()[font::Id::Medium].span_h(-1),
-            Anchor::BOTTOM_RIGHT,
-        ));
-        r.put_str_r(&format!("#{} ({})", attempt.total, attempt.completed))
+        let mut w = Writer::new(r)
+            .with_font(CATEGORY_FONT_SPEC)
+            .with_pos(self.attempts_pos)
+            .align(metrics::anchor::X::Right);
+        write!(w, "#{} ({})", attempt.total, attempt.completed)?;
+        Ok(())
     }
 }

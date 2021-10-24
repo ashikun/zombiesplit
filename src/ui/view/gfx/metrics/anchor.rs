@@ -44,7 +44,25 @@ pub enum X {
     Right,
 }
 
-impl X {}
+impl X {
+    /// Calculates the offset from left of this anchor in an object of width `width`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use zombiesplit::ui::view::gfx::metrics::anchor;
+    ///
+    /// assert_eq!(0, anchor::X::Left.offset(320));
+    /// assert_eq!(320, anchor::X::Right.offset(320));
+    /// ```
+    #[must_use]
+    pub fn offset(self, width: i32) -> i32 {
+        match self {
+            Self::Left => 0,
+            Self::Right => width,
+        }
+    }
+}
 
 /// An anchor for the Y co-ordinate.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -53,4 +71,24 @@ pub enum Y {
     Top,
     /// anchoring to the bottom edge.
     Bottom,
+}
+
+impl Y {
+    /// Calculates the offset from top of this anchor in an object of height `height`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use zombiesplit::ui::view::gfx::metrics::anchor;
+    ///
+    /// assert_eq!(0, anchor::Y::Top.offset(240));
+    /// assert_eq!(240, anchor::Y::Bottom.offset(240));
+    /// ```
+    #[must_use]
+    pub fn offset(self, height: i32) -> i32 {
+        match self {
+            Self::Top => 0,
+            Self::Bottom => height,
+        }
+    }
 }
