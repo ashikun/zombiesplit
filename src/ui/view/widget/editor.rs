@@ -4,9 +4,9 @@ The split editor isn't a [Widget] per se, as it lays on top of a split widget.
 */
 
 use super::super::{
-    super::{presenter::state, Result},
+    super::presenter::state,
     gfx::{
-        colour, font,
+        self, colour, font,
         metrics::{self, Anchor, Rect},
         render::Renderer,
     },
@@ -33,14 +33,14 @@ impl super::Widget<state::Editor> for Editor {
         self.rect = ctx.bounds;
     }
 
-    fn render(&self, r: &mut dyn Renderer, s: &state::Editor) -> Result<()> {
+    fn render(&self, r: &mut dyn Renderer, s: &state::Editor) -> gfx::Result<()> {
         self.draw_base(r)?;
 
         // TODO(@MattWindsor91): this is temporary.
         let mut pos = self.rect.point(0, 0, Anchor::TOP_LEFT);
         for field in [Name::Minutes, Name::Seconds, Name::Milliseconds] {
             r.set_pos(pos);
-            let metr = r.font_metrics();
+            let metr = &r.font_metrics()[font::Id::Medium];
             // TODO(@MattWindsor91): make this less awful
             pos.offset_mut(
                 metr.span_w_str(field_placeholder(field)) + metrics::conv::sat_i32(metr.pad.w),
@@ -62,7 +62,7 @@ const fn field_placeholder(f: Name) -> &'static str {
 }
 
 impl Editor {
-    fn draw_base(&self, r: &mut dyn Renderer) -> Result<()> {
+    fn draw_base(&self, r: &mut dyn Renderer) -> gfx::Result<()> {
         r.set_pos(self.rect.top_left);
         r.set_font(font::Id::Medium);
         reset_colours(r);
@@ -72,7 +72,7 @@ impl Editor {
     }
 }
 
-fn draw_field(r: &mut dyn Renderer, value: &str, is_editing: bool) -> Result<()> {
+fn draw_field(r: &mut dyn Renderer, value: &str, is_editing: bool) -> gfx::Result<()> {
     let num_chars = metrics::conv::sat_i32(value.len());
 
     // Visually distinguish the currently-edited editor.
@@ -91,8 +91,8 @@ fn draw_field(r: &mut dyn Renderer, value: &str, is_editing: bool) -> Result<()>
 }
 
 /// Fills a background of `num_chars` width relative to the current position.
-fn fill_bg(r: &mut dyn Renderer, num_chars: i32) -> Result<()> {
-    let size = r.font_metrics().text_size(num_chars, 1);
+fn fill_bg(r: &mut dyn Renderer, num_chars: i32) -> gfx::Result<()> {
+    let size = r.font_metrics()[font::Id::Medium].text_size(num_chars, 1);
     r.fill(
         metrics::Rect {
             top_left: metrics::Point { x: 0, y: 0 },

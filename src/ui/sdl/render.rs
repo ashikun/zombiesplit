@@ -2,14 +2,12 @@
 
 use std::{cell::RefMut, rc::Rc};
 
-use super::super::{
-    view::gfx::{
-        colour, font,
-        metrics::{self, Point},
-        pen, render,
-    },
-    Error, Result,
+use super::super::view::gfx::{
+    colour, font,
+    metrics::{self, Point},
+    pen, render, Error, Result,
 };
+use crate::ui::view::gfx::font::Spec;
 use sdl2::{
     render::{Canvas, Texture},
     video,
@@ -19,8 +17,6 @@ use sdl2::{
 pub struct Renderer<'a> {
     /// The target screen canvas.
     screen: RefMut<'a, Canvas<video::Window>>,
-    /// The current window metrics.
-    w_metrics: metrics::Window,
     /// The font manager.
     font_manager: super::font::Manager<'a>,
     /// The pen.
@@ -32,13 +28,6 @@ pub struct Renderer<'a> {
 }
 
 impl<'a> render::Renderer for Renderer<'a> {
-    fn size(&self) -> metrics::Size {
-        metrics::Size {
-            w: self.w_metrics.win_w,
-            h: self.w_metrics.win_h,
-        }
-    }
-
     fn set_pos(&mut self, pos: metrics::Point) {
         self.pos = pos;
     }
@@ -46,8 +35,7 @@ impl<'a> render::Renderer for Renderer<'a> {
     fn fill(&mut self, rect: metrics::Rect) -> Result<()> {
         let rect = self.convert_rect(rect);
         self.set_screen_bg();
-        self.screen.fill_rect(rect).map_err(Error::Blit)?;
-        Ok(())
+        self.screen.fill_rect(rect).map_err(Error::Blit)
     }
 
     fn set_font(&mut self, font: font::Id) {
@@ -63,12 +51,12 @@ impl<'a> render::Renderer for Renderer<'a> {
     }
 
     fn put_str(&mut self, str: &str) -> Result<()> {
-        self.put_str_at(self.pos, str)
+        self.put_str_at(self.pos, str.as_ref())
     }
 
     fn put_str_r(&mut self, str: &str) -> Result<()> {
-        let w = -self.font_metrics().span_w_str(str);
-        self.put_str_at(self.pos.offset(w, 0), str)
+        let w = -self.pen.font_metrics().span_w_str(str);
+        self.put_str_at(self.pos.offset(w, 0), str.as_ref())
     }
 
     /// Clears the screen.
@@ -83,24 +71,29 @@ impl<'a> render::Renderer for Renderer<'a> {
         self.screen.present();
     }
 
-    fn font_metrics(&self) -> &font::Metrics {
-        self.pen.font_metrics()
+    fn font_metrics(&self) -> &font::Map<font::Metrics> {
+        &self.font_manager.metrics_set
+    }
+
+    fn write(&mut self, pos: Point, font: Spec, content: &[u8]) -> Result<()> {
+        self.set_pos(pos);
+        self.set_fg_colour(font.colour);
+        self.set_font(font.id);
+        self.put_str_at(pos, content)
     }
 }
 
 impl<'a> Renderer<'a> {
-    /// Constructs a [Renderer] using the given screen, metrics, and font manager.
+    /// Constructs a [Renderer] using the given screen, font manager, and colour set.
     #[must_use]
     pub fn new(
         screen: RefMut<'a, Canvas<video::Window>>,
-        w_metrics: metrics::Window,
         font_manager: super::font::Manager<'a>,
         colour_set: &'a colour::Set,
     ) -> Self {
         let pen = pen::Pen::new(&font_manager.metrics_set);
         Self {
             screen,
-            w_metrics,
             pen,
             font_manager,
             colour_set,
@@ -114,10 +107,6 @@ impl<'a> Renderer<'a> {
         self.screen.set_draw_color(colour);
     }
 
-    fn font_texture(&mut self) -> Result<Rc<Texture<'a>>> {
-        Ok(self.font_manager.texture(self.font_spec())?)
-    }
-
     fn font_spec(&self) -> font::Spec {
         self.pen.font_spec()
     }
@@ -127,7 +116,7 @@ impl<'a> Renderer<'a> {
         sdl2::rect::Rect::new(pos.x, pos.y, rect.size.w, rect.size.h)
     }
 
-    fn put_str_at(&mut self, pos: Point, str: &str) -> Result<()> {
+    fn put_str_at(&mut self, pos: Point, str: &[u8]) -> Result<()> {
         let texture = self.font_texture()?;
 
         for glyph in self.pen.font_metrics().layout_str(pos, str) {
@@ -138,5 +127,9 @@ impl<'a> Renderer<'a> {
         }
 
         Ok(())
+    }
+
+    fn font_texture(&mut self) -> Result<Rc<Texture<'a>>> {
+        Ok(self.font_manager.texture(self.font_spec())?)
     }
 }

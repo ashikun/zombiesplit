@@ -1,15 +1,19 @@
 //! Traits for low-level rendering.
 
 use super::{
-    super::super::Result,
     colour, font,
     metrics::{self, Point},
+    Result,
 };
 
 /// Trait of things that provide rendering facilities.
 pub trait Renderer {
-    /// Gets the size of this renderer's bounding box.
-    fn size(&self) -> metrics::Size;
+    /// Writes the bytes `content` at position `pos` with the font `font`.
+    ///
+    /// # Errors
+    ///
+    /// Fails if the renderer can't render the writing.
+    fn write(&mut self, pos: Point, font: font::Spec, content: &[u8]) -> Result<()>;
 
     /// Sets the plotter to the given position.
     fn set_pos(&mut self, pos: Point);
@@ -65,5 +69,5 @@ pub trait Renderer {
     // TODO(@MattWindsor91): make the below obsolete?
 
     /// Borrows the font metrics map.
-    fn font_metrics(&self) -> &font::Metrics;
+    fn font_metrics(&self) -> &font::Map<font::Metrics>;
 }

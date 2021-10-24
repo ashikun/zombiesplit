@@ -25,7 +25,11 @@ impl<R: Renderer> View<R> {
     pub fn new(renderer: R, wmetrics: gfx::metrics::Window) -> Self {
         let bounds = wmetrics.win_rect();
         let mut root = widget::Root::default();
-        root.layout(widget::LayoutContext { wmetrics, bounds });
+        root.layout(widget::LayoutContext {
+            wmetrics,
+            bounds,
+            font_metrics: renderer.font_metrics(),
+        });
 
         Self { renderer, root }
     }
@@ -48,7 +52,8 @@ impl<R: Renderer> View<R> {
     /// Drawing proceeds breath-first with each widget's children being added
     /// to the end of the redraw queue after drawing the widget itself.
     fn redraw_widgets(&mut self, state: &presenter::State) -> Result<()> {
-        let mut widgets: Vec<&dyn Widget<presenter::State>> = vec![&mut self.root];
+        let root: &dyn Widget<presenter::State> = &self.root;
+        let mut widgets = vec![root];
         while let Some(w) = widgets.pop() {
             w.render(&mut self.renderer, state)?;
             widgets.append(&mut w.children());

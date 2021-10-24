@@ -58,12 +58,14 @@ impl<'c> Manager<'c> {
         let font_manager = font::Manager::new(
             &self.textures,
             self.cfg.fonts,
-            self.cfg.fonts.metrics()?,
+            self.cfg
+                .fonts
+                .metrics()
+                .map_err(super::super::view::gfx::Error::LoadFont)?,
             &self.cfg.colours.fg,
         );
         Ok(Renderer::new(
             self.screen.borrow_mut(),
-            self.cfg.window,
             font_manager,
             &self.cfg.colours,
         ))

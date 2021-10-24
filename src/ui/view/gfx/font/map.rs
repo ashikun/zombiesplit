@@ -83,8 +83,15 @@ pub enum Id {
     Large,
 }
 
+/// The default font ID is the medium one.
+impl Default for Id {
+    fn default() -> Self {
+        Self::Medium
+    }
+}
+
 // A font specification (ID and colour).
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, Copy, Default, PartialEq, Eq, Hash, Debug)]
 pub struct Spec {
     /// The identifier of the font.
     pub id: Id,

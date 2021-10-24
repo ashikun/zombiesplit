@@ -23,6 +23,13 @@ pub enum Id {
     Pace(Pace),
 }
 
+/// There is a default foreground colour, but it is fairly arbitrary at the moment.
+impl Default for Id {
+    fn default() -> Self {
+        Self::Name(SplitPosition::Coming)
+    }
+}
+
 /// A set of foreground colours.
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct Set {

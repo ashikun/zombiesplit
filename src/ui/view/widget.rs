@@ -10,8 +10,8 @@ mod split;
 mod total;
 
 use super::{
-    super::{error::Result, presenter::State},
-    gfx::{metrics, render},
+    super::presenter::State,
+    gfx::{self, font, metrics, render},
 };
 
 /// Trait for things that can render information from a presenter.
@@ -22,7 +22,7 @@ pub trait Widget<State> {
     /// Renders the widget (excluding its children).
     ///
     /// By default, implementations do nothing here.
-    fn render(&self, _r: &mut dyn render::Renderer, _s: &State) -> Result<()> {
+    fn render(&self, _r: &mut dyn render::Renderer, _s: &State) -> gfx::Result<()> {
         Ok(())
     }
 
@@ -36,7 +36,7 @@ pub trait Widget<State> {
 
 /// Context used when performing a layout change.
 #[derive(Clone, Copy)]
-pub struct LayoutContext {
+pub struct LayoutContext<'m> {
     /// The configured metrics for this split display window.
     ///
     /// Note that the window itself may not be the same size as the target
@@ -47,15 +47,14 @@ pub struct LayoutContext {
     ///
     /// All widgets are placed and sized by their parents.
     pub bounds: metrics::Rect,
-    /*
-    /// An object for checking text sizing.
+
+    /// A source of font metrics.
     ///
     /// This can be used for working out how large a piece of text might be.
-    pub sizer: &'s dyn TextSizer,
-    */
+    pub font_metrics: &'m font::Map<font::Metrics>,
 }
 
-impl LayoutContext {
+impl<'m> LayoutContext<'m> {
     /// Makes a copy of this layout context with the given new bounding box.
     pub fn with_bounds(self, new_bounds: metrics::Rect) -> Self {
         Self {

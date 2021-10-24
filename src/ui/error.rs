@@ -4,17 +4,13 @@ use thiserror::Error;
 /// A user interface error.
 #[derive(Debug, Error)]
 pub enum Error {
+    /// An error occurred in the graphics library.
+    #[error("Graphical subsystem error: {0}")]
+    Gfx(#[from] super::view::gfx::Error),
+
     /// An error occurred while initialising an SDL subsystem.
     #[error("SDL init error: {0}")]
     Init(String),
-
-    /// An error occurred while handling a font.
-    #[error("font error: {0}")]
-    LoadFont(#[from] super::view::gfx::font::Error),
-
-    /// An error occurred while blitting the font.
-    #[error("SDL couldn't blit font: {0}")]
-    Blit(String),
 
     /// An error occurred while building a window.
     #[error("SDL windowing error")]

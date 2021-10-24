@@ -2,9 +2,9 @@
 
 use super::{
     super::{
-        super::{presenter::state, Result},
+        super::presenter::state,
         gfx::{
-            colour, font,
+            self, colour, font,
             metrics::{conv::sat_i32, Anchor, Rect, Size},
             Renderer,
         },
@@ -51,7 +51,7 @@ impl super::Widget<state::State> for SplitDrawer {
         super::Widget::<state::Split>::layout(self, ctx);
     }
 
-    fn render(&self, r: &mut dyn Renderer, s: &state::State) -> Result<()> {
+    fn render(&self, r: &mut dyn Renderer, s: &state::State) -> gfx::Result<()> {
         // TODO(@MattWindsor91): calculate which split should be here based on
         // cursor position.
         if let Some(split) = s.splits.get(self.index) {
@@ -68,16 +68,17 @@ impl super::Widget<state::Split> for SplitDrawer {
         self.rect = ctx.bounds;
     }
 
-    fn render(&self, r: &mut dyn Renderer, s: &state::Split) -> Result<()> {
+    fn render(&self, r: &mut dyn Renderer, s: &state::Split) -> gfx::Result<()> {
         r.set_pos(self.rect.top_left);
         draw_name(r, s)?;
         self.draw_time_display(r, s)?;
 
         // TODO(@MattWindsor91): jog to position more accurately.
-        r.set_pos(
-            self.rect
-                .point(r.font_metrics().span_w(-10), 0, Anchor::TOP_RIGHT),
-        );
+        r.set_pos(self.rect.point(
+            r.font_metrics()[font::Id::Medium].span_w(-10),
+            0,
+            Anchor::TOP_RIGHT,
+        ));
         draw_num_times(r, s)?;
         Ok(())
     }
@@ -85,19 +86,19 @@ impl super::Widget<state::Split> for SplitDrawer {
 
 impl SplitDrawer {
     #[allow(clippy::option_if_let_else)]
-    fn draw_time_display(&self, r: &mut dyn Renderer, state: &state::Split) -> Result<()> {
+    fn draw_time_display(&self, r: &mut dyn Renderer, state: &state::Split) -> gfx::Result<()> {
         let rect = self.time_display_rect(r);
         r.set_pos(rect.top_left);
         if let Some(ref state) = state.editor {
             use super::Widget;
             editor::Editor { rect }.render(r, state)
         } else {
-            draw_time(r, state)
+            Ok(draw_time(r, state)?)
         }
     }
 
     fn time_display_rect(&self, r: &mut dyn Renderer) -> Rect {
-        let size = editor::size(r.font_metrics());
+        let size = editor::size(&r.font_metrics()[font::Id::Medium]);
         Rect {
             top_left: self.rect.point(-sat_i32(size.w), 0, Anchor::TOP_RIGHT),
             size,
@@ -111,7 +112,7 @@ pub fn time_str(time: model::time::Time) -> String {
     format!("{}'{}\"{}", time.mins, time.secs, time.millis)
 }
 
-fn draw_name(r: &mut dyn Renderer, state: &state::Split) -> Result<()> {
+fn draw_name(r: &mut dyn Renderer, state: &state::Split) -> gfx::Result<()> {
     r.set_font(font::Id::Medium);
     r.set_fg_colour(colour::fg::Id::Name(state.position));
     r.put_str(&state.name)?;
@@ -126,14 +127,14 @@ fn time_colour(state: &state::Split) -> colour::fg::Id {
     colour::fg::Id::SplitInRunPace(state.pace_in_run)
 }
 
-fn draw_time(r: &mut dyn Renderer, state: &state::Split) -> Result<()> {
+fn draw_time(r: &mut dyn Renderer, state: &state::Split) -> gfx::Result<()> {
     r.set_font(font::Id::Medium);
     r.set_fg_colour(time_colour(state));
     r.put_str(&state_time_str(state))
 }
 
 /// Draws a representation of the number of times this split has logged.
-fn draw_num_times(r: &mut dyn Renderer, state: &state::Split) -> Result<()> {
+fn draw_num_times(r: &mut dyn Renderer, state: &state::Split) -> gfx::Result<()> {
     r.set_font(font::Id::Small);
     // TODO(@MattWindsor91): better key?
     r.set_fg_colour(colour::fg::Id::Header);

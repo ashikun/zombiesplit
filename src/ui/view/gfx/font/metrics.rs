@@ -84,13 +84,13 @@ impl Metrics {
         Size::from_i32s(self.span_w(w_chars), self.span_h(h_chars))
     }
 
-    /// Calculates layout for a string as a series of [Glyph]s.
-    pub fn layout_str<'a>(
+    /// Calculates layout for a byte-string as a series of [Glyph]s.
+    pub fn layout_str<'a, B: AsRef<[u8]> + ?Sized>(
         &'a self,
         start: Point,
-        str: &'a str,
+        bytes: &'a B,
     ) -> impl Iterator<Item = Glyph> + 'a {
-        str.as_bytes().iter().scan(start, move |point, char| {
+        bytes.as_ref().iter().scan(start, move |point, char| {
             // TODO(@MattWindsor91): proportionality
             let src = self.glyph_rect(*char);
             let offset = sat_i32(src.size.w) + sat_i32(self.pad.w);
