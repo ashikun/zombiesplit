@@ -8,12 +8,12 @@ use super::{
 
 /// Trait of things that provide rendering facilities.
 pub trait Renderer {
-    /// Writes the bytes `content` at position `pos` with the font `font`.
+    /// Writes the string `s` at position `pos` with the font `font`.
     ///
     /// # Errors
     ///
     /// Fails if the renderer can't render the writing.
-    fn write(&mut self, pos: Point, font: font::Spec, content: &[u8]) -> Result<()>;
+    fn write(&mut self, pos: Point, font: font::Spec, s: &str) -> Result<()>;
 
     /// Sets the plotter to the given position.
     fn set_pos(&mut self, pos: Point);

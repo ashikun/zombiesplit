@@ -75,11 +75,11 @@ impl<'a> render::Renderer for Renderer<'a> {
         &self.font_manager.metrics_set
     }
 
-    fn write(&mut self, pos: Point, font: Spec, content: &[u8]) -> Result<()> {
+    fn write(&mut self, pos: Point, font: Spec, s: &str) -> Result<()> {
         self.set_pos(pos);
         self.set_fg_colour(font.colour);
         self.set_font(font.id);
-        self.put_str_at(pos, content)
+        self.put_str_at(pos, s.as_bytes())
     }
 }
 

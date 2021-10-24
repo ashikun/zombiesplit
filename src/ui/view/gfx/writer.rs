@@ -42,17 +42,12 @@ impl<'r, R: super::Renderer + ?Sized> Writer<'r, R> {
     }
 }
 
-/// We can use writers as if they were I/O writers.
-impl<'r, R: super::Renderer + ?Sized> std::io::Write for Writer<'r, R> {
-    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+/// We can use writers with Rust's formatting system.
+impl<'r, R: super::Renderer + ?Sized> std::fmt::Write for Writer<'r, R> {
+    fn write_str(&mut self, s: &str) -> std::fmt::Result {
         // TODO(@MattWindsor91): compute position according to anchor
         self.renderer
-            .write(self.pos, self.font_spec, buf)
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
-        Ok(buf.len())
-    }
-
-    fn flush(&mut self) -> std::io::Result<()> {
-        Ok(())
+            .write(self.pos, self.font_spec, s)
+            .map_err(|_| std::fmt::Error)
     }
 }

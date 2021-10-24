@@ -4,13 +4,12 @@ use thiserror::Error;
 /// A user interface error.
 #[derive(Debug, Error)]
 pub enum Error {
-    /// An I/O error has occurred.
+    /// A formatting error has occurred.
     ///
     /// This generally comes from trying to write to the UI using the
-    /// `std::io::Write` trait, and one might expect a more specific error to
-    /// be boxed inside this error.
-    #[error("I/O error: {0}")]
-    IO(#[from] std::io::Error),
+    /// `std::fmt::Write` trait.
+    #[error("formatting error")]
+    Fmt(#[from] std::fmt::Error),
 
     /// An error occurred while handling a font.
     #[error("font error: {0}")]

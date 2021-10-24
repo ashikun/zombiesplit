@@ -1,6 +1,6 @@
 //! Header display.
 
-use std::io::Write;
+use std::fmt::Write;
 
 use super::super::{
     super::presenter::State,
@@ -58,22 +58,23 @@ const CATEGORY_FONT_SPEC: font::Spec = font::Spec {
 impl Widget {
     fn render_meta(&self, r: &mut dyn Renderer, meta: &Info) -> gfx::Result<()> {
         self.write_header(r, meta)?;
-
-        r.set_font(font::Id::Medium);
-        r.set_pos(self.rect.point(
-            0,
-            r.font_metrics()[font::Id::Medium].span_h(-1),
-            Anchor::BOTTOM_LEFT,
-        ));
-        r.put_str(&meta.category)?;
+        self.write_category(r, &meta)?;
         Ok(())
     }
 
     fn write_header(&self, r: &mut dyn Renderer, meta: &Info) -> gfx::Result<()> {
-        let mut w = Writer::new(r)
+        Writer::new(r)
             .with_font(HEADER_FONT_SPEC)
-            .with_pos(self.rect.top_left);
-        write!(w, "{}", meta.game)?;
+            .with_pos(self.rect.top_left)
+            .write_str(&meta.game)?;
+        Ok(())
+    }
+
+    fn write_category(&self, r: &mut dyn Renderer, meta: &Info) -> gfx::Result<()> {
+        Writer::new(r)
+            .with_font(CATEGORY_FONT_SPEC)
+            .with_pos(self.category_pos)
+            .write_str(&meta.category)?;
         Ok(())
     }
 
