@@ -1,7 +1,5 @@
 //! Conversion helpers.
 
-use std::convert::TryInto;
-
 /// Convert `x` to i32, saturate if overly long.
 pub(crate) fn sat_i32(x: impl TryInto<i32>) -> i32 {
     x.try_into().unwrap_or(i32::MAX)

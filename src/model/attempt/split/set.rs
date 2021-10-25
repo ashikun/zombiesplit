@@ -2,7 +2,6 @@
 use crate::model::{aggregate, short};
 
 use super::super::super::game;
-use std::iter::FromIterator;
 
 use super::Split;
 

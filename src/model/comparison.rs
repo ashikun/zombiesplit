@@ -2,8 +2,6 @@
 
 pub mod pace;
 
-use std::iter::FromIterator;
-
 pub use pace::{Pace, PacedTime};
 
 use super::{aggregate, short, Time};

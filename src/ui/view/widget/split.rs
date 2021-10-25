@@ -12,7 +12,6 @@ use super::{
     editor, LayoutContext,
 };
 use crate::model::{self, aggregate};
-use std::convert::TryFrom;
 
 /// The split viewer widget.
 #[derive(Default)]
