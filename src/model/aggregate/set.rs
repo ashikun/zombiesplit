@@ -119,7 +119,7 @@ mod test {
             (short::Name::from("split2"), Time::seconds(42).unwrap()),
             (short::Name::from("split3"), Time::seconds(101).unwrap()),
         ];
-        let results: Vec<_> = Set::accumulate_pairs(std::array::IntoIter::new(pairs)).collect();
+        let results: Vec<_> = Set::accumulate_pairs(pairs).collect();
         assert_eq!(3, results.len(), "expected as many aggregates as splits");
 
         let mut cumulative = Time::default();

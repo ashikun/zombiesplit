@@ -46,7 +46,7 @@ impl Set {
     ///     Split::new(0, "s1", "Split 1"),
     ///     Split::new(1, "s2", "Split 2"),
     /// ];
-    /// let set: Set = std::array::IntoIter::new(splits).collect();
+    /// let set: Set = splits.into_iter().collect();
     ///
     /// assert_eq!(Some(0), set.position_of("s1"));
     /// assert_eq!(Some(1), set.position_of("s2"));
@@ -148,7 +148,7 @@ mod test {
 
     #[test]
     fn aggregates_sample_run() {
-        let mut set: Set = std::array::IntoIter::new(splits()).collect();
+        let mut set: Set = splits().into_iter().collect();
 
         let s1: short::Name = "s1".into();
         let s3: short::Name = "s3".into();

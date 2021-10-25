@@ -66,7 +66,7 @@ fn splits() -> [Split; 3] {
 }
 
 fn make_session() -> Session<'static> {
-    let splits = std::array::IntoIter::new(splits()).collect();
+    let splits = splits().into_iter().collect();
     let run = Run {
         attempt: attempt_info(),
         splits,
