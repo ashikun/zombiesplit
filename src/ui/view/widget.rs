@@ -5,9 +5,9 @@ each of which has access to the presenter state and a renderer.
 */
 
 mod editor;
+mod footer;
 mod header;
 mod split;
-mod total;
 
 use super::{
     super::presenter::State,
@@ -74,7 +74,7 @@ pub struct Root {
     /// The splits widget.
     splits: split::Widget,
     /// The footer widget.
-    footer: total::Widget,
+    footer: footer::Footer,
 }
 
 impl Widget<State> for Root {

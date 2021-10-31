@@ -24,7 +24,7 @@ pub struct Window {
     /// The height of the header.
     pub header_h: u32,
     /// The height of the total section.
-    pub total_h: u32,
+    pub footer_h: u32,
     /// The height of one split.
     pub split_h: u32,
 }
@@ -84,7 +84,7 @@ impl Window {
             },
             size: Size {
                 w: self.win_w,
-                h: self.total_h,
+                h: self.footer_h,
             },
         }
         .shrink(self.padding)
@@ -97,11 +97,11 @@ impl Window {
 
     /// Gets the Y position of the total part of the window.
     fn total_y(&self) -> i32 {
-        conv::sat_i32(self.win_h - self.total_h)
+        conv::sat_i32(self.win_h - self.footer_h)
     }
 
     /// Gets the height of the splits part of the window.
     fn splits_h(&self) -> u32 {
-        self.win_h - self.header_h - self.total_h
+        self.win_h - self.header_h - self.footer_h
     }
 }

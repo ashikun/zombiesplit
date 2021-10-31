@@ -17,7 +17,7 @@ comparison_provider = "Database"
 	# Each is stacked atop each other, with the remaining space being used
 	# for the splits.
 	header_h = 40
-	total_h = 32
+	footer_h = 64
 	split_h = 16
 
 # Fonts
