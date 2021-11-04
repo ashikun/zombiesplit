@@ -23,6 +23,11 @@ pub trait Observer {
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Event {
+    /// Observes a full-run total (either from the comparison, or from the attempt).
+    Total(
+        crate::model::comparison::PacedTime,
+        crate::model::aggregate::Source,
+    ),
     /// Observes initial information about a split.
     AddSplit(short::Name, String),
     /// Observes a run reset, with any outgoing run attached as historic.

@@ -9,7 +9,9 @@ pub mod split;
 
 use std::fmt::Display;
 
-use crate::model::{attempt, comparison::pace::PacedTime, game::category, short, time::position};
+use crate::model::{
+    aggregate, attempt, comparison::pace::PacedTime, game::category, short, time::position,
+};
 
 use super::cursor::SplitPosition;
 
@@ -64,13 +66,22 @@ impl State {
         self.refresh_split_cursors();
     }
 
+    /// Sets the visible total (attempt or comparison, depending on `source`) to `time`.
+    pub fn set_total(&mut self, time: PacedTime, source: aggregate::Source) {
+        match source {
+            aggregate::Source::Attempt => self.footer.total = time,
+            aggregate::Source::Comparison => {
+                let _ = self.footer.target.insert(time.time);
+            }
+        }
+    }
+
     /// Recalculates the state's footer totals.
     ///
     /// This generally needs to be done if the cursor has moved, or the split
     /// times have changed.
     pub fn refresh_footer_totals(&mut self) {
         self.footer.at_cursor = self.total_at_cursor();
-        self.footer.total = self.total();
     }
 
     fn refresh_split_cursors(&mut self) {
@@ -94,14 +105,6 @@ impl State {
         self.cursor_pos
             .and_then(|x| x.checked_sub(1))
             .map(|c| self.splits[c].paced_cumulative())
-            .unwrap_or_default()
-    }
-
-    /// Gets the overall cursor.
-    fn total(&mut self) -> PacedTime {
-        self.splits
-            .last()
-            .map(Split::paced_cumulative)
             .unwrap_or_default()
     }
 

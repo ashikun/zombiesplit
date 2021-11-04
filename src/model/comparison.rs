@@ -8,14 +8,25 @@ use super::{aggregate, short, Time};
 
 /// A comparison set.
 #[derive(Clone, Debug, Default)]
-pub struct Comparison(pub short::Map<Split>);
+pub struct Comparison {
+    /// Split comparisons.
+    splits: short::Map<Split>,
+    /// The precomputed total across all splits.
+    total: Time,
+}
 
 impl Comparison {
+    /// Gets the total time across all splits.
+    #[must_use]
+    pub fn total(&self) -> Time {
+        self.total
+    }
+
     /// Gets a pace note for the split with short name `split`, which has just
     /// posted an aggregate time pair of `against`.
     #[must_use]
     pub fn pace(&self, split: short::Name, against: aggregate::Set) -> pace::SplitInRun {
-        self.0
+        self.splits
             .get(&split)
             .map_or(pace::SplitInRun::Inconclusive, |x| x.pace(against))
     }
@@ -24,15 +35,37 @@ impl Comparison {
     /// available.
     #[must_use]
     pub fn aggregate_for(&self, split: short::Name) -> Option<&aggregate::Set> {
-        self.0.get(&split).and_then(|x| x.in_run.as_ref())
+        self.splits.get(&split).and_then(|x| x.in_run.as_ref())
     }
 }
 
 /// A [Comparison] can be created using named split comparisons.
 impl FromIterator<(short::Name, Split)> for Comparison {
     fn from_iter<T: IntoIterator<Item = (short::Name, Split)>>(iter: T) -> Self {
-        Comparison(iter.into_iter().collect())
+        let splits = iter.into_iter().collect();
+        let total = calculate_total(&splits);
+        Comparison { splits, total }
     }
+}
+
+/// A [Comparison] can be turned back into an iterator over split name-comparison pairs.
+impl IntoIterator for Comparison {
+    type Item = (short::Name, Split);
+    type IntoIter = <short::Map<Split> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.splits.into_iter()
+    }
+}
+
+/// Calculates the total of a split map.
+fn calculate_total(splits: &short::Map<Split>) -> Time {
+    // TODO(@MattWindsor91): this can probably be made O(1) if we change the type of `splits`.
+    // We could _also_ just take the maximum aggregate time.
+    splits
+        .iter()
+        .filter_map(|(_, s)| s.in_run.map(|t| t.split))
+        .sum()
 }
 
 /// Split comparisons.

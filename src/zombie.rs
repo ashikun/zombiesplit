@@ -133,8 +133,10 @@ impl<'c> Zombie<'c> {
         // TODO(@MattWindsor91): decouple this from Zombie?
         let mut tw = TabWriter::new(std::io::stdout());
         writeln!(tw, "SPLIT\tSPLIT PB\tIN-RUN PB")?;
-        for (short, split) in insp.comparison().into_iter().flat_map(|x| x.0) {
-            output_split_pb(&mut tw, short, split)?;
+        if let Some(c) = insp.comparison() {
+            for (short, split) in c {
+                output_split_pb(&mut tw, short, split)?;
+            }
         }
         tw.flush()?;
 

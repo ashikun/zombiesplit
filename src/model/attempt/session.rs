@@ -142,13 +142,27 @@ impl<'a> Session<'a> {
     fn observe_paces_and_aggregates(&self) {
         // TODO(@MattWindsor91): start from a particular split, to avoid
         // redundancy?
+
+        let mut total = pace::PacedTime::default();
+
         for (split, agg) in self.run.splits.aggregates() {
             let pace = self.split_pace(split, agg);
             let short = split.info.short;
             self.observers
                 .observe_split(short, observer::split::Event::Pace(pace));
-            self.observe_aggregate(short, agg, aggregate::Source::Attempt);
+            self.observers
+                .observe_aggregate_set(short, agg, aggregate::Source::Attempt);
+
+            if total.time < agg.cumulative {
+                total = pace::PacedTime {
+                    pace: pace.overall(),
+                    time: agg.cumulative,
+                }
+            }
         }
+
+        self.observers
+            .observe(observer::Event::Total(total, aggregate::Source::Attempt));
     }
 
     fn split_pace(&self, split: &super::Split, agg: aggregate::Set) -> pace::SplitInRun {
@@ -164,32 +178,23 @@ impl<'a> Session<'a> {
     /// This lets the user interface know, for each splits, which times we are
     /// running against.
     fn observe_comparison(&self) {
+        // TODO(@MattWindsor91): wrapping this in a PacedTime is a bit silly.
+        self.observers.observe(observer::Event::Total(
+            pace::PacedTime::inconclusive(self.comparison.total()),
+            aggregate::Source::Comparison,
+        ));
+        self.observe_comparison_splits();
+    }
+
+    /// Observes comparison data for each split in the run.
+    fn observe_comparison_splits(&self) {
         for split in self.run.splits.iter() {
             let short = split.info.short;
             if let Some(s) = self.comparison.aggregate_for(short) {
-                self.observe_aggregate(short, *s, aggregate::Source::Comparison);
+                self.observers
+                    .observe_aggregate_set(short, *s, aggregate::Source::Comparison);
             }
         }
-    }
-
-    /// Observes an aggregate pair `pair` for aggregate source `source` for split `split`.
-    fn observe_aggregate(
-        &self,
-        split: short::Name,
-        pair: aggregate::Set,
-        source: aggregate::Source,
-    ) {
-        self.observe_aggregate_part(split, pair.split, source.with(aggregate::Scope::Split));
-        self.observe_aggregate_part(
-            split,
-            pair.cumulative,
-            source.with(aggregate::Scope::Cumulative),
-        );
-    }
-
-    fn observe_aggregate_part(&self, split: short::Name, time: Time, kind: aggregate::Kind) {
-        self.observers
-            .observe_time(split, time, observer::time::Event::Aggregate(kind));
     }
 
     /// Performs the action `action` on this session's current run.

@@ -1,5 +1,5 @@
 //! Observations for split times.
-use crate::model;
+use crate::model::{self, aggregate, short};
 
 /// Enumeration of split time event types.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -17,5 +17,25 @@ pub enum Event {
 /// Trait for things that can observe split time events.
 pub trait Observer {
     /// Observes a split time event `event` for split `split`, with time `time`.
-    fn observe_time(&self, split: model::short::Name, time: model::Time, event: Event);
+    fn observe_time(&self, split: short::Name, time: model::Time, event: Event);
+
+    /// Observes a set of aggregates `set` for split `split`, from source `source`.
+    fn observe_aggregate_set(
+        &self,
+        split: short::Name,
+        pair: aggregate::Set,
+        source: aggregate::Source,
+    ) {
+        self.observe_aggregate(split, pair.split, source.with(aggregate::Scope::Split));
+        self.observe_aggregate(
+            split,
+            pair.cumulative,
+            source.with(aggregate::Scope::Cumulative),
+        );
+    }
+
+    /// Observes an aggregate time `time` for split `split`, of kind `kind`.
+    fn observe_aggregate(&self, split: short::Name, time: model::Time, kind: aggregate::Kind) {
+        self.observe_time(split, time, Event::Aggregate(kind));
+    }
 }

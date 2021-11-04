@@ -111,6 +111,7 @@ impl<'a> Core<'a> {
         // difficult though.
         use attempt::observer::Event;
         match evt {
+            Event::Total(time, source) => self.state.set_total(time, source),
             Event::AddSplit(short, name) => self.state.add_split(short, name),
             Event::Reset(_) => self.reset(),
             Event::Attempt(a) => self.state.attempt = a,

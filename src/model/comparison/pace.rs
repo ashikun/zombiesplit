@@ -37,7 +37,7 @@ impl Pace {
 }
 
 /// A pair of a time and its pace against comparison.
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct PacedTime {
     /// The pace.
     pub pace: Pace,
