@@ -189,7 +189,7 @@ impl Display for Index {
             Self::Hours => "hours",
             Self::Minutes => "minutes",
             Self::Seconds => "seconds",
-            Self::Milliseconds => "msececonds",
+            Self::Milliseconds => "milliseconds",
         })
     }
 }
