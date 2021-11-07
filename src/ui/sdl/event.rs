@@ -48,10 +48,10 @@ fn from_key(k: sdl2::keyboard::Keycode) -> Option<Event> {
         Keycode::Backspace => Some(Event::Modal(Modal::Edit(Edit::Remove))),
         // Time fields
         // We don't allow entering hours yet, but this may change.
-        Keycode::M => Some(Event::Modal(Modal::EnterField(position::Name::Minutes))),
-        Keycode::S => Some(Event::Modal(Modal::EnterField(position::Name::Seconds))),
+        Keycode::M => Some(Event::Modal(Modal::EnterField(position::Index::Minutes))),
+        Keycode::S => Some(Event::Modal(Modal::EnterField(position::Index::Seconds))),
         Keycode::Period => Some(Event::Modal(Modal::EnterField(
-            position::Name::Milliseconds,
+            position::Index::Milliseconds,
         ))),
         // Cursor motions
         Keycode::J | Keycode::Down | Keycode::Space | Keycode::Return => {

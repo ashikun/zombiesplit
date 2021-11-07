@@ -11,7 +11,7 @@ use super::super::{
         render::Renderer,
     },
 };
-use crate::model::time::position::Name;
+use crate::model::time::position::Index;
 
 /// Calculates the size of an editor rectangle, given a text sizer.
 #[must_use]
@@ -38,7 +38,7 @@ impl super::Widget<state::Editor> for Editor {
 
         // TODO(@MattWindsor91): this is temporary.
         let mut pos = self.rect.point(0, 0, Anchor::TOP_LEFT);
-        for field in [Name::Minutes, Name::Seconds, Name::Milliseconds] {
+        for field in [Index::Minutes, Index::Seconds, Index::Milliseconds] {
             r.set_pos(pos);
             let metr = &r.font_metrics()[font::Id::Medium];
             // TODO(@MattWindsor91): make this less awful
@@ -53,10 +53,10 @@ impl super::Widget<state::Editor> for Editor {
     }
 }
 
-const fn field_placeholder(f: Name) -> &'static str {
+const fn field_placeholder(f: Index) -> &'static str {
     match f {
-        Name::Minutes => "  '",
-        Name::Seconds => "  \"",
+        Index::Minutes => "  '",
+        Index::Seconds => "  \"",
         _ => "",
     }
 }

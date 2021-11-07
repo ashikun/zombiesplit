@@ -14,7 +14,7 @@ pub trait Position {
     fn delimiter() -> char;
 
     /// The name of the position.
-    fn name() -> Name;
+    fn name() -> Index;
 
     /// The multiplier needed to convert this position to milliseconds.
     fn ms_offset() -> u32;
@@ -69,16 +69,16 @@ impl Position for Hour {
         'h'
     }
 
-    fn name() -> Name {
-        Name::Hours
-    }
-
-    fn cap() -> u32 {
-        u32::MAX
+    fn name() -> Index {
+        Index::Hours
     }
 
     fn ms_offset() -> u32 {
         Minute::cap() * Minute::ms_offset()
+    }
+
+    fn cap() -> u32 {
+        u32::MAX
     }
 }
 
@@ -89,16 +89,16 @@ impl Position for Minute {
         'm'
     }
 
-    fn name() -> Name {
-        Name::Minutes
-    }
-
-    fn cap() -> u32 {
-        MINS_IN_HOUR
+    fn name() -> Index {
+        Index::Minutes
     }
 
     fn ms_offset() -> u32 {
         Second::cap() * Second::ms_offset()
+    }
+
+    fn cap() -> u32 {
+        MINS_IN_HOUR
     }
 }
 
@@ -109,16 +109,16 @@ impl Position for Second {
         's'
     }
 
-    fn name() -> Name {
-        Name::Seconds
-    }
-
-    fn cap() -> u32 {
-        SECS_IN_MIN
+    fn name() -> Index {
+        Index::Seconds
     }
 
     fn ms_offset() -> u32 {
         Msec::cap() * Msec::ms_offset()
+    }
+
+    fn cap() -> u32 {
+        SECS_IN_MIN
     }
 }
 
@@ -131,16 +131,16 @@ impl Position for Msec {
         '\0'
     }
 
-    fn name() -> Name {
-        Name::Milliseconds
-    }
-
-    fn cap() -> u32 {
-        MSECS_IN_SEC
+    fn name() -> Index {
+        Index::Milliseconds
     }
 
     fn ms_offset() -> u32 {
         1
+    }
+
+    fn cap() -> u32 {
+        MSECS_IN_SEC
     }
 
     // Milliseconds have a lot of parsing and formatting overrides, because
@@ -170,9 +170,9 @@ impl Position for Msec {
     }
 }
 
-/// Names of parseable time fields.
+/// Enumeration of possible positions in a time.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum Name {
+pub enum Index {
     /// Denotes the hours field.
     Hours,
     /// Denotes the minutes field.
@@ -183,17 +183,13 @@ pub enum Name {
     Milliseconds,
 }
 
-impl Display for Name {
+impl Display for Index {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::Hours => "hours",
-                Self::Minutes => "minutes",
-                Self::Seconds => "seconds",
-                Self::Milliseconds => "msececonds",
-            }
-        )
+        f.write_str(match self {
+            Self::Hours => "hours",
+            Self::Minutes => "minutes",
+            Self::Seconds => "seconds",
+            Self::Milliseconds => "msececonds",
+        })
     }
 }

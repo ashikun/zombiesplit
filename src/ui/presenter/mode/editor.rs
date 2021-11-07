@@ -62,7 +62,7 @@ impl Mode for Editor {
 impl Editor {
     /// Constructs a new editor at the given cursor, on the given field if any.
     #[must_use]
-    pub fn new(cur: Cursor, field: Option<position::Name>) -> Self {
+    pub fn new(cur: Cursor, field: Option<position::Index>) -> Self {
         Self {
             cur,
             time: time::Time::default(),
@@ -83,7 +83,7 @@ impl Editor {
 
     /// Enters the named field, committing any edits on any current field.
     #[must_use]
-    pub fn enter_field(&mut self, field: position::Name) -> EventResult {
+    pub fn enter_field(&mut self, field: position::Index) -> EventResult {
         self.commit_field();
         self.field = Some(Field::new(field));
         EventResult::Handled
@@ -132,7 +132,7 @@ impl Editor {
 /// A split field editor.
 pub struct Field {
     /// The position being edited.
-    position: position::Name,
+    position: position::Index,
     /// The current string.
     string: String,
 }
@@ -140,7 +140,7 @@ pub struct Field {
 impl Field {
     /// Creates a new editor for position `position`.
     #[must_use]
-    pub fn new(position: position::Name) -> Self {
+    pub fn new(position: position::Index) -> Self {
         Self {
             position,
             string: String::with_capacity(max_digits(position)),
@@ -149,7 +149,7 @@ impl Field {
 
     /// Gets this editor's position.
     #[must_use]
-    pub fn position(&self) -> position::Name {
+    pub fn position(&self) -> position::Index {
         self.position
     }
 
@@ -192,12 +192,12 @@ impl Field {
     }
 }
 
-fn max_digits(position: position::Name) -> usize {
-    use position::Name;
+fn max_digits(position: position::Index) -> usize {
+    use position::Index;
     match position {
-        Name::Hours => 0, // for now
-        Name::Minutes | Name::Seconds => 2,
-        Name::Milliseconds => 3,
+        Index::Hours => 0, // for now
+        Index::Minutes | Index::Seconds => 2,
+        Index::Milliseconds => 3,
     }
 }
 

@@ -75,7 +75,7 @@ impl Nav {
     }
 
     /// Constructs an editor entering the given field.
-    fn enter_field(&self, field: position::Name) -> EventResult {
+    fn enter_field(&self, field: position::Index) -> EventResult {
         let editor = Editor::new(self.cur, Some(field));
         EventResult::transition(editor)
     }

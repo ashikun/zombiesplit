@@ -40,7 +40,7 @@ pub enum Modal {
     /// Perform an event on the currently open editor.
     Edit(Edit),
     /// Start editing a field at a particular position.
-    EnterField(position::Name),
+    EnterField(position::Index),
     /// Move the cursor.
     Cursor(super::cursor::Motion),
 }

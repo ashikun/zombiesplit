@@ -168,7 +168,7 @@ impl State {
 #[derive(Debug, Default, Clone)]
 pub struct Editor {
     /// The current field being edited, if any.
-    pub field: Option<position::Name>,
+    pub field: Option<position::Index>,
     /// The current minutes string.
     pub mins: String,
     /// The current seconds string.
@@ -180,12 +180,12 @@ pub struct Editor {
 impl Editor {
     /// Gets a readout of the field at position `name`.
     #[must_use]
-    pub fn field(&self, name: position::Name) -> &str {
+    pub fn field(&self, name: position::Index) -> &str {
         match name {
-            position::Name::Minutes => &self.mins,
-            position::Name::Seconds => &self.secs,
-            position::Name::Milliseconds => &self.msecs,
-            position::Name::Hours => "--",
+            position::Index::Minutes => &self.mins,
+            position::Index::Seconds => &self.secs,
+            position::Index::Milliseconds => &self.msecs,
+            position::Index::Hours => "--",
         }
     }
 }

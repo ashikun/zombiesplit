@@ -103,10 +103,10 @@ impl Split {
                 let pos = field.position();
                 out.field = Some(pos);
                 let target = match pos {
-                    position::Name::Minutes => &mut out.mins,
-                    position::Name::Seconds => &mut out.secs,
-                    position::Name::Milliseconds => &mut out.msecs,
-                    position::Name::Hours => unimplemented!("hours"),
+                    position::Index::Minutes => &mut out.mins,
+                    position::Index::Seconds => &mut out.secs,
+                    position::Index::Milliseconds => &mut out.msecs,
+                    position::Index::Hours => unimplemented!("hours"),
                 };
                 *target = field.to_string();
             }

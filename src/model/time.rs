@@ -65,13 +65,13 @@ impl Time {
     /// # Errors
     ///
     /// Fails if the string does not parse properly for the particular position.
-    pub fn set_field_str(&mut self, position: position::Name, str: &str) -> error::Result<()> {
+    pub fn set_field_str(&mut self, position: position::Index, str: &str) -> error::Result<()> {
         // TODO(@MattWindsor91): do this more elegantly.
         match position {
-            position::Name::Hours => self.hours = str.parse()?,
-            position::Name::Minutes => self.mins = str.parse()?,
-            position::Name::Seconds => self.secs = str.parse()?,
-            position::Name::Milliseconds => self.millis = str.parse()?,
+            position::Index::Hours => self.hours = str.parse()?,
+            position::Index::Minutes => self.mins = str.parse()?,
+            position::Index::Seconds => self.secs = str.parse()?,
+            position::Index::Milliseconds => self.millis = str.parse()?,
         };
         Ok(())
     }
