@@ -28,14 +28,15 @@ pub struct Renderer<'a> {
 }
 
 impl<'a> render::Renderer for Renderer<'a> {
-    fn set_pos(&mut self, pos: metrics::Point) {
-        self.pos = pos;
+    fn write(&mut self, pos: Point, font: Spec, s: &str) -> Result<Point> {
+        self.set_pos(pos);
+        self.set_fg_colour(font.colour);
+        self.set_font(font.id);
+        self.put_str_at(pos, s.as_bytes())
     }
 
-    fn fill(&mut self, rect: metrics::Rect) -> Result<()> {
-        let rect = self.convert_rect(rect);
-        self.set_screen_bg();
-        self.screen.fill_rect(rect).map_err(Error::Blit)
+    fn set_pos(&mut self, pos: metrics::Point) {
+        self.pos = pos;
     }
 
     fn set_font(&mut self, font: font::Id) {
@@ -61,6 +62,12 @@ impl<'a> render::Renderer for Renderer<'a> {
         Ok(())
     }
 
+    fn fill(&mut self, rect: metrics::Rect) -> Result<()> {
+        let rect = self.convert_rect(rect);
+        self.set_screen_bg();
+        self.screen.fill_rect(rect).map_err(Error::Blit)
+    }
+
     /// Clears the screen.
     fn clear(&mut self) {
         render::Renderer::set_bg_colour(self, colour::bg::Id::Window);
@@ -75,13 +82,6 @@ impl<'a> render::Renderer for Renderer<'a> {
 
     fn font_metrics(&self) -> &font::Map<font::Metrics> {
         &self.font_manager.metrics_set
-    }
-
-    fn write(&mut self, pos: Point, font: Spec, s: &str) -> Result<Point> {
-        self.set_pos(pos);
-        self.set_fg_colour(font.colour);
-        self.set_font(font.id);
-        self.put_str_at(pos, s.as_bytes())
     }
 }
 
@@ -106,7 +106,7 @@ impl<'a> Renderer<'a> {
     // Sets the screen draw colour to the background colour.
     fn set_screen_bg(&mut self) {
         let colour = self.colour_set.bg.get(self.pen.bg_colour);
-        self.screen.set_draw_color(colour);
+        self.screen.set_draw_color(colour_to_sdl(colour));
     }
 
     fn font_spec(&self) -> font::Spec {
@@ -141,4 +141,9 @@ impl<'a> Renderer<'a> {
     fn font_texture(&mut self) -> Result<Rc<Texture<'a>>> {
         Ok(self.font_manager.texture(self.font_spec())?)
     }
+}
+
+/// Converts a zombiesplit colour to a SDL one.
+fn colour_to_sdl(c: colour::definition::Colour) -> sdl2::pixels::Color {
+    sdl2::pixels::Color::RGBA(c.red_byte(), c.green_byte(), c.blue_byte(), c.alpha_byte())
 }

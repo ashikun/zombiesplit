@@ -22,10 +22,29 @@ impl FromStr for Colour {
     }
 }
 
-impl From<Colour> for sdl2::pixels::Color {
-    fn from(c: Colour) -> Self {
-        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-        let a = (255.0 * c.0.a).round() as u8;
-        Self::RGBA(c.0.r, c.0.g, c.0.b, a)
+impl Colour {
+    /// Gets the red component of this colour as a byte.
+    #[must_use]
+    pub fn red_byte(&self) -> u8 {
+        self.0.r
+    }
+
+    /// Gets the green component of this colour as a byte.
+    #[must_use]
+    pub fn green_byte(&self) -> u8 {
+        self.0.g
+    }
+
+    /// Gets the blue component of this colour as a byte.
+    #[must_use]
+    pub fn blue_byte(&self) -> u8 {
+        self.0.b
+    }
+
+    /// Gets the alpha component of this colour as a byte.
+    #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+    #[must_use]
+    pub fn alpha_byte(&self) -> u8 {
+        (255.0 * self.0.a).round() as u8
     }
 }

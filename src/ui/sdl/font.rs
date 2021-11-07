@@ -75,8 +75,8 @@ impl<'a> Manager<'a> {
     }
 
     fn colourise(&self, texture: &mut Texture, colour: colour::fg::Id) {
-        let colour = sdl2::pixels::Color::from(self.colour_set.get(colour));
-        texture.set_color_mod(colour.r, colour.g, colour.b);
-        texture.set_alpha_mod(colour.a);
+        let colour = self.colour_set.get(colour);
+        texture.set_color_mod(colour.red_byte(), colour.green_byte(), colour.blue_byte());
+        texture.set_alpha_mod(colour.alpha_byte());
     }
 }
