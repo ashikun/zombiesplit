@@ -86,6 +86,17 @@ impl Set {
 }
 
 /// We can index a [Set] by scope, yielding a time.
+///
+/// ```
+/// use zombiesplit::model::{aggregate::{Set, Scope}, Time};
+///
+/// let x = Set {
+///   split: Time::seconds(20).unwrap(),
+///   cumulative: Time::seconds(40).unwrap()
+/// };
+/// assert_eq!("20s000", x[Scope::Split].to_string());
+/// assert_eq!("40s000", x[Scope::Cumulative].to_string());
+/// ```
 impl Index<Scope> for Set {
     type Output = Time;
 
@@ -98,6 +109,17 @@ impl Index<Scope> for Set {
 }
 
 /// We can mutably index a [Set] by scope, yielding access to the time.
+///
+/// ```
+/// use zombiesplit::model::{aggregate::{Set, Scope}, Time};
+///
+/// let mut x = Set::default();
+/// x[Scope::Split] = Time::seconds(20).unwrap();
+/// x[Scope::Cumulative] = Time::seconds(40).unwrap();
+///
+/// assert_eq!("20s000", x[Scope::Split].to_string());
+/// assert_eq!("40s000", x[Scope::Cumulative].to_string());
+/// ```
 impl IndexMut<Scope> for Set {
     fn index_mut(&mut self, index: Scope) -> &mut Self::Output {
         match index {
