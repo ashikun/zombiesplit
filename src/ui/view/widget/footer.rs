@@ -65,7 +65,7 @@ impl Footer {
         // TODO(@MattWindsor91): make this configurable.
         self.rows.extend([
             Row::new(RowType::Total, font::Id::Large),
-            Row::new(RowType::Comparison, font::Id::Medium),
+            Row::new(RowType::Comparison, font::Id::Large),
             Row::new(RowType::UpToCursor, font::Id::Medium),
         ]);
     }

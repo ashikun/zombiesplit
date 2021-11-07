@@ -3,10 +3,12 @@
 use std::{cell::RefCell, rc::Rc};
 
 use zombiesplit::model::{
+    aggregate,
     attempt::{
         observer::{self, Event},
         Observer, Run, Session,
     },
+    comparison::PacedTime,
     game::{category, Split},
 };
 
@@ -32,6 +34,10 @@ fn test_session_dump() {
         obs.assert_received(Event::AddSplit(split.short, split.name));
     }
     obs.assert_received(Event::Attempt(attempt_info()));
+    obs.assert_received(Event::Total(
+        PacedTime::default(),
+        aggregate::Source::Comparison,
+    ));
     obs.assert_empty()
 }
 
