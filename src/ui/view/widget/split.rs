@@ -3,17 +3,10 @@
 mod editor;
 mod row;
 
-use crate::model::{self, aggregate};
-use crate::ui::view::widget;
-
 use super::{
     super::{
-        super::presenter::state,
-        gfx::{
-            self, colour, font,
-            metrics::{conv::sat_i32, Anchor, Rect, Size},
-            Renderer,
-        },
+        super::{presenter::state, view::widget},
+        gfx::metrics::{conv::sat_i32, Anchor, Rect, Size},
     },
     LayoutContext,
 };
@@ -39,41 +32,6 @@ impl super::Widget<state::State> for Widget {
             .map(|x| x as &dyn super::Widget<state::State>)
             .collect()
     }
-}
-
-#[must_use]
-pub fn time_str(time: model::time::Time) -> String {
-    // TODO(@MattWindsor91): hours?
-    format!("{}'{}\"{}", time.mins, time.secs, time.millis)
-}
-
-fn draw_name(r: &mut dyn Renderer, state: &state::Split) -> gfx::Result<()> {
-    r.set_font(font::Id::Medium);
-    r.set_fg_colour(colour::fg::Id::Name(state.position));
-    r.put_str(&state.name)?;
-    Ok(())
-}
-
-fn state_time_str(state: &state::Split) -> String {
-    time_str(state.aggregates[aggregate_source(state)][aggregate::Scope::Split])
-}
-
-fn time_colour(state: &state::Split) -> colour::fg::Id {
-    colour::fg::Id::SplitInRunPace(state.pace_in_run)
-}
-
-fn draw_time(r: &mut dyn Renderer, state: &state::Split) -> gfx::Result<()> {
-    r.set_font(font::Id::Medium);
-    r.set_fg_colour(time_colour(state));
-    r.put_str(&state_time_str(state))
-}
-
-/// Draws a representation of the number of times this split has logged.
-fn draw_num_times(r: &mut dyn Renderer, state: &state::Split) -> gfx::Result<()> {
-    r.set_font(font::Id::Small);
-    // TODO(@MattWindsor91): better key?
-    r.set_fg_colour(colour::fg::Id::Header);
-    r.put_str_r(&format!("{}x", state.num_times))
 }
 
 /// Constructs a vector of split drawing widgets according to `ctx`.

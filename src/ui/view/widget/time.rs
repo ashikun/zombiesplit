@@ -10,7 +10,7 @@ use super::{
     },
     IndexLayout,
 };
-use crate::model::{comparison::PacedTime, time::position};
+use crate::model::time::position;
 use crate::ui::view::gfx::metrics;
 use crate::ui::view::gfx::metrics::conv::sat_i32;
 use std::fmt::Display;

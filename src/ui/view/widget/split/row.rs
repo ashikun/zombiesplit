@@ -8,7 +8,7 @@ use super::{
         super::presenter::state,
         gfx::{
             self, colour, font,
-            metrics::{conv::sat_i32, Anchor, Point, Rect, Size},
+            metrics::{conv::sat_i32, Anchor, Point, Rect},
             Renderer, Writer,
         },
         time, Widget,

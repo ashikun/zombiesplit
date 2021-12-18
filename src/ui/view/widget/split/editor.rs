@@ -5,11 +5,7 @@ The split editor isn't a [Widget] per se, as it lays on top of a split widget.
 
 use super::super::{
     super::presenter::state,
-    gfx::{
-        self, colour, font,
-        metrics::{self, Anchor, Point, Rect},
-        render::Renderer,
-    },
+    gfx::{self, colour, font, metrics, render::Renderer},
     Widget,
 };
 
