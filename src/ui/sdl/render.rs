@@ -29,37 +29,14 @@ pub struct Renderer<'a> {
 
 impl<'a> render::Renderer for Renderer<'a> {
     fn write(&mut self, pos: Point, font: Spec, s: &str) -> Result<Point> {
-        self.set_pos(pos);
-        self.set_fg_colour(font.colour);
-        self.set_font(font.id);
-        self.put_str_at(pos, s.as_bytes())
-    }
-
-    fn set_pos(&mut self, pos: metrics::Point) {
         self.pos = pos;
-    }
-
-    fn set_font(&mut self, font: font::Id) {
-        self.pen.set_font(font, &self.font_manager.metrics_set);
+        self.pen.fg_colour = font.colour;
+        self.pen.set_font(font.id, &self.font_manager.metrics_set);
+        self.put_str_at(pos, s.as_bytes())
     }
 
     fn set_bg_colour(&mut self, colour: colour::bg::Id) {
         self.pen.bg_colour = colour;
-    }
-
-    fn set_fg_colour(&mut self, colour: colour::fg::Id) {
-        self.pen.fg_colour = colour;
-    }
-
-    fn put_str(&mut self, str: &str) -> Result<()> {
-        self.put_str_at(self.pos, str.as_ref())?;
-        Ok(())
-    }
-
-    fn put_str_r(&mut self, str: &str) -> Result<()> {
-        let w = -self.pen.font_metrics().span_w_str(str);
-        self.put_str_at(self.pos.offset(w, 0), str.as_ref())?;
-        Ok(())
     }
 
     fn fill(&mut self, rect: metrics::Rect) -> Result<()> {

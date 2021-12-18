@@ -39,8 +39,6 @@ impl super::Widget<State> for Widget {
     }
 
     fn render(&self, r: &mut dyn Renderer, s: &State) -> gfx::Result<()> {
-        r.set_fg_colour(colour::fg::Id::Header);
-
         self.render_meta(r, &s.game_category)?;
         self.render_attempt(r, &s.attempt)?;
         Ok(())
