@@ -17,16 +17,13 @@ pub trait Renderer {
     /// Fails if the renderer can't render the writing.
     fn write(&mut self, pos: Point, font: font::Spec, s: &str) -> Result<Point>;
 
-    /// Sets the current background colour.
-    fn set_bg_colour(&mut self, colour: colour::bg::Id);
-
     /// Fills the rectangle `rect`, whose top-left is positioned relative to
-    /// the current position, with the current background colour.
+    /// the current position, with the background colour `bg`.
     ///
     /// # Errors
     ///
-    /// Returns an error if SDL fails to blit the rect onto the screen.
-    fn fill(&mut self, rect: metrics::Rect) -> Result<()>;
+    /// Returns an error if the renderer fails to blit the rect onto the screen.
+    fn fill(&mut self, rect: metrics::Rect, colour: colour::bg::Id) -> Result<()>;
 
     // TODO(@MattWindsor91): replace these with RAII
 

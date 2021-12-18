@@ -85,8 +85,7 @@ impl Layout {
 
 fn try_fill(r: &mut dyn Renderer, rect: Rect, colour: &Colour) -> Result<()> {
     if let Some(bg) = colour.base.bg {
-        r.set_bg_colour(bg);
-        r.fill(rect.grow(1))?;
+        r.fill(rect.grow(1), bg)?;
     }
     Ok(())
 }

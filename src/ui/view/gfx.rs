@@ -12,6 +12,5 @@ pub mod colour;
 pub mod error;
 pub mod font;
 pub mod metrics; // for now
-pub mod pen;
 pub mod render;
 pub mod writer;
