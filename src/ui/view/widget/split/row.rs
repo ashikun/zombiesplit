@@ -61,8 +61,8 @@ impl Widget<state::Split> for Row {
         let time_rect = self.time_display_rect(ctx);
         self.time.update(ctx.with_bounds(time_rect));
 
-        // TODO(@MattWindsor91): de-hardcode the 2 character offset here
-        let attempt_offset = ctx.font_metrics[font::Id::Small].span_w(-2);
+        // TODO(@MattWindsor91): de-hardcode the 3 character offset here
+        let attempt_offset = ctx.font_metrics[font::Id::Small].span_w(-3);
         self.attempt_count_top_left = time_rect.top_left.offset(attempt_offset, 0);
     }
 
@@ -140,7 +140,7 @@ impl Row {
         let mut w = Writer::new(r)
             .with_pos(self.attempt_count_top_left)
             .with_font(font::Id::Small.coloured(colour::fg::Id::NoTime)); // for now
-        write!(w, "{}", state.num_times)?;
+        write!(w, "{}x", state.num_times)?;
         Ok(())
     }
 }
