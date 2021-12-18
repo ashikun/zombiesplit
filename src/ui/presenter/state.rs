@@ -8,6 +8,7 @@ pub mod footer;
 pub mod split;
 
 use std::fmt::Display;
+use std::ops::Index;
 
 use crate::model::{
     aggregate, attempt, comparison::pace::PacedTime, game::category, short, time::position,
@@ -169,6 +170,10 @@ impl State {
 pub struct Editor {
     /// The current field being edited, if any.
     pub field: Option<position::Index>,
+    /// The current hours string.
+    ///
+    /// This is not actually exposed anywhere yet, but exists to simplify the index impl.
+    pub hours: String,
     /// The current minutes string.
     pub mins: String,
     /// The current seconds string.
@@ -185,7 +190,21 @@ impl Editor {
             position::Index::Minutes => &self.mins,
             position::Index::Seconds => &self.secs,
             position::Index::Milliseconds => &self.msecs,
-            position::Index::Hours => "--",
+            position::Index::Hours => &self.hours,
+        }
+    }
+}
+
+impl Index<position::Index> for Editor {
+    type Output = String;
+
+    // TODO(@MattWindsor91): this is hacky.
+    fn index(&self, index: position::Index) -> &Self::Output {
+        match index {
+            position::Index::Hours => &self.hours,
+            position::Index::Minutes => &self.mins,
+            position::Index::Seconds => &self.secs,
+            position::Index::Milliseconds => &self.msecs,
         }
     }
 }

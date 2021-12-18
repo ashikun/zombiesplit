@@ -5,7 +5,10 @@ use std::fmt::Write;
 
 use super::{
     super::{
-        super::presenter::state,
+        super::{
+            presenter::state,
+            widget::time::{Colour, FieldColour},
+        },
         gfx::{
             self, colour, font,
             metrics::{conv::sat_i32, Anchor, Point, Rect},
@@ -22,8 +25,6 @@ pub struct Row {
     /// The position of the drawer in the split view.
     /// This is not necessarily the index of the split displayed.
     index: usize,
-    /// The editor sub-widget.
-    editor: super::editor::Editor,
     /// Bounding box used for the widget.
     rect: Rect,
     /// Top-left coordinate of the name.
@@ -69,7 +70,6 @@ impl Widget<state::Split> for Row {
         self.draw_name(r, s)?;
         self.draw_num_times(r, s)?;
         self.draw_time_display(r, s)?;
-        //self.draw_editor(r, s)?;
         Ok(())
     }
 }
@@ -94,19 +94,42 @@ impl Row {
     }
 
     fn draw_time_display(&self, r: &mut dyn Renderer, state: &state::Split) -> gfx::Result<()> {
-        if state.editor.is_some() {
-            return Ok(());
+        if let Some(ref e) = state.editor {
+            self.draw_editor(r, e)
+        } else {
+            self.draw_time(r, state)
         }
+    }
+
+    fn draw_editor(&self, r: &mut dyn Renderer, e: &state::Editor) -> gfx::Result<()> {
+        let field = e.field.map(|field| FieldColour {
+            field,
+            colour: colour::Pair {
+                fg: colour::fg::Id::Editor,
+                bg: Some(colour::bg::Id::Editor),
+            },
+        });
+        let col = Colour {
+            base: colour::Pair {
+                fg: colour::fg::Id::FieldEditor,
+                bg: Some(colour::bg::Id::FieldEditor),
+            },
+            field,
+        };
+        self.time.render(r, e, col)
+    }
+
+    fn draw_time(&self, r: &mut dyn Renderer, state: &state::Split) -> gfx::Result<()> {
         self.time.render(
             r,
             self.time_to_display(state),
-            colour::fg::Id::SplitInRunPace(state.pace_in_run),
+            colour::fg::Id::SplitInRunPace(state.pace_in_run).into(),
         )
     }
 
-    fn time_to_display(&self, state: &state::Split) -> crate::model::Time {
+    fn time_to_display<'a>(&self, state: &'a state::Split) -> &'a crate::model::Time {
         // TODO(@MattWindsor91): don't hardcode cumulative here
-        state.aggregates[aggregate_source(state)][Scope::Cumulative]
+        &state.aggregates[aggregate_source(state)][Scope::Cumulative]
     }
 
     /*

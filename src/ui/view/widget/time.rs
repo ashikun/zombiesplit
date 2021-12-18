@@ -5,17 +5,21 @@
 use super::{
     super::gfx::{
         colour, font,
-        metrics::{Point, Rect},
+        metrics::{
+            self,
+            conv::{sat_i32, u32_or_zero},
+            Rect, Size,
+        },
         Renderer, Result, Writer,
     },
     IndexLayout,
 };
 use crate::model::time::position;
-use crate::ui::view::gfx::metrics;
-use crate::ui::view::gfx::metrics::conv::sat_i32;
-use std::fmt::Display;
-use std::ops::Index;
-use std::{collections::HashMap, fmt::Write};
+use std::{
+    collections::HashMap,
+    fmt::{Display, Write},
+    ops::Index,
+};
 
 /// Layout information for a general time widget.
 #[derive(Debug, Default)]
@@ -27,8 +31,8 @@ pub struct Layout {
     /// Font used for the time display.
     pub font_id: font::Id,
 
-    /// Top-left of each position in the time widget.
-    position_top_left_map: HashMap<position::Index, Point>,
+    /// Rects of each position in the time widget.
+    position_rect_map: HashMap<position::Index, Rect>,
 }
 
 impl Layout {
@@ -44,8 +48,14 @@ impl Layout {
         let mut point = self.rect.top_left;
 
         for pos in ctx.time_positions {
-            self.position_top_left_map.insert(pos.index, point);
-            point.offset_mut(position_width(fm, pos), 0);
+            let w = u32_or_zero(position_width(fm, pos));
+            let rect = point.to_rect(Size {
+                w,
+                h: u32_or_zero(fm.span_h(1)),
+            });
+
+            self.position_rect_map.insert(pos.index, rect);
+            point.offset_mut(sat_i32(rect.size.w), 0);
         }
     }
 
@@ -56,16 +66,33 @@ impl Layout {
     pub fn render<T: Index<position::Index, Output = W>, W: Display + ?Sized>(
         &self,
         r: &mut dyn Renderer,
-        time: T,
-        colour: colour::fg::Id,
+        time: &T,
+        colour: Colour,
     ) -> Result<()> {
-        let mut w = Writer::new(r).with_font(self.font_id.coloured(colour));
-        for (index, top_left) in &self.position_top_left_map {
-            w = w.with_pos(*top_left);
+        try_fill(r, self.rect, &colour)?;
+
+        for (index, rect) in &self.position_rect_map {
+            let col = &colour[*index];
+            try_fill(r, *rect, &colour)?;
+
+            // TODO(@MattWindsor91): create w outside the loop
+            let mut w = Writer::new(r).with_font_id(self.font_id);
+            w = w.with_pos(rect.top_left).with_colour(col.fg);
+
+            // TODO(@MattWindsor91): background
+
             write!(w, "{}{}", &time[*index], unit_sigil(*index))?;
         }
         Ok(())
     }
+}
+
+fn try_fill(r: &mut dyn Renderer, rect: Rect, colour: &Colour) -> Result<()> {
+    if let Some(bg) = colour.base.bg {
+        r.set_bg_colour(bg);
+        r.fill(rect.grow(1))?;
+    }
+    Ok(())
 }
 
 fn position_width(fm: &font::Metrics, pos: &IndexLayout) -> i32 {
@@ -91,3 +118,43 @@ pub fn size(t: &font::Metrics) -> metrics::Size {
 
 /// Template rendered underneath the editor.
 pub const PLACEHOLDER: &str = "  '  \"   ";
+
+/// Time colouring information.
+pub struct Colour {
+    /// The base colour.
+    pub base: colour::Pair,
+    /// Any field override.
+    pub field: Option<FieldColour>,
+}
+
+/// Colours a time using a flat foreground colour.
+impl From<colour::fg::Id> for Colour {
+    fn from(fg: colour::fg::Id) -> Self {
+        Colour {
+            base: fg.into(),
+            field: None,
+        }
+    }
+}
+
+impl Index<position::Index> for Colour {
+    type Output = colour::Pair;
+
+    fn index(&self, index: position::Index) -> &Self::Output {
+        self.field
+            .as_ref()
+            .filter(|x| x.field == index)
+            .map(|x| &x.colour)
+            .unwrap_or(&self.base)
+    }
+}
+
+/// Field override colouring information.
+///
+/// This is generally used for field editors.
+pub struct FieldColour {
+    /// The field that triggers this override.
+    pub field: position::Index,
+    /// The overriding colour.
+    pub colour: colour::Pair,
+}

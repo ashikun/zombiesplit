@@ -86,13 +86,10 @@ impl Split {
     }
 
     /// Populates this split state with the current state of `editor`.
-    ///
-    /// # Panics
-    ///
-    /// If the field position is set to hours.
     pub fn set_editor(&mut self, editor: Option<&super::super::mode::Editor>) {
         self.editor = editor.map(|e| {
             let mut out = super::Editor {
+                hours: e.time.hours.to_string(),
                 mins: e.time.mins.to_string(),
                 secs: e.time.secs.to_string(),
                 msecs: e.time.millis.to_string(),
@@ -103,10 +100,10 @@ impl Split {
                 let pos = field.position();
                 out.field = Some(pos);
                 let target = match pos {
+                    position::Index::Hours => &mut out.hours,
                     position::Index::Minutes => &mut out.mins,
                     position::Index::Seconds => &mut out.secs,
                     position::Index::Milliseconds => &mut out.msecs,
-                    position::Index::Hours => unimplemented!("hours"),
                 };
                 *target = field.to_string();
             }

@@ -43,7 +43,13 @@ fn splits(ctx: LayoutContext) -> Vec<row::Row> {
 
 fn row(ctx: LayoutContext, index: usize) -> row::Row {
     let mut r = row::Row::new(index);
-    let bounds = Rect {
+    // TODO(@MattWindsor91): maybe make this not depend on <State>?
+    widget::Widget::<state::State>::layout(&mut r, ctx.with_bounds(row_bounds(ctx, index)));
+    r
+}
+
+fn row_bounds(ctx: LayoutContext, index: usize) -> Rect {
+    Rect {
         top_left: ctx.bounds.point(
             0,
             sat_i32(index) * sat_i32(ctx.wmetrics.split_h),
@@ -53,8 +59,5 @@ fn row(ctx: LayoutContext, index: usize) -> row::Row {
             w: ctx.bounds.size.w,
             h: ctx.wmetrics.split_h,
         },
-    };
-    // TODO(@MattWindsor91): maybe make this not depend on <State>?
-    widget::Widget::<state::State>::layout(&mut r, ctx.with_bounds(bounds));
-    r
+    }
 }

@@ -1,6 +1,6 @@
 //! The [Writer] struct.
 
-use super::{font, metrics};
+use super::{colour, font, metrics};
 
 /// Helper for positioned writing of strings.
 pub struct Writer<'r, R: ?Sized> {
@@ -40,6 +40,22 @@ impl<'r, R: super::Renderer + ?Sized> Writer<'r, R> {
     pub fn with_font(mut self, font_spec: font::Spec) -> Self {
         self.font_spec = font_spec;
         self.font_metrics = self.renderer.font_metrics()[font_spec.id].clone();
+        self
+    }
+
+    /// Changes the writer to use font ID `id`.
+    #[must_use]
+    pub fn with_font_id(mut self, id: font::Id) -> Self {
+        self.font_spec.id = id;
+        self.font_metrics = self.renderer.font_metrics()[id].clone();
+        self
+    }
+
+    /// Changes the writer to use colour `id`.
+    #[must_use]
+    pub fn with_colour(mut self, id: colour::fg::Id) -> Self {
+        // No need to recalculate the font metrics if we're just changing the colour
+        self.font_spec.colour = id;
         self
     }
 
