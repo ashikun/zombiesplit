@@ -132,20 +132,9 @@ impl Row {
         &state.aggregates[aggregate_source(state)][Scope::Cumulative]
     }
 
-    /*
-           r.set_pos(rect.top_left);
-
-           if let Some(ref state) = state.editor {
-               use super::Widget;
-               editor::Editor { rect }.render(r, state)
-           } else {
-               Ok(draw_time(r, state)?)
-           }
-       }
-    */
-
     fn time_display_rect(&self, ctx: LayoutContext) -> Rect {
-        let size = super::super::time::size(&ctx.font_metrics[font::Id::Medium]);
+        // Need to precalculate the size so we can jog the layout backwards by that amount.
+        let size = time::size(ctx, font::Id::Medium);
         Rect {
             top_left: self.rect.point(-sat_i32(size.w), 0, Anchor::TOP_RIGHT),
             size,

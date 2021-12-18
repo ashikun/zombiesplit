@@ -6,13 +6,12 @@ use super::{
     super::gfx::{
         colour, font,
         metrics::{
-            self,
             conv::{sat_i32, u32_or_zero},
             Rect, Size,
         },
         Renderer, Result, Writer,
     },
-    IndexLayout,
+    IndexLayout, LayoutContext,
 };
 use crate::model::time::position;
 use std::{
@@ -24,12 +23,11 @@ use std::{
 /// Layout information for a general time widget.
 #[derive(Debug, Default)]
 pub struct Layout {
-    // TODO(@MattWindsor91): make `rect` not public
     /// Bounding box of the layout.
-    pub rect: Rect,
+    rect: Rect,
 
     /// Font used for the time display.
-    pub font_id: font::Id,
+    font_id: font::Id,
 
     /// Rects of each position in the time widget.
     position_rect_map: HashMap<position::Index, Rect>,
@@ -79,8 +77,6 @@ impl Layout {
             let mut w = Writer::new(r).with_font_id(self.font_id);
             w = w.with_pos(rect.top_left).with_colour(col.fg);
 
-            // TODO(@MattWindsor91): background
-
             write!(w, "{}{}", &time[*index], unit_sigil(*index))?;
         }
         Ok(())
@@ -93,6 +89,22 @@ fn try_fill(r: &mut dyn Renderer, rect: Rect, colour: &Colour) -> Result<()> {
         r.fill(rect.grow(1))?;
     }
     Ok(())
+}
+
+/// Pre-calculates the size of a time widget.
+#[must_use]
+pub fn size(ctx: LayoutContext, font: font::Id) -> Size {
+    let fm = &ctx.font_metrics[font];
+    let raw: i32 = ctx
+        .time_positions
+        .iter()
+        .map(|pos| position_width(fm, pos) + sat_i32(fm.pad.w))
+        .sum();
+    // fix off by one from above padding
+    Size {
+        w: u32_or_zero(raw).saturating_sub(fm.pad.w),
+        h: u32_or_zero(fm.span_h(1)),
+    }
 }
 
 fn position_width(fm: &font::Metrics, pos: &IndexLayout) -> i32 {
@@ -109,15 +121,6 @@ const fn unit_sigil(idx: position::Index) -> &'static str {
         position::Index::Milliseconds => "",
     }
 }
-
-/// Calculates the size of an editor rectangle, given a text sizer.
-#[must_use]
-pub fn size(t: &font::Metrics) -> metrics::Size {
-    metrics::Size::from_i32s(t.span_w_str(PLACEHOLDER), t.span_h(1))
-}
-
-/// Template rendered underneath the editor.
-pub const PLACEHOLDER: &str = "  '  \"   ";
 
 /// Time colouring information.
 pub struct Colour {

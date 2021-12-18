@@ -1,6 +1,5 @@
 //! Logic for drawing splits.
 
-mod editor;
 mod row;
 
 use super::{
