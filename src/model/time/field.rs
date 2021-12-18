@@ -12,7 +12,7 @@ use std::{
     str::FromStr,
 };
 
-/// A field in a time struct.
+/// A field in a time struct, containing a phantom position marker type.
 ///
 /// To get the value of a field, convert it to a `u16` using [From]/[Into].
 pub struct Field<P> {
@@ -20,6 +20,13 @@ pub struct Field<P> {
     val: u16,
     /// The phantom type.
     phantom: PhantomData<*const P>,
+}
+
+/// Object-safe, position-erased trait for fields.
+///
+/// This is used to make it possible to be generic over the particular position marker in use.
+pub trait AField: std::fmt::Display {
+    // Move things into this trait as soon as we need them.
 }
 
 // The phantom type makes derivations difficult.
@@ -192,6 +199,9 @@ impl<P: Position> TryFrom<carry::Carry<Field<P>>> for Field<P> {
         }
     }
 }
+
+/// Erasing the position field.
+impl<P: Position> AField for Field<P> {}
 
 /// Shorthand for an hour field.
 pub type Hour = Field<position::Hour>;

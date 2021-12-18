@@ -90,6 +90,13 @@ impl Default for Id {
     }
 }
 
+impl Id {
+    /// Constructs a `Spec` with this `Id` and the given `colour`.
+    pub fn coloured(self, colour: super::super::colour::fg::Id) -> Spec {
+        Spec { id: self, colour }
+    }
+}
+
 // A font specification (ID and colour).
 #[derive(Clone, Copy, Default, PartialEq, Eq, Hash, Debug)]
 pub struct Spec {

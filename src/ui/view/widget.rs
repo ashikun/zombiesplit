@@ -4,15 +4,15 @@ The (reference) UI for zombiesplit contains several self-rendering widgets,
 each of which has access to the presenter state and a renderer.
 */
 
-mod editor;
-mod footer;
-mod header;
-mod split;
-
 use super::{
     super::presenter::State,
     gfx::{self, font, metrics, render},
 };
+
+mod footer;
+mod header;
+mod split;
+mod time;
 
 /// Trait for things that can render information from a presenter.
 pub trait Widget<State> {
@@ -52,6 +52,9 @@ pub struct LayoutContext<'m> {
     ///
     /// This can be used for working out how large a piece of text might be.
     pub font_metrics: &'m font::Map<font::Metrics>,
+
+    /// Information about which positions are enabled for time display.
+    pub time_positions: &'m [IndexLayout],
 }
 
 impl<'m> LayoutContext<'m> {
@@ -62,6 +65,17 @@ impl<'m> LayoutContext<'m> {
             ..self
         }
     }
+}
+
+/// Layout information for one position index in a time layout.
+///
+/// A vector of these structures fully defines how the UI should render times.
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub struct IndexLayout {
+    /// The index being displayed.
+    pub index: crate::model::time::position::Index,
+    /// The number of digits to display for this index.
+    pub num_digits: u8,
 }
 
 /// The root widget.

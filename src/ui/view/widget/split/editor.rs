@@ -7,37 +7,43 @@ use super::super::{
     super::presenter::state,
     gfx::{
         self, colour, font,
-        metrics::{self, Anchor, Rect},
+        metrics::{self, Anchor, Point, Rect},
         render::Renderer,
     },
+    Widget,
 };
+
 use crate::model::time::position::Index;
 
-/// Calculates the size of an editor rectangle, given a text sizer.
-#[must_use]
-pub fn size(t: &font::Metrics) -> metrics::Size {
-    metrics::Size::from_i32s(t.span_w_str(PLACEHOLDER), t.span_h(1))
-}
-
 /// The editor sub-widget, borrowing renderer and editor state.
+#[derive(Default)]
 pub struct Editor {
-    /// The bounding box of the editor.
-    pub rect: Rect,
+    /// Basic layout for the editor.
+    layout: super::super::time::Layout,
 }
 
-/// Template rendered underneath the editor.
-const PLACEHOLDER: &str = "  '  \"   ";
-
-impl super::Widget<state::Editor> for Editor {
+/// Delegates to the underlying editor state, if there is any.
+impl Widget<state::Split> for Editor {
     fn layout(&mut self, ctx: super::LayoutContext) {
-        self.rect = ctx.bounds;
+        Widget::<state::Editor>::layout(self, ctx);
+    }
+
+    fn render(&self, r: &mut dyn Renderer, s: &state::Split) -> gfx::Result<()> {
+        s.editor
+            .as_ref()
+            .map_or(Ok(()), |e| (Widget::<state::Editor>::render(self, r, e)))
+    }
+}
+
+impl Widget<state::Editor> for Editor {
+    fn layout(&mut self, ctx: super::LayoutContext) {
+        self.layout.update(ctx);
     }
 
     fn render(&self, r: &mut dyn Renderer, s: &state::Editor) -> gfx::Result<()> {
         self.draw_base(r)?;
 
-        // TODO(@MattWindsor91): this is temporary.
-        let mut pos = self.rect.point(0, 0, Anchor::TOP_LEFT);
+        let mut pos = self.layout.rect.top_left;
         for field in [Index::Minutes, Index::Seconds, Index::Milliseconds] {
             r.set_pos(pos);
             let metr = &r.font_metrics()[font::Id::Medium];
@@ -63,11 +69,14 @@ const fn field_placeholder(f: Index) -> &'static str {
 
 impl Editor {
     fn draw_base(&self, r: &mut dyn Renderer) -> gfx::Result<()> {
-        r.set_pos(self.rect.top_left);
+        r.set_pos(self.layout.rect.top_left);
         r.set_font(font::Id::Medium);
         reset_colours(r);
-        fill_bg(r, metrics::conv::sat_i32(PLACEHOLDER.len()))?;
-        r.put_str(PLACEHOLDER)?;
+        fill_bg(
+            r,
+            metrics::conv::sat_i32(super::super::time::PLACEHOLDER.len()),
+        )?;
+        r.put_str(super::super::time::PLACEHOLDER)?;
         Ok(())
     }
 }

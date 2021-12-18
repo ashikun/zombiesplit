@@ -171,7 +171,7 @@ impl Position for Msec {
 }
 
 /// Enumeration of possible positions in a time.
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Index {
     /// Denotes the hours field.
     Hours,

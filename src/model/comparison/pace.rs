@@ -5,13 +5,13 @@ use crate::model::Time;
 /// Possible paces for a split or run.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Pace {
-    /// There is no pacing time.
+    /// There is comparison for this time.
     Inconclusive,
-    /// This split, or run, is behind its comparison.
+    /// Time is behind its comparison.
     Behind,
-    /// This split, or run, is ahead (or breaking even on) its comparison.
+    /// Time is ahead (or breaking even on) its comparison.
     Ahead,
-    /// This split, or run, is a personal best ('gold split').
+    /// Time is a personal best ('gold split').
     PersonalBest,
 }
 

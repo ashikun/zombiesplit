@@ -1,5 +1,6 @@
 //! zombiesplit's notion of times.
 use serde_with::{DeserializeFromStr, SerializeDisplay};
+use std::ops::Index;
 use std::{
     convert::TryFrom,
     fmt::{self, Display},
@@ -236,6 +237,20 @@ impl rusqlite::ToSql for Time {
     }
 }
 
+/// We can index into a time by position index, returning a field.
+impl Index<position::Index> for Time {
+    type Output = dyn field::AField;
+
+    fn index(&self, index: position::Index) -> &Self::Output {
+        match index {
+            position::Index::Hours => &self.hours,
+            position::Index::Minutes => &self.mins,
+            position::Index::Seconds => &self.secs,
+            position::Index::Milliseconds => &self.millis,
+        }
+    }
+}
+
 mod tests {
     /// Tests that adding and subtracting a time appears to be the identity.
     #[test]
@@ -306,5 +321,15 @@ mod tests {
         assert_eq!(u16::from(t.mins), 2);
         assert_eq!(u16::from(t.secs), 3);
         assert_eq!(u16::from(t.millis), 456);
+    }
+
+    /// Tests that indexing seems to work properly.
+    #[test]
+    fn index() {
+        let t: super::Time = "1h2m3s456".parse().expect("should be valid");
+        assert_eq!("01", t[super::position::Index::Hours].to_string());
+        assert_eq!("02", t[super::position::Index::Minutes].to_string());
+        assert_eq!("03", t[super::position::Index::Seconds].to_string());
+        assert_eq!("456", t[super::position::Index::Milliseconds].to_string());
     }
 }
