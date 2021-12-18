@@ -38,7 +38,7 @@ impl Layout {
     pub fn update(&mut self, ctx: super::LayoutContext) {
         self.rect = ctx.bounds;
 
-        self.update_positions(ctx)
+        self.update_positions(ctx);
     }
 
     fn update_positions(&mut self, ctx: super::LayoutContext) {
@@ -46,7 +46,7 @@ impl Layout {
         let mut point = self.rect.top_left;
 
         for pos in ctx.time_positions {
-            let w = u32_or_zero(position_width(fm, pos));
+            let w = u32_or_zero(position_width(fm, *pos));
             let rect = point.to_rect(Size {
                 w,
                 h: u32_or_zero(fm.span_h(1)),
@@ -65,13 +65,13 @@ impl Layout {
         &self,
         r: &mut dyn Renderer,
         time: &T,
-        colour: Colour,
+        colour: &Colour,
     ) -> Result<()> {
-        try_fill(r, self.rect, &colour)?;
+        try_fill(r, self.rect, colour)?;
 
         for (index, rect) in &self.position_rect_map {
             let col = &colour[*index];
-            try_fill(r, *rect, &colour)?;
+            try_fill(r, *rect, colour)?;
 
             // TODO(@MattWindsor91): create w outside the loop
             let mut w = Writer::new(r).with_font_id(self.font_id);
@@ -98,7 +98,7 @@ pub fn size(ctx: LayoutContext, font: font::Id) -> Size {
     let raw: i32 = ctx
         .time_positions
         .iter()
-        .map(|pos| position_width(fm, pos) + sat_i32(fm.pad.w))
+        .map(|pos| position_width(fm, *pos) + sat_i32(fm.pad.w))
         .sum();
     // fix off by one from above padding
     Size {
@@ -107,9 +107,9 @@ pub fn size(ctx: LayoutContext, font: font::Id) -> Size {
     }
 }
 
-fn position_width(fm: &font::Metrics, pos: &IndexLayout) -> i32 {
+fn position_width(fm: &font::Metrics, pos: IndexLayout) -> i32 {
     // Need to remember the padding between the digits and the sigil.
-    fm.span_w(pos.num_digits as i32) + sat_i32(fm.pad.w) + fm.span_w_str(unit_sigil(pos.index))
+    fm.span_w(i32::from(pos.num_digits)) + sat_i32(fm.pad.w) + fm.span_w_str(unit_sigil(pos.index))
 }
 
 /// The sigil displayed after the position indexed by `idx`.
@@ -147,8 +147,7 @@ impl Index<position::Index> for Colour {
         self.field
             .as_ref()
             .filter(|x| x.field == index)
-            .map(|x| &x.colour)
-            .unwrap_or(&self.base)
+            .map_or(&self.base, |x| &x.colour)
     }
 }
 

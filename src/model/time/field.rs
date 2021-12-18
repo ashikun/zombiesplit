@@ -25,7 +25,7 @@ pub struct Field<P> {
 /// Object-safe, position-erased trait for fields.
 ///
 /// This is used to make it possible to be generic over the particular position marker in use.
-pub trait AField: std::fmt::Display {
+pub trait Any: std::fmt::Display {
     // Move things into this trait as soon as we need them.
 }
 
@@ -201,7 +201,7 @@ impl<P: Position> TryFrom<carry::Carry<Field<P>>> for Field<P> {
 }
 
 /// Erasing the position field.
-impl<P: Position> AField for Field<P> {}
+impl<P: Position> Any for Field<P> {}
 
 /// Shorthand for an hour field.
 pub type Hour = Field<position::Hour>;

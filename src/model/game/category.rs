@@ -64,21 +64,12 @@ pub struct Info {
 }
 
 /// Information about the number of attempts a game-category has had.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct AttemptInfo {
     /// The number of runs stored in total.
     pub total: usize,
     /// The number of runs stored and marked as completed.
     pub completed: usize,
-}
-
-impl Default for AttemptInfo {
-    fn default() -> Self {
-        Self {
-            total: 0,
-            completed: 0,
-        }
-    }
 }
 
 impl AttemptInfo {

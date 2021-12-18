@@ -92,6 +92,7 @@ impl Default for Id {
 
 impl Id {
     /// Constructs a `Spec` with this `Id` and the given `colour`.
+    #[must_use]
     pub fn coloured(self, colour: super::super::colour::fg::Id) -> Spec {
         Spec { id: self, colour }
     }

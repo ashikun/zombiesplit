@@ -18,7 +18,17 @@ pub use field::{Field, Hour, Minute, Msec, Second};
 
 /// A hh:mm:ss:ms timing.
 #[derive(
-    Copy, Clone, SerializeDisplay, DeserializeFromStr, Debug, PartialEq, Eq, PartialOrd, Ord, Hash,
+    Copy,
+    Clone,
+    Default,
+    SerializeDisplay,
+    DeserializeFromStr,
+    Debug,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
 )]
 pub struct Time {
     /// Number of hours.
@@ -125,17 +135,6 @@ impl TryFrom<u32> for Time {
     }
 }
 
-impl Default for Time {
-    fn default() -> Self {
-        Self {
-            millis: Msec::default(),
-            secs: Second::default(),
-            mins: Minute::default(),
-            hours: Hour::default(),
-        }
-    }
-}
-
 impl From<Time> for u32 {
     /// Converts a time to a 32-bit timestamp.
     ///
@@ -239,7 +238,7 @@ impl rusqlite::ToSql for Time {
 
 /// We can index into a time by position index, returning a field.
 impl Index<position::Index> for Time {
-    type Output = dyn field::AField;
+    type Output = dyn field::Any;
 
     fn index(&self, index: position::Index) -> &Self::Output {
         match index {

@@ -116,20 +116,15 @@ impl Row {
             },
             field,
         };
-        self.time.render(r, e, col)
+        self.time.render(r, e, &col)
     }
 
     fn draw_time(&self, r: &mut dyn Renderer, state: &state::Split) -> gfx::Result<()> {
         self.time.render(
             r,
-            self.time_to_display(state),
-            colour::fg::Id::SplitInRunPace(state.pace_in_run).into(),
+            time_to_display(state),
+            &colour::fg::Id::SplitInRunPace(state.pace_in_run).into(),
         )
-    }
-
-    fn time_to_display<'a>(&self, state: &'a state::Split) -> &'a crate::model::Time {
-        // TODO(@MattWindsor91): don't hardcode cumulative here
-        &state.aggregates[aggregate_source(state)][Scope::Cumulative]
     }
 
     fn time_display_rect(&self, ctx: LayoutContext) -> Rect {
@@ -160,4 +155,9 @@ fn aggregate_source(state: &state::Split) -> Source {
     } else {
         Source::Comparison
     }
+}
+
+fn time_to_display(state: &state::Split) -> &crate::model::Time {
+    // TODO(@MattWindsor91): don't hardcode cumulative here
+    &state.aggregates[aggregate_source(state)][Scope::Cumulative]
 }
