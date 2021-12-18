@@ -53,7 +53,7 @@ impl Layout {
             });
 
             self.position_rect_map.insert(pos.index, rect);
-            point.offset_mut(sat_i32(rect.size.w), 0);
+            point.offset_mut(sat_i32(rect.size.w) + fm.pad.w_i32(), 0);
         }
     }
 
@@ -97,7 +97,7 @@ pub fn size(ctx: LayoutContext, font: font::Id) -> Size {
     let raw: i32 = ctx
         .time_positions
         .iter()
-        .map(|pos| position_width(fm, *pos) + sat_i32(fm.pad.w))
+        .map(|pos| position_width(fm, *pos) + fm.pad.w_i32())
         .sum();
     // fix off by one from above padding
     Size {
@@ -106,9 +106,16 @@ pub fn size(ctx: LayoutContext, font: font::Id) -> Size {
     }
 }
 
+/// Calculates the width of a position in a time widget, excluding any padding.
 fn position_width(fm: &font::Metrics, pos: IndexLayout) -> i32 {
-    // Need to remember the padding between the digits and the sigil.
-    fm.span_w(i32::from(pos.num_digits)) + sat_i32(fm.pad.w) + fm.span_w_str(unit_sigil(pos.index))
+    let digits = fm.span_w(i32::from(pos.num_digits));
+    let mut sigil = fm.span_w_str(unit_sigil(pos.index));
+    // Making sure we only pad if there was a sigil
+    if sigil != 0 {
+        sigil += fm.pad.w_i32()
+    }
+
+    digits + sigil
 }
 
 /// The sigil displayed after the position indexed by `idx`.
