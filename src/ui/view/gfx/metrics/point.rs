@@ -1,6 +1,6 @@
 //! The [Point] struct and related functionality.
 
-use super::{Rect, Size};
+use super::{Anchor, Rect, Size};
 
 /// A two-dimensional point.
 ///
@@ -63,19 +63,22 @@ impl Point {
     /// # Example
     ///
     /// ```
-    /// use zombiesplit::ui::view::gfx::metrics::{Point, Size};
+    /// use zombiesplit::ui::view::gfx::metrics::{Anchor, Point, Size};
     ///
     /// let p = Point { x: 4, y: 8 };
     /// let s = Size { w: 10, h: 2 };
-    /// let r = p.to_rect(s);
+    /// let r = p.to_rect(s, Anchor::TOP_LEFT);
     ///
     /// assert_eq!(p, r.top_left);
     /// assert_eq!(s, r.size);
     /// ```
     #[must_use]
-    pub fn to_rect(self, size: Size) -> Rect {
+    pub fn to_rect(self, size: Size, anchor: Anchor) -> Rect {
         Rect {
-            top_left: self,
+            top_left: self.offset(
+                -anchor.x.offset(size.w_i32()),
+                -anchor.y.offset(size.h_i32()),
+            ),
             size,
         }
     }

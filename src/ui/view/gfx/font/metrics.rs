@@ -1,7 +1,11 @@
 //! Font metrics.
 use std::collections::HashMap;
 
-use super::super::metrics::{anchor, conv::sat_i32, Point, Rect, Size};
+use super::super::metrics::{
+    anchor::{self, Anchor},
+    conv::sat_i32,
+    Point, Rect, Size,
+};
 use serde::{Deserialize, Serialize};
 
 // We hardcode the general layout of a font texture using the following
@@ -118,7 +122,8 @@ impl Metrics {
     /// Bounding box for a glyph in the texture.
     #[must_use]
     fn glyph_rect(&self, char: u8) -> Rect {
-        self.glyph_top_left(char).to_rect(self.glyph_size(char))
+        self.glyph_top_left(char)
+            .to_rect(self.glyph_size(char), Anchor::TOP_LEFT)
     }
 
     /// The top-left position of the glyph for `char` in the font.

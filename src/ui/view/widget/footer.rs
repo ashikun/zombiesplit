@@ -8,12 +8,7 @@ use super::{
         super::presenter::state::{self, footer},
         gfx::{
             self, colour, font,
-            metrics::{
-                self,
-                anchor::{self, Anchor},
-                conv::u32_or_zero,
-                Size,
-            },
+            metrics::{self, conv::u32_or_zero, Anchor, Size},
             Renderer, Writer,
         },
     },
@@ -42,11 +37,14 @@ impl super::Widget<state::State> for Footer {
         let w = self.rect.size.w;
         let mut top_left = self.rect.top_left;
         for row in &mut self.rows {
-            let h = ctx.font_metrics[row.time_font].span_h(1);
-            let row_rect = top_left.to_rect(Size {
-                w,
-                h: u32_or_zero(h),
-            });
+            let h = ctx.font_metrics[row.time.font_id].span_h(1);
+            let row_rect = top_left.to_rect(
+                Size {
+                    w,
+                    h: u32_or_zero(h),
+                },
+                Anchor::TOP_LEFT,
+            );
             row.layout(ctx.with_bounds(row_rect));
             top_left.offset_mut(0, h);
         }
@@ -75,23 +73,22 @@ impl Footer {
 struct Row {
     /// The type of row being shown in this.
     row_type: footer::RowType,
-    /// The font to use for the time itself.
-    time_font: font::Id,
 
     /// The top-left position of the label.
     label_top_left: metrics::Point,
-    /// The top-right position of the time.
-    time_top_right: metrics::Point,
+    /// The layout information for the time.
+    time: super::time::Layout,
 }
 
 impl Row {
     /// Constructs a row with the given type and time font.
     fn new(row_type: footer::RowType, time_font: font::Id) -> Self {
+        let mut time = super::time::Layout::default();
+        time.font_id = time_font;
         Self {
             row_type,
-            time_font,
             label_top_left: metrics::Point::default(),
-            time_top_right: metrics::Point::default(),
+            time,
         }
     }
 
@@ -104,24 +101,13 @@ impl Row {
     fn render_time(
         &self,
         r: &mut dyn Renderer,
-        time: Option<Cow<pace::PacedTime>>,
+        time: &Option<Cow<pace::PacedTime>>,
     ) -> gfx::Result<()> {
-        // TODO(@MattWindsor91): harmonise this with the split setup.
         let pace = time.as_ref().map_or_else(pace::Pace::default, |t| t.pace);
-        let fg = colour::fg::Id::Pace(pace);
 
-        let mut w = Writer::new(r)
-            .with_pos(self.time_top_right)
-            .align(anchor::X::Right)
-            .with_font(font::Spec {
-                id: self.time_font,
-                colour: fg,
-            });
-        if let Some(t) = time {
-            write!(w, "{}'{}\"{}", t.time.mins, t.time.secs, t.time.millis)?;
-        } else {
-            w.write_str("--'--\"---")?;
-        }
+        let t = time.as_ref().map(|x| &x.as_ref().time);
+        self.time.render(r, t, &colour::fg::Id::Pace(pace).into())?;
+
         Ok(())
     }
 }
@@ -129,12 +115,17 @@ impl Row {
 impl Widget<state::State> for Row {
     fn layout(&mut self, ctx: LayoutContext) {
         self.label_top_left = ctx.bounds.top_left;
-        self.time_top_right = ctx.bounds.point(0, 0, Anchor::TOP_RIGHT);
+
+        let time_rect = ctx
+            .bounds
+            .point(0, 0, Anchor::TOP_RIGHT)
+            .to_rect(self.time.minimal_size(ctx), Anchor::TOP_RIGHT);
+        self.time.update(ctx.with_bounds(time_rect));
     }
 
     fn render(&self, r: &mut dyn Renderer, s: &state::State) -> gfx::Result<()> {
         self.render_label(r)?;
-        self.render_time(r, s.footer.get(self.row_type))?;
+        self.render_time(r, &s.footer.get(self.row_type))?;
         Ok(())
     }
 }

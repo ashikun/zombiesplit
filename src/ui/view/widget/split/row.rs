@@ -11,7 +11,7 @@ use super::{
         },
         gfx::{
             self, colour, font,
-            metrics::{conv::sat_i32, Anchor, Point, Rect},
+            metrics::{Anchor, Point, Rect},
             Renderer, Writer,
         },
         time, Widget,
@@ -116,24 +116,21 @@ impl Row {
             },
             field,
         };
-        self.time.render(r, e, &col)
+        self.time.render(r, Some(e), &col)
     }
 
     fn draw_time(&self, r: &mut dyn Renderer, state: &state::Split) -> gfx::Result<()> {
         self.time.render(
             r,
-            time_to_display(state),
+            Some(time_to_display(state)),
             &colour::fg::Id::SplitInRunPace(state.pace_in_run).into(),
         )
     }
 
     fn time_display_rect(&self, ctx: LayoutContext) -> Rect {
-        // Need to precalculate the size so we can jog the layout backwards by that amount.
-        let size = time::size(ctx, font::Id::Medium);
-        Rect {
-            top_left: self.rect.point(-sat_i32(size.w), 0, Anchor::TOP_RIGHT),
-            size,
-        }
+        self.rect
+            .point(0, 0, Anchor::TOP_RIGHT)
+            .to_rect(self.time.minimal_size(ctx), Anchor::TOP_RIGHT)
     }
 
     fn draw_num_times(&self, r: &mut dyn Renderer, state: &state::Split) -> gfx::Result<()> {
