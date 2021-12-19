@@ -5,6 +5,7 @@ use std::fmt::Write;
 use super::super::{
     super::presenter::State,
     gfx::{self, colour, font, metrics, Renderer, Writer},
+    layout,
 };
 use crate::model::game::category::{AttemptInfo, Info};
 
@@ -21,10 +22,8 @@ pub struct Widget {
     attempts_pos: metrics::Point,
 }
 
-impl super::Widget for Widget {
-    type State = State;
-
-    fn layout(&mut self, ctx: super::LayoutContext) {
+impl layout::Layoutable for Widget {
+    fn layout(&mut self, ctx: layout::Context) {
         // TODO(@MattWindsor91): this is the parent bounds set.
         self.rect = ctx.bounds;
 
@@ -39,6 +38,10 @@ impl super::Widget for Widget {
             .rect
             .point(0, one_below_header, super::metrics::Anchor::TOP_RIGHT);
     }
+}
+
+impl super::Widget for Widget {
+    type State = State;
 
     fn render(&self, r: &mut dyn Renderer, s: &Self::State) -> gfx::Result<()> {
         self.render_meta(r, &s.game_category)?;

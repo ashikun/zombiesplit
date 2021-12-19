@@ -1,11 +1,12 @@
 //! The visual portion of the zombiesplit user interface.
 pub mod config;
 pub mod gfx;
+mod layout;
 mod widget;
 
-use crate::ui::view::widget::{IndexLayout, LayoutContext, Widget};
-
 use self::gfx::render::Renderer;
+use layout::Layoutable;
+use widget::Widget;
 
 use super::{presenter, Result};
 
@@ -44,11 +45,14 @@ impl<R: Renderer> View<R> {
 }
 
 /// Creates the root layout context.
-fn root_layout_context<R: Renderer>(renderer: &R, wmetrics: gfx::metrics::Window) -> LayoutContext {
+fn root_layout_context<R: Renderer>(
+    renderer: &R,
+    wmetrics: gfx::metrics::Window,
+) -> layout::Context {
     let bounds = wmetrics.win_rect();
     let font_metrics = renderer.font_metrics();
 
-    widget::LayoutContext {
+    layout::Context {
         wmetrics,
         bounds,
         font_metrics,
@@ -57,16 +61,16 @@ fn root_layout_context<R: Renderer>(renderer: &R, wmetrics: gfx::metrics::Window
 }
 
 // TODO(@MattWindsor91): don't hardcode this
-const TIME_POSITIONS: [IndexLayout; 3] = [
-    IndexLayout {
+const TIME_POSITIONS: [layout::Index; 3] = [
+    layout::Index {
         index: Index::Minutes,
         num_digits: 2,
     },
-    IndexLayout {
+    layout::Index {
         index: Index::Seconds,
         num_digits: 2,
     },
-    IndexLayout {
+    layout::Index {
         index: Index::Milliseconds,
         num_digits: 3,
     },

@@ -8,7 +8,7 @@ use super::{
         metrics::{conv::sat_i32, Anchor, Rect, Size},
         Renderer, Result, Writer,
     },
-    IndexLayout,
+    layout,
 };
 use crate::model::time::position;
 use std::{
@@ -29,13 +29,21 @@ pub struct Layout {
     positions: Vec<Position>,
 }
 
+impl layout::Layoutable for Layout {
+    fn layout(&mut self, ctx: layout::Context) {
+        self.rect = ctx.bounds;
+
+        self.update_positions(ctx);
+    }
+}
+
 impl Layout {
     /// Calculates the minimal size required for this time widget.
     ///
     /// This should usually be used in conjunction with `layout`, using this size to produce the
     /// bounding box for this widget's layout.
     #[must_use]
-    pub fn minimal_size(&self, ctx: super::LayoutContext) -> Size {
+    pub fn minimal_size(&self, ctx: layout::Context) -> Size {
         let fm = &ctx.font_metrics[self.font_id];
         let raw: i32 = ctx
             .time_positions
@@ -46,14 +54,7 @@ impl Layout {
         Size::from_i32s(raw - fm.pad.w_i32(), fm.span_h(1))
     }
 
-    /// Recalculates the layout based on `ctx`.
-    pub fn update(&mut self, ctx: super::LayoutContext) {
-        self.rect = ctx.bounds;
-
-        self.update_positions(ctx);
-    }
-
-    fn update_positions(&mut self, ctx: super::LayoutContext) {
+    fn update_positions(&mut self, ctx: layout::Context) {
         let fm = &ctx.font_metrics[self.font_id];
 
         let mut point = self.rect.top_left;
@@ -115,7 +116,7 @@ fn try_fill(r: &mut dyn Renderer, rect: Rect, colour: &Colour) -> Result<()> {
 }
 
 /// Calculates the width of a position in a time widget, excluding any padding.
-fn position_width(fm: &font::Metrics, pos: IndexLayout) -> i32 {
+fn position_width(fm: &font::Metrics, pos: layout::Index) -> i32 {
     let digits = fm.span_w(i32::from(pos.num_digits));
     let mut sigil = fm.span_w_str(unit_sigil(pos.index));
     // Making sure we only pad if there was a sigil
@@ -139,7 +140,7 @@ const fn unit_sigil(idx: position::Index) -> &'static str {
 /// Calculated positioning information for a time widget.
 #[derive(Debug, Copy, Clone)]
 struct Position {
-    index_layout: IndexLayout,
+    index_layout: layout::Index,
     rect: Rect,
 }
 

@@ -2,15 +2,13 @@
 
 mod row;
 
-use super::{
-    super::{
-        super::presenter::state::State,
-        gfx::{
-            metrics::{conv::sat_i32, Anchor, Rect, Size},
-            Renderer, Result,
-        },
+use super::super::{
+    super::presenter::state::State,
+    gfx::{
+        metrics::{conv::sat_i32, Anchor, Rect, Size},
+        Renderer, Result,
     },
-    LayoutContext,
+    layout::{self, Layoutable},
 };
 
 /// The split viewer widget.
@@ -22,13 +20,15 @@ pub struct Widget {
     rows: Vec<row::Row>,
 }
 
-impl super::Widget for Widget {
-    type State = State;
-
-    fn layout(&mut self, ctx: super::LayoutContext) {
+impl Layoutable for Widget {
+    fn layout(&mut self, ctx: layout::Context) {
         self.rect = ctx.bounds;
         self.rows = rows(ctx);
     }
+}
+
+impl super::Widget for Widget {
+    type State = State;
 
     fn render(&self, r: &mut dyn Renderer, s: &Self::State) -> Result<()> {
         for (i, row) in self.rows.iter().enumerate() {
@@ -42,21 +42,19 @@ impl super::Widget for Widget {
 }
 
 /// Constructs a vector of row widgets according to `ctx`.
-fn rows(ctx: LayoutContext) -> Vec<row::Row> {
+fn rows(ctx: layout::Context) -> Vec<row::Row> {
     // TODO(@MattWindsor91): padding
     let n_splits = usize::try_from(ctx.bounds.size.h / ctx.wmetrics.split_h).unwrap_or_default();
     (0..n_splits).map(|n| row(ctx, n)).collect()
 }
 
-fn row(ctx: LayoutContext, index: usize) -> row::Row {
-    use super::Widget;
-
+fn row(ctx: layout::Context, index: usize) -> row::Row {
     let mut r = row::Row::default();
     r.layout(ctx.with_bounds(row_bounds(ctx, index)));
     r
 }
 
-fn row_bounds(ctx: LayoutContext, index: usize) -> Rect {
+fn row_bounds(ctx: layout::Context, index: usize) -> Rect {
     Rect {
         top_left: ctx.bounds.point(
             0,

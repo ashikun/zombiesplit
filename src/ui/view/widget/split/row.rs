@@ -3,20 +3,17 @@
 use crate::model::aggregate::{Scope, Source};
 use std::fmt::Write;
 
-use super::{
+use super::super::{
     super::{
-        super::{
-            presenter::state,
-            widget::time::{Colour, FieldColour},
-        },
-        gfx::{
-            self, colour, font,
-            metrics::{Anchor, Point, Rect},
-            Renderer, Writer,
-        },
-        time, Widget,
+        presenter::state,
+        widget::time::{Colour, FieldColour},
     },
-    LayoutContext,
+    gfx::{
+        self, colour, font,
+        metrics::{Anchor, Point, Rect},
+        Renderer, Writer,
+    },
+    layout, time, Widget,
 };
 
 /// Contains all state useful to draw one split.
@@ -32,21 +29,23 @@ pub struct Row {
     time: time::Layout,
 }
 
-// Row widgets display split state (with the particular allocated split being worked out upstream).
-impl Widget for Row {
-    type State = state::Split;
-
-    fn layout(&mut self, ctx: super::LayoutContext) {
+impl layout::Layoutable for Row {
+    fn layout(&mut self, ctx: layout::Context) {
         self.rect = ctx.bounds;
         self.name_top_left = self.rect.top_left;
 
         let time_rect = self.time_display_rect(ctx);
-        self.time.update(ctx.with_bounds(time_rect));
+        self.time.layout(ctx.with_bounds(time_rect));
 
         // TODO(@MattWindsor91): de-hardcode the 3 character offset here
         let attempt_offset = ctx.font_metrics[font::Id::Small].span_w(-3);
         self.attempt_count_top_left = time_rect.top_left.offset(attempt_offset, 0);
     }
+}
+
+// Row widgets display split state (with the particular allocated split being worked out upstream).
+impl Widget for Row {
+    type State = state::Split;
 
     fn render(&self, r: &mut dyn Renderer, s: &Self::State) -> gfx::Result<()> {
         self.draw_name(r, s)?;
@@ -101,7 +100,7 @@ impl Row {
         )
     }
 
-    fn time_display_rect(&self, ctx: LayoutContext) -> Rect {
+    fn time_display_rect(&self, ctx: layout::Context) -> Rect {
         self.rect
             .point(0, 0, Anchor::TOP_RIGHT)
             .to_rect(self.time.minimal_size(ctx), Anchor::TOP_RIGHT)

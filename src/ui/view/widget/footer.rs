@@ -12,7 +12,7 @@ use super::{
             Renderer, Writer,
         },
     },
-    LayoutContext, Widget,
+    layout, Widget,
 };
 use crate::model::comparison::pace;
 use crate::ui::presenter::state::footer::RowType;
@@ -26,10 +26,8 @@ pub struct Footer {
     rows: Vec<Row>,
 }
 
-impl super::Widget for Footer {
-    type State = state::Footer;
-
-    fn layout(&mut self, ctx: super::LayoutContext) {
+impl layout::Layoutable for Footer {
+    fn layout(&mut self, ctx: layout::Context) {
         self.rect = ctx.bounds;
 
         if self.rows.is_empty() {
@@ -51,6 +49,10 @@ impl super::Widget for Footer {
             top_left.offset_mut(0, h);
         }
     }
+}
+
+impl super::Widget for Footer {
+    type State = state::Footer;
 
     fn render(&self, r: &mut dyn Renderer, s: &Self::State) -> gfx::Result<()> {
         for row in &self.rows {
@@ -114,18 +116,20 @@ impl Row {
     }
 }
 
-impl Widget for Row {
-    type State = state::Footer;
-
-    fn layout(&mut self, ctx: LayoutContext) {
+impl layout::Layoutable for Row {
+    fn layout(&mut self, ctx: layout::Context) {
         self.label_top_left = ctx.bounds.top_left;
 
         let time_rect = ctx
             .bounds
             .point(0, 0, Anchor::TOP_RIGHT)
             .to_rect(self.time.minimal_size(ctx), Anchor::TOP_RIGHT);
-        self.time.update(ctx.with_bounds(time_rect));
+        self.time.layout(ctx.with_bounds(time_rect));
     }
+}
+
+impl Widget for Row {
+    type State = state::Footer;
 
     fn render(&self, r: &mut dyn Renderer, s: &Self::State) -> gfx::Result<()> {
         self.render_label(r)?;
