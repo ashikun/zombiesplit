@@ -36,23 +36,9 @@ impl<R: Renderer> View<R> {
     /// Returns an error if SDL fails to redraw the screen.
     pub fn redraw(&mut self, state: &presenter::State) -> Result<()> {
         self.renderer.clear();
-        self.redraw_widgets(state)?;
+        self.root.render(&mut self.renderer, state)?;
         self.renderer.present();
 
-        Ok(())
-    }
-
-    /// Redraws all of the widgets reachable from the root.
-    ///
-    /// Drawing proceeds breath-first with each widget's children being added
-    /// to the end of the redraw queue after drawing the widget itself.
-    fn redraw_widgets(&mut self, state: &presenter::State) -> Result<()> {
-        let root: &dyn Widget<presenter::State> = &self.root;
-        let mut widgets = vec![root];
-        while let Some(w) = widgets.pop() {
-            w.render(&mut self.renderer, state)?;
-            widgets.append(&mut w.children());
-        }
         Ok(())
     }
 }

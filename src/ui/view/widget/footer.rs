@@ -50,11 +50,11 @@ impl super::Widget<state::State> for Footer {
         }
     }
 
-    fn children(&self) -> Vec<&dyn Widget<state::State>> {
-        self.rows
-            .iter()
-            .map(|x| -> &dyn Widget<state::State> { x })
-            .collect()
+    fn render(&self, r: &mut dyn Renderer, s: &state::State) -> gfx::Result<()> {
+        for row in &self.rows {
+            row.render(r, s)?;
+        }
+        Ok(())
     }
 }
 

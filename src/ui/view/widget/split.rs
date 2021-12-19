@@ -9,6 +9,8 @@ use super::{
     },
     LayoutContext,
 };
+use crate::ui::presenter::State;
+use crate::ui::view::gfx::Renderer;
 
 /// The split viewer widget.
 #[derive(Default)]
@@ -16,25 +18,28 @@ pub struct Widget {
     /// The bounding box used for the widget.
     rect: Rect,
     /// The split drawer set, containing enough drawers for one layout.
-    splits: Vec<row::Row>,
+    rows: Vec<row::Row>,
 }
 
 impl super::Widget<state::State> for Widget {
     fn layout(&mut self, ctx: super::LayoutContext) {
         self.rect = ctx.bounds;
-        self.splits = splits(ctx);
+        self.rows = rows(ctx);
     }
 
-    fn children(&self) -> Vec<&dyn super::Widget<state::State>> {
-        self.splits
-            .iter()
-            .map(|x| x as &dyn super::Widget<state::State>)
-            .collect()
+    fn render(&self, r: &mut dyn Renderer, s: &State) -> crate::ui::view::gfx::Result<()> {
+        for (i, row) in self.rows.iter().enumerate() {
+            // TODO(@MattWindsor91): calculate scroll point
+            if let Some(split) = s.splits.get(i) {
+                row.render(r, split)?;
+            }
+        }
+        Ok(())
     }
 }
 
-/// Constructs a vector of split drawing widgets according to `ctx`.
-fn splits(ctx: LayoutContext) -> Vec<row::Row> {
+/// Constructs a vector of row widgets according to `ctx`.
+fn rows(ctx: LayoutContext) -> Vec<row::Row> {
     // TODO(@MattWindsor91): padding
     let n_splits = usize::try_from(ctx.bounds.size.h / ctx.wmetrics.split_h).unwrap_or_default();
     (0..n_splits).map(|n| row(ctx, n)).collect()

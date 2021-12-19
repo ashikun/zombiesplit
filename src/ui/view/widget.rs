@@ -8,6 +8,7 @@ use super::{
     super::presenter::State,
     gfx::{self, font, metrics, render},
 };
+use crate::ui::view::gfx::Renderer;
 
 mod footer;
 mod header;
@@ -19,19 +20,8 @@ pub trait Widget<State> {
     /// Asks the widget to calculate a layout based on the context `ctx`.
     fn layout(&mut self, ctx: LayoutContext);
 
-    /// Renders the widget (excluding its children).
-    ///
-    /// By default, implementations do nothing here.
-    fn render(&self, _r: &mut dyn render::Renderer, _s: &State) -> gfx::Result<()> {
-        Ok(())
-    }
-
-    /// Gets all immediate children of this widget.
-    ///
-    /// By default, widgets have no children.
-    fn children(&self) -> Vec<&dyn Widget<State>> {
-        vec![]
-    }
+    /// Renders the widget.
+    fn render(&self, r: &mut dyn render::Renderer, s: &State) -> gfx::Result<()>;
 }
 
 /// Context used when performing a layout change.
@@ -101,7 +91,10 @@ impl Widget<State> for Root {
             .layout(ctx.with_bounds(ctx.wmetrics.total_rect()));
     }
 
-    fn children(&self) -> Vec<&dyn Widget<State>> {
-        vec![&self.header, &self.splits, &self.footer]
+    fn render(&self, r: &mut dyn Renderer, s: &State) -> gfx::Result<()> {
+        self.header.render(r, s)?;
+        self.splits.render(r, s)?;
+        self.footer.render(r, s)?;
+        Ok(())
     }
 }
