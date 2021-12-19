@@ -21,7 +21,9 @@ pub struct Widget {
     attempts_pos: metrics::Point,
 }
 
-impl super::Widget<State> for Widget {
+impl super::Widget for Widget {
+    type State = State;
+
     fn layout(&mut self, ctx: super::LayoutContext) {
         // TODO(@MattWindsor91): this is the parent bounds set.
         self.rect = ctx.bounds;
@@ -38,7 +40,7 @@ impl super::Widget<State> for Widget {
             .point(0, one_below_header, super::metrics::Anchor::TOP_RIGHT);
     }
 
-    fn render(&self, r: &mut dyn Renderer, s: &State) -> gfx::Result<()> {
+    fn render(&self, r: &mut dyn Renderer, s: &Self::State) -> gfx::Result<()> {
         self.render_meta(r, &s.game_category)?;
         self.render_attempt(r, &s.attempt)?;
         Ok(())

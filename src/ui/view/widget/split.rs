@@ -4,13 +4,14 @@ mod row;
 
 use super::{
     super::{
-        super::{presenter::state, view::widget},
-        gfx::metrics::{conv::sat_i32, Anchor, Rect, Size},
+        super::presenter::state::State,
+        gfx::{
+            metrics::{conv::sat_i32, Anchor, Rect, Size},
+            Renderer, Result,
+        },
     },
     LayoutContext,
 };
-use crate::ui::presenter::State;
-use crate::ui::view::gfx::Renderer;
 
 /// The split viewer widget.
 #[derive(Default)]
@@ -21,13 +22,15 @@ pub struct Widget {
     rows: Vec<row::Row>,
 }
 
-impl super::Widget<state::State> for Widget {
+impl super::Widget for Widget {
+    type State = State;
+
     fn layout(&mut self, ctx: super::LayoutContext) {
         self.rect = ctx.bounds;
         self.rows = rows(ctx);
     }
 
-    fn render(&self, r: &mut dyn Renderer, s: &State) -> crate::ui::view::gfx::Result<()> {
+    fn render(&self, r: &mut dyn Renderer, s: &Self::State) -> Result<()> {
         for (i, row) in self.rows.iter().enumerate() {
             // TODO(@MattWindsor91): calculate scroll point
             if let Some(split) = s.splits.get(i) {
@@ -46,9 +49,10 @@ fn rows(ctx: LayoutContext) -> Vec<row::Row> {
 }
 
 fn row(ctx: LayoutContext, index: usize) -> row::Row {
-    let mut r = row::Row::new(index);
-    // TODO(@MattWindsor91): maybe make this not depend on <State>?
-    widget::Widget::<state::State>::layout(&mut r, ctx.with_bounds(row_bounds(ctx, index)));
+    use super::Widget;
+
+    let mut r = row::Row::default();
+    r.layout(ctx.with_bounds(row_bounds(ctx, index)));
     r
 }
 

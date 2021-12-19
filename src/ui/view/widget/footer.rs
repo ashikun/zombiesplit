@@ -26,7 +26,9 @@ pub struct Footer {
     rows: Vec<Row>,
 }
 
-impl super::Widget<state::State> for Footer {
+impl super::Widget for Footer {
+    type State = state::Footer;
+
     fn layout(&mut self, ctx: super::LayoutContext) {
         self.rect = ctx.bounds;
 
@@ -50,7 +52,7 @@ impl super::Widget<state::State> for Footer {
         }
     }
 
-    fn render(&self, r: &mut dyn Renderer, s: &state::State) -> gfx::Result<()> {
+    fn render(&self, r: &mut dyn Renderer, s: &Self::State) -> gfx::Result<()> {
         for row in &self.rows {
             row.render(r, s)?;
         }
@@ -112,7 +114,9 @@ impl Row {
     }
 }
 
-impl Widget<state::State> for Row {
+impl Widget for Row {
+    type State = state::Footer;
+
     fn layout(&mut self, ctx: LayoutContext) {
         self.label_top_left = ctx.bounds.top_left;
 
@@ -123,9 +127,9 @@ impl Widget<state::State> for Row {
         self.time.update(ctx.with_bounds(time_rect));
     }
 
-    fn render(&self, r: &mut dyn Renderer, s: &state::State) -> gfx::Result<()> {
+    fn render(&self, r: &mut dyn Renderer, s: &Self::State) -> gfx::Result<()> {
         self.render_label(r)?;
-        self.render_time(r, &s.footer.get(self.row_type))?;
+        self.render_time(r, &s.get(self.row_type))?;
         Ok(())
     }
 }

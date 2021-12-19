@@ -22,9 +22,6 @@ use super::{
 /// Contains all state useful to draw one split.
 #[derive(Default)]
 pub struct Row {
-    /// The position of the drawer in the split view.
-    /// This is not necessarily the index of the split displayed.
-    index: usize,
     /// Bounding box used for the widget.
     rect: Rect,
     /// Top-left coordinate of the name.
@@ -35,25 +32,10 @@ pub struct Row {
     time: time::Layout,
 }
 
-/// Use of a row when we have not resolved which split is inside the drawer.
-impl Widget<state::State> for Row {
-    fn layout(&mut self, ctx: super::LayoutContext) {
-        Widget::<state::Split>::layout(self, ctx);
-    }
+// Row widgets display split state (with the particular allocated split being worked out upstream).
+impl Widget for Row {
+    type State = state::Split;
 
-    fn render(&self, r: &mut dyn Renderer, s: &state::State) -> gfx::Result<()> {
-        // TODO(@MattWindsor91): calculate which split should be here based on
-        // cursor position.
-        if let Some(split) = s.splits.get(self.index) {
-            Widget::<state::Split>::render(self, r, split)?;
-        }
-
-        Ok(())
-    }
-}
-
-/// Use of a split widget when we have resolved which split is inside the drawer.
-impl Widget<state::Split> for Row {
     fn layout(&mut self, ctx: super::LayoutContext) {
         self.rect = ctx.bounds;
         self.name_top_left = self.rect.top_left;
@@ -66,7 +48,7 @@ impl Widget<state::Split> for Row {
         self.attempt_count_top_left = time_rect.top_left.offset(attempt_offset, 0);
     }
 
-    fn render(&self, r: &mut dyn Renderer, s: &state::Split) -> gfx::Result<()> {
+    fn render(&self, r: &mut dyn Renderer, s: &Self::State) -> gfx::Result<()> {
         self.draw_name(r, s)?;
         self.draw_num_times(r, s)?;
         self.draw_time_display(r, s)?;
@@ -75,14 +57,6 @@ impl Widget<state::Split> for Row {
 }
 
 impl Row {
-    /// Constructs a new split row for displaying split position `index`.
-    pub fn new(index: usize) -> Self {
-        Self {
-            index,
-            ..Self::default()
-        }
-    }
-
     fn draw_name(&self, r: &mut dyn Renderer, state: &state::Split) -> gfx::Result<()> {
         let colour = colour::fg::Id::Name(state.position);
 

@@ -16,12 +16,15 @@ mod split;
 mod time;
 
 /// Trait for things that can render information from a presenter.
-pub trait Widget<State> {
+pub trait Widget {
+    /// Type of state that this widget accepts.
+    type State;
+
     /// Asks the widget to calculate a layout based on the context `ctx`.
     fn layout(&mut self, ctx: LayoutContext);
 
     /// Renders the widget.
-    fn render(&self, r: &mut dyn render::Renderer, s: &State) -> gfx::Result<()>;
+    fn render(&self, r: &mut dyn render::Renderer, s: &Self::State) -> gfx::Result<()>;
 }
 
 /// Context used when performing a layout change.
@@ -81,7 +84,9 @@ pub struct Root {
     footer: footer::Footer,
 }
 
-impl Widget<State> for Root {
+impl Widget for Root {
+    type State = State;
+
     fn layout(&mut self, ctx: LayoutContext) {
         self.header
             .layout(ctx.with_bounds(ctx.wmetrics.header_rect()));
@@ -91,10 +96,10 @@ impl Widget<State> for Root {
             .layout(ctx.with_bounds(ctx.wmetrics.total_rect()));
     }
 
-    fn render(&self, r: &mut dyn Renderer, s: &State) -> gfx::Result<()> {
+    fn render(&self, r: &mut dyn Renderer, s: &Self::State) -> gfx::Result<()> {
         self.header.render(r, s)?;
         self.splits.render(r, s)?;
-        self.footer.render(r, s)?;
+        self.footer.render(r, &s.footer)?;
         Ok(())
     }
 }
