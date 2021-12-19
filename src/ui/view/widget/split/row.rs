@@ -158,6 +158,6 @@ fn aggregate_source(state: &state::Split) -> Source {
 }
 
 fn time_to_display(state: &state::Split) -> &crate::model::Time {
-    // TODO(@MattWindsor91): don't hardcode cumulative here
-    &state.aggregates[aggregate_source(state)][Scope::Cumulative]
+    // TODO(@MattWindsor91): don't hardcode split here
+    &state.aggregates[aggregate_source(state)][Scope::Split]
 }
