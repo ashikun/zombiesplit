@@ -44,10 +44,10 @@ impl layout::Layoutable for Row {
 }
 
 // Row widgets display split state (with the particular allocated split being worked out upstream).
-impl Widget for Row {
+impl<R: Renderer> Widget<R> for Row {
     type State = state::Split;
 
-    fn render(&self, r: &mut dyn Renderer, s: &Self::State) -> gfx::Result<()> {
+    fn render(&self, r: &mut R, s: &Self::State) -> gfx::Result<()> {
         self.draw_name(r, s)?;
         self.draw_num_times(r, s)?;
         self.draw_time_display(r, s)?;

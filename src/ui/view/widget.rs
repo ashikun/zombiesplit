@@ -4,12 +4,7 @@ The (reference) UI for zombiesplit contains several self-rendering widgets,
 each of which has access to the presenter state and a renderer.
 */
 
-use super::{
-    super::presenter::State,
-    gfx::{self, metrics, render},
-    layout,
-};
-use crate::ui::view::gfx::Renderer;
+use super::{super::presenter::State, gfx, layout};
 
 mod footer;
 mod header;
@@ -17,12 +12,12 @@ mod split;
 mod time;
 
 /// Trait for things that can render information from a presenter.
-pub trait Widget: super::layout::Layoutable {
+pub trait Widget<R: ?Sized>: super::layout::Layoutable {
     /// Type of state that this widget accepts.
     type State;
 
     /// Renders the widget.
-    fn render(&self, r: &mut dyn render::Renderer, s: &Self::State) -> gfx::Result<()>;
+    fn render(&self, r: &mut R, s: &Self::State) -> gfx::Result<()>;
 }
 
 /// The root widget.
@@ -49,10 +44,10 @@ impl layout::Layoutable for Root {
     }
 }
 
-impl Widget for Root {
+impl<R: gfx::Renderer> Widget<R> for Root {
     type State = State;
 
-    fn render(&self, r: &mut dyn Renderer, s: &Self::State) -> gfx::Result<()> {
+    fn render(&self, r: &mut R, s: &Self::State) -> gfx::Result<()> {
         self.header.render(r, s)?;
         self.splits.render(r, s)?;
         self.footer.render(r, &s.footer)?;

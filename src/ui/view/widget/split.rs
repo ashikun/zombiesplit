@@ -27,10 +27,10 @@ impl Layoutable for Widget {
     }
 }
 
-impl super::Widget for Widget {
+impl<R: Renderer> super::Widget<R> for Widget {
     type State = State;
 
-    fn render(&self, r: &mut dyn Renderer, s: &Self::State) -> Result<()> {
+    fn render(&self, r: &mut R, s: &Self::State) -> Result<()> {
         for (i, row) in self.rows.iter().enumerate() {
             // TODO(@MattWindsor91): calculate scroll point
             if let Some(split) = s.splits.get(i) {

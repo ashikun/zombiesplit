@@ -32,18 +32,18 @@ impl layout::Layoutable for Widget {
 
         self.category_pos = self
             .rect
-            .point(0, one_below_header, super::metrics::Anchor::TOP_LEFT);
+            .point(0, one_below_header, metrics::Anchor::TOP_LEFT);
 
         self.attempts_pos = self
             .rect
-            .point(0, one_below_header, super::metrics::Anchor::TOP_RIGHT);
+            .point(0, one_below_header, metrics::Anchor::TOP_RIGHT);
     }
 }
 
-impl super::Widget for Widget {
+impl<R: Renderer> super::Widget<R> for Widget {
     type State = State;
 
-    fn render(&self, r: &mut dyn Renderer, s: &Self::State) -> gfx::Result<()> {
+    fn render(&self, r: &mut R, s: &Self::State) -> gfx::Result<()> {
         self.render_meta(r, &s.game_category)?;
         self.render_attempt(r, &s.attempt)?;
         Ok(())

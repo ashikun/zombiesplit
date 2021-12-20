@@ -51,10 +51,10 @@ impl layout::Layoutable for Footer {
     }
 }
 
-impl super::Widget for Footer {
+impl<R: Renderer> super::Widget<R> for Footer {
     type State = state::Footer;
 
-    fn render(&self, r: &mut dyn Renderer, s: &Self::State) -> gfx::Result<()> {
+    fn render(&self, r: &mut R, s: &Self::State) -> gfx::Result<()> {
         for row in &self.rows {
             row.render(r, s)?;
         }
@@ -96,7 +96,7 @@ impl Row {
         }
     }
 
-    fn render_label(&self, r: &mut dyn Renderer) -> gfx::Result<()> {
+    fn render_label(&self, r: &mut impl Renderer) -> gfx::Result<()> {
         let mut w = Writer::new(r).with_pos(self.label_top_left);
         write!(w, "{}", self.row_type)?;
         Ok(())
@@ -104,7 +104,7 @@ impl Row {
 
     fn render_time(
         &self,
-        r: &mut dyn Renderer,
+        r: &mut impl Renderer,
         time: &Option<Cow<pace::PacedTime>>,
     ) -> gfx::Result<()> {
         let pace = time.as_ref().map_or_else(pace::Pace::default, |t| t.pace);
@@ -128,10 +128,10 @@ impl layout::Layoutable for Row {
     }
 }
 
-impl Widget for Row {
+impl<R: Renderer> Widget<R> for Row {
     type State = state::Footer;
 
-    fn render(&self, r: &mut dyn Renderer, s: &Self::State) -> gfx::Result<()> {
+    fn render(&self, r: &mut R, s: &Self::State) -> gfx::Result<()> {
         self.render_label(r)?;
         self.render_time(r, &s.get(self.row_type))?;
         Ok(())
