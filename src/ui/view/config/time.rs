@@ -2,12 +2,13 @@
 
 These structures and related support tell zombiesplit how to lay out times on the UI. */
 
-use super::super::layout;
 use crate::model::time::position;
 use itertools::Itertools;
 use serde_with::{DeserializeFromStr, SerializeDisplay};
-use std::fmt::Formatter;
-use std::{fmt::Display, str::FromStr};
+use std::{
+    fmt::{Display, Formatter},
+    str::FromStr,
+};
 use thiserror::Error;
 
 /// Layout configuration for times.
@@ -15,11 +16,11 @@ use thiserror::Error;
 /// This conceptually takes the form of a list of (position, digit length) pairs, for instance
 /// (hour, 3).
 #[derive(DeserializeFromStr, SerializeDisplay, Clone, Debug)]
-pub struct Time(Vec<layout::Index>);
+pub struct Time(Vec<Position>);
 
 impl Time {
     /// Iterates over the position layout details in this time layout.
-    pub fn positions(&self) -> impl Iterator<Item = &layout::Index> {
+    pub fn positions(&self) -> impl Iterator<Item = &Position> {
         self.0.iter()
     }
 }
@@ -37,18 +38,18 @@ impl FromStr for Time {
     }
 }
 
-fn parse_run(c: char, num_digits: usize) -> Result<super::super::layout::Index> {
-    Ok(super::super::layout::Index {
+fn parse_run(c: char, num_digits: usize) -> Result<Position> {
+    Ok(Position {
         index: parse_char(c)?,
         num_digits,
     })
 }
 
-/// Time layouts can be displayed.
+/// Time layouts can be displayed, in the same format as they are parsed.
 impl Display for Time {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        for super::super::layout::Index { index, num_digits } in &self.0 {
-            f.write_str(&String::from(emit_char(*index)).repeat(usize::from(*num_digits)))?;
+        for Position { index, num_digits } in &self.0 {
+            f.write_str(&String::from(emit_char(*index)).repeat(*num_digits))?;
         }
         Ok(())
     }
@@ -88,6 +89,17 @@ const CHAR_MIN: char = 'm';
 const CHAR_SEC: char = 's';
 const CHAR_MSEC: char = 'u';
 
+/// Layout information for one position index in a time layout.
+///
+/// A vector of these structures fully defines how the UI should render times.
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub struct Position {
+    /// The index being displayed.
+    pub index: position::Index,
+    /// The number of digits to display for this index.
+    pub num_digits: usize,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -105,22 +117,22 @@ mod tests {
         use position::Index;
 
         let expected = vec![
-            layout::Index {
+            Position {
                 index: Index::Minutes,
                 num_digits: 2,
             },
-            layout::Index {
+            Position {
                 index: Index::Seconds,
                 num_digits: 2,
             },
-            layout::Index {
+            Position {
                 index: Index::Milliseconds,
                 num_digits: 3,
             },
         ];
 
         let actual: Time = "mmssuuu".parse().expect("parse failure");
-        let apos: Vec<layout::Index> = actual.positions().cloned().collect();
+        let apos: Vec<Position> = actual.positions().cloned().collect();
         assert_eq!(expected, apos);
     }
 

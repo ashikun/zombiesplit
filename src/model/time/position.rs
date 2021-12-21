@@ -177,7 +177,7 @@ impl Position for Msec {
 
 fn truncate_digits(v: u16, width: usize) -> u16 {
     let exp: u32 = (MSEC_DIGITS - width).try_into().unwrap_or(1);
-    v / (10 as u16).saturating_pow(exp)
+    v / (10_u16).saturating_pow(exp)
 }
 
 const MSEC_DIGITS: usize = 3;

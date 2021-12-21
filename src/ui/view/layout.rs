@@ -37,14 +37,3 @@ impl<'m> Context<'m> {
         }
     }
 }
-
-/// Layout information for one position index in a time layout.
-///
-/// A vector of these structures fully defines how the UI should render times.
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub struct Index {
-    /// The index being displayed.
-    pub index: crate::model::time::position::Index,
-    /// The number of digits to display for this index.
-    pub num_digits: usize,
-}

@@ -104,7 +104,7 @@ impl Layout {
                     width = index_layout.num_digits
                 )?;
             } else {
-                w.write_str(&"-".repeat(index_layout.num_digits.into()))?;
+                w.write_str(&"-".repeat(index_layout.num_digits))?;
             }
 
             w.write_str(unit_sigil(index_layout.index))?;
@@ -121,7 +121,7 @@ fn try_fill(r: &mut dyn Renderer, rect: Rect, colour: &Colour) -> Result<()> {
 }
 
 /// Calculates the width of a position in a time widget, excluding any padding.
-fn position_width(fm: &font::Metrics, pos: layout::Index) -> i32 {
+fn position_width(fm: &font::Metrics, pos: super::super::config::time::Position) -> i32 {
     let digits = fm.span_w(sat_i32(pos.num_digits));
     let mut sigil = fm.span_w_str(unit_sigil(pos.index));
     // Making sure we only pad if there was a sigil
@@ -146,7 +146,7 @@ const fn unit_sigil(idx: position::Index) -> &'static str {
 /// Calculated positioning information for a time widget.
 #[derive(Debug, Copy, Clone)]
 struct Position {
-    index_layout: layout::Index,
+    index_layout: super::super::config::time::Position,
     rect: Rect,
 }
 
