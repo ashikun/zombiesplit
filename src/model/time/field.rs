@@ -313,5 +313,22 @@ mod tests {
         fn display_three_digits_two_zeroes() {
             test_display(900, "900");
         }
+
+        // These next tests check what happens when we override the width on displaying
+        // milliseconds.
+
+        /// Tests that truncating a millisecond field to two digits drops digits from the right.
+        #[test]
+        fn display_three_digits_as_two() {
+            let t: super::super::Msec = super::super::Msec::new(123);
+            assert_eq!(format!("{:2}", t), "12");
+        }
+
+        /// Tests that stretching a millisecond field to four digits zero-pads on the left.
+        #[test]
+        fn display_three_digits_as_four() {
+            let t: super::super::Msec = super::super::Msec::new(123);
+            assert_eq!(format!("{:4}", t), "0123");
+        }
     }
 }

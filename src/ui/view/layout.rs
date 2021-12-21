@@ -46,5 +46,5 @@ pub struct Index {
     /// The index being displayed.
     pub index: crate::model::time::position::Index,
     /// The number of digits to display for this index.
-    pub num_digits: u8,
+    pub num_digits: usize,
 }

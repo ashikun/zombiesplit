@@ -7,7 +7,7 @@ db_path = "zombiesplit.db"
 comparison_provider = "Database"
 
 [ui.layout]
-	time = "mmssuuu"
+	time = "mmss"
 
 # Window metrics
 [ui.layout.window]

@@ -29,7 +29,8 @@ pub trait Position {
     /// Returns various `fmt::Error` errors if formatting the value or its
     /// delimiter fails.
     fn fmt_value(v: u16, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:0>2}", v)
+        let width = f.width().unwrap_or(2);
+        write!(f, "{:0>width$}", v, width = width)
     }
 
     /// Formats the value `v` with a delimiter, if nonzero.
@@ -147,8 +148,12 @@ impl Position for Msec {
     // we treat them as being on the right hand side of a decimal place after
     // seconds.
 
-    fn fmt_value(v: u16, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:0>3}", v)
+    fn fmt_value(mut v: u16, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let width = f.width().unwrap_or(MSEC_DIGITS);
+        if width < MSEC_DIGITS {
+            v = truncate_digits(v, width);
+        }
+        write!(f, "{:0>width$}", v, width = width)
     }
 
     fn fmt_value_delimited(v: u16, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -157,10 +162,10 @@ impl Position for Msec {
 
     /// Pads any millisecond string such that, for instance, 5 parses as 500ms.
     fn preprocess_string(s: &str) -> Cow<str> {
-        if s.len() >= 3 {
+        if s.len() >= MSEC_DIGITS {
             Cow::Borrowed(s)
         } else {
-            Cow::Owned(format!("{:0<3}", s))
+            Cow::Owned(format!("{:0<digits$}", s, digits = MSEC_DIGITS))
         }
     }
 
@@ -169,6 +174,13 @@ impl Position for Msec {
         (s, "")
     }
 }
+
+fn truncate_digits(v: u16, width: usize) -> u16 {
+    let exp: u32 = (MSEC_DIGITS - width).try_into().unwrap_or(1);
+    v / (10 as u16).saturating_pow(exp)
+}
+
+const MSEC_DIGITS: usize = 3;
 
 /// Enumeration of possible positions in a time.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]

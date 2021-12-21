@@ -7,7 +7,6 @@ use crate::model::time::position;
 use itertools::Itertools;
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 use std::fmt::Formatter;
-use std::num::TryFromIntError;
 use std::{fmt::Display, str::FromStr};
 use thiserror::Error;
 
@@ -41,7 +40,7 @@ impl FromStr for Time {
 fn parse_run(c: char, num_digits: usize) -> Result<super::super::layout::Index> {
     Ok(super::super::layout::Index {
         index: parse_char(c)?,
-        num_digits: num_digits.try_into().map_err(Error::DigitOverflow)?,
+        num_digits,
     })
 }
 
@@ -60,8 +59,6 @@ impl Display for Time {
 pub enum Error {
     #[error("Unexpected character: {0}")]
     BadChar(char),
-    #[error("Too many digits")]
-    DigitOverflow(#[from] TryFromIntError),
 }
 
 /// Shorthand for results over time parsing.
