@@ -52,6 +52,7 @@ impl State {
         for split in &mut self.splits {
             split.reset();
         }
+        self.footer.total = PacedTime::default();
     }
 
     /// Disables every optional visual element (cursor, editor, etc).
@@ -206,5 +207,19 @@ impl Index<position::Index> for Editor {
             position::Index::Seconds => &self.secs,
             position::Index::Milliseconds => &self.msecs,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Checks that resetting the run clears the total.
+    #[test]
+    fn test_reset_clears_total() {
+        let mut state = State::default();
+        state.footer.total.time = crate::model::Time::seconds(1337).expect("shouldn't overflow");
+        state.reset();
+        assert!(state.footer.total.time.is_zero())
     }
 }
