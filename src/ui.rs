@@ -57,12 +57,11 @@ impl<'p, E: presenter::event::Pump, R: view::gfx::Renderer> Instance<'p, E, R> {
 ///
 /// Propagates any errors from creating, spawning, or running the view.
 pub fn run(cfg: view::Config, session: crate::model::attempt::Session) -> Result<()> {
-    let w_metrics = cfg.window;
-
+    let layout = cfg.layout.clone();
     let sdl = sdl::Manager::new(cfg)?;
     let mut inst = Instance {
         events: sdl.event_pump()?,
-        view: View::new(sdl.renderer()?, w_metrics),
+        view: View::new(sdl.renderer()?, &layout),
         presenter: Presenter::new(presenter::Core::new(session)),
     };
     inst.run()

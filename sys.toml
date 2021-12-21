@@ -6,8 +6,11 @@
 db_path = "zombiesplit.db"
 comparison_provider = "Database"
 
+[ui.layout]
+	time = "mmssuuu"
+
 # Window metrics
-[ui.window]
+[ui.layout.window]
 	# Window width and height.
 	win_w = 320
 	win_h = 640

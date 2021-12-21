@@ -14,11 +14,8 @@ pub trait Layoutable {
 /// Context used when performing a layout change.
 #[derive(Debug, Clone, Copy)]
 pub struct Context<'m> {
-    /// The configured metrics for this split display window.
-    ///
-    /// Note that the window itself may not be the same size as the target
-    /// size in these metrics, owing to possible resizing.
-    pub wmetrics: metrics::Window,
+    /// The user layout configuration.
+    pub config: &'m super::config::Layout,
 
     /// The bounding box of the widget itself.
     ///
@@ -29,9 +26,6 @@ pub struct Context<'m> {
     ///
     /// This can be used for working out how large a piece of text might be.
     pub font_metrics: &'m font::Map<font::Metrics>,
-
-    /// Information about which positions are enabled for time display.
-    pub time_positions: &'m [Index],
 }
 
 impl<'m> Context<'m> {

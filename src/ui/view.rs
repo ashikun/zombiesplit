@@ -4,13 +4,12 @@ pub mod gfx;
 mod layout;
 mod widget;
 
-use self::gfx::render::Renderer;
+use self::gfx::{font, render::Renderer};
 use layout::Layoutable;
 use widget::Widget;
 
 use super::{presenter, Result};
 
-use crate::model::time::position::Index;
 pub use config::Config;
 
 /// The top-level view structure.
@@ -24,9 +23,9 @@ pub struct View<R> {
 impl<R: Renderer> View<R> {
     /// Creates a new graphics core.
     #[must_use]
-    pub fn new(renderer: R, wmetrics: gfx::metrics::Window) -> Self {
+    pub fn new(renderer: R, config: &config::Layout) -> Self {
         let mut root = widget::Root::default();
-        root.layout(root_layout_context(&renderer, wmetrics));
+        root.layout(root_layout_context(renderer.font_metrics(), config));
         Self { renderer, root }
     }
 
@@ -45,33 +44,15 @@ impl<R: Renderer> View<R> {
 }
 
 /// Creates the root layout context.
-fn root_layout_context<R: Renderer>(
-    renderer: &R,
-    wmetrics: gfx::metrics::Window,
-) -> layout::Context {
-    let bounds = wmetrics.win_rect();
-    let font_metrics = renderer.font_metrics();
+fn root_layout_context<'m>(
+    font_metrics: &'m font::Map<font::Metrics>,
+    config: &'m config::Layout,
+) -> layout::Context<'m> {
+    let bounds = config.window.win_rect();
 
     layout::Context {
-        wmetrics,
+        config,
         bounds,
         font_metrics,
-        time_positions: &TIME_POSITIONS,
     }
 }
-
-// TODO(@MattWindsor91): don't hardcode this
-const TIME_POSITIONS: [layout::Index; 3] = [
-    layout::Index {
-        index: Index::Minutes,
-        num_digits: 2,
-    },
-    layout::Index {
-        index: Index::Seconds,
-        num_digits: 2,
-    },
-    layout::Index {
-        index: Index::Milliseconds,
-        num_digits: 3,
-    },
-];

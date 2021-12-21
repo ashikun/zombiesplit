@@ -36,11 +36,11 @@ pub struct Root {
 impl layout::Layoutable for Root {
     fn layout(&mut self, ctx: layout::Context) {
         self.header
-            .layout(ctx.with_bounds(ctx.wmetrics.header_rect()));
+            .layout(ctx.with_bounds(ctx.config.window.header_rect()));
         self.splits
-            .layout(ctx.with_bounds(ctx.wmetrics.splits_rect()));
+            .layout(ctx.with_bounds(ctx.config.window.splits_rect()));
         self.footer
-            .layout(ctx.with_bounds(ctx.wmetrics.total_rect()));
+            .layout(ctx.with_bounds(ctx.config.window.total_rect()));
     }
 }
 

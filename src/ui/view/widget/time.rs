@@ -46,8 +46,9 @@ impl Layout {
     pub fn minimal_size(&self, ctx: layout::Context) -> Size {
         let fm = &ctx.font_metrics[self.font_id];
         let raw: i32 = ctx
-            .time_positions
-            .iter()
+            .config
+            .time
+            .positions()
             .map(|pos| position_width(fm, *pos) + fm.pad.w_i32())
             .sum();
         // fix off by one from above padding
@@ -60,9 +61,8 @@ impl Layout {
         let mut point = self.rect.top_left;
 
         self.positions.clear();
-        self.positions.reserve(ctx.time_positions.len());
 
-        for pos in ctx.time_positions {
+        for pos in ctx.config.time.positions() {
             let size = Size::from_i32s(position_width(fm, *pos), fm.span_h(1));
             let rect = point.to_rect(size, Anchor::TOP_LEFT);
             self.positions.push(Position {
@@ -129,6 +129,7 @@ fn position_width(fm: &font::Metrics, pos: layout::Index) -> i32 {
 
 /// The sigil displayed after the position indexed by `idx`.
 const fn unit_sigil(idx: position::Index) -> &'static str {
+    // TODO(@MattWindsor91): consider making these user configurable.
     match idx {
         position::Index::Hours => ":",
         position::Index::Minutes => "'",

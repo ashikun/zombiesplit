@@ -29,7 +29,7 @@ impl<'c> Manager<'c> {
     pub fn new(cfg: view::Config<'c>) -> Result<Self> {
         let sdl = sdl2::init().map_err(Error::Init)?;
         let video = sdl.video().map_err(Error::Init)?;
-        let window = make_window(&video, cfg.window)?;
+        let window = make_window(&video, cfg.layout.window)?;
         let screen = window.into_canvas().build().map_err(Error::SdlInteger)?;
         let textures = screen.texture_creator();
         Ok(Self {

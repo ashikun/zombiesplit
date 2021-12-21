@@ -44,7 +44,8 @@ impl<R: Renderer> super::Widget<R> for Widget {
 /// Constructs a vector of row widgets according to `ctx`.
 fn rows(ctx: layout::Context) -> Vec<row::Row> {
     // TODO(@MattWindsor91): padding
-    let n_splits = usize::try_from(ctx.bounds.size.h / ctx.wmetrics.split_h).unwrap_or_default();
+    let split_h = ctx.config.window.split_h;
+    let n_splits = usize::try_from(ctx.bounds.size.h / split_h).unwrap_or_default();
     (0..n_splits).map(|n| row(ctx, n)).collect()
 }
 
@@ -55,15 +56,14 @@ fn row(ctx: layout::Context, index: usize) -> row::Row {
 }
 
 fn row_bounds(ctx: layout::Context, index: usize) -> Rect {
+    let split_h = ctx.config.window.split_h;
     Rect {
-        top_left: ctx.bounds.point(
-            0,
-            sat_i32(index) * sat_i32(ctx.wmetrics.split_h),
-            Anchor::TOP_LEFT,
-        ),
+        top_left: ctx
+            .bounds
+            .point(0, sat_i32(index) * sat_i32(split_h), Anchor::TOP_LEFT),
         size: Size {
             w: ctx.bounds.size.w,
-            h: ctx.wmetrics.split_h,
+            h: split_h,
         },
     }
 }
