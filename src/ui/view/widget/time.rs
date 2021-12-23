@@ -5,7 +5,7 @@
 use super::{
     super::gfx::{
         colour, font,
-        metrics::{conv::sat_i32, Anchor, Rect, Size},
+        metrics::{Anchor, Rect, Size},
         Renderer, Result, Writer,
     },
     layout,
@@ -49,10 +49,13 @@ impl Layout {
             .config
             .time
             .positions()
-            .map(|pos| position_width(fm, *pos) + fm.pad.w_i32())
+            .map(|pos| position_width(fm, *pos) + fm.pad.w)
             .sum();
         // fix off by one from above padding
-        Size::from_i32s(raw - fm.pad.w_i32(), fm.span_h(1))
+        Size {
+            w: raw - fm.pad.w,
+            h: fm.span_h(1),
+        }
     }
 
     fn update_positions(&mut self, ctx: layout::Context) {
@@ -63,14 +66,17 @@ impl Layout {
         self.positions.clear();
 
         for pos in ctx.config.time.positions() {
-            let size = Size::from_i32s(position_width(fm, *pos), fm.span_h(1));
+            let size = Size {
+                w: position_width(fm, *pos),
+                h: fm.span_h(1),
+            };
             let rect = point.to_rect(size, Anchor::TOP_LEFT);
             self.positions.push(Position {
                 index_layout: *pos,
                 rect,
             });
 
-            point.offset_mut(sat_i32(rect.size.w) + fm.pad.w_i32(), 0);
+            point.offset_mut(rect.size.w + fm.pad.w, 0);
         }
     }
 
@@ -122,11 +128,12 @@ fn try_fill(r: &mut dyn Renderer, rect: Rect, colour: &Colour) -> Result<()> {
 
 /// Calculates the width of a position in a time widget, excluding any padding.
 fn position_width(fm: &font::Metrics, pos: super::super::config::time::Position) -> i32 {
-    let digits = fm.span_w(sat_i32(pos.num_digits));
+    let nd: i32 = pos.num_digits.try_into().unwrap_or_default();
+    let digits = fm.span_w(nd);
     let mut sigil = fm.span_w_str(unit_sigil(pos.index));
     // Making sure we only pad if there was a sigil
     if sigil != 0 {
-        sigil += fm.pad.w_i32();
+        sigil += fm.pad.w;
     }
 
     digits + sigil

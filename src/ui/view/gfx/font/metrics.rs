@@ -3,8 +3,7 @@ use std::collections::HashMap;
 
 use super::super::metrics::{
     anchor::{self, Anchor},
-    conv::sat_i32,
-    Point, Rect, Size,
+    Length, Point, Rect, Size,
 };
 use serde::{Deserialize, Serialize};
 
@@ -28,19 +27,19 @@ pub struct Metrics {
     /// The font grid is determined by `char`, so this cannot make a character
     /// wider than `char.x`.
     #[serde(default)]
-    pub width_overrides: HashMap<char, u32>,
+    pub width_overrides: HashMap<char, Length>,
 }
 
 impl Metrics {
     /// The padded width of one character in the font.
     #[must_use]
-    pub fn padded_w(&self) -> u32 {
+    pub fn padded_w(&self) -> Length {
         self.char.w + self.pad.w
     }
 
     /// The padded height of one character in the font.
     #[must_use]
-    pub fn padded_h(&self) -> u32 {
+    pub fn padded_h(&self) -> Length {
         self.char.h + self.pad.h
     }
 
@@ -53,8 +52,8 @@ impl Metrics {
     ///
     /// If `size` is negative, the result will be negative.
     #[must_use]
-    pub fn span_w(&self, size: i32) -> i32 {
-        sat_i32(self.padded_w()) * size
+    pub fn span_w(&self, size: Length) -> Length {
+        self.padded_w() * size
     }
 
     /// Like `span_w`, but accurately calculates the width of `str`.
@@ -62,7 +61,7 @@ impl Metrics {
     /// This performs the same positioning calculations as text rendering, and
     /// is accurate in the face of any proportionality in the font.
     #[must_use]
-    pub fn span_w_str(&self, str: &str) -> i32 {
+    pub fn span_w_str(&self, str: &str) -> Length {
         // Pretend to lay out the string, then work out where the last character went.
         self.layout_str(Point::default(), str)
             .last()
@@ -73,7 +72,7 @@ impl Metrics {
 
     /// Calculates the relative X-coordinate of `anchor` within `str`.
     #[must_use]
-    pub fn x_anchor_of_str(&self, str: &str, anchor: anchor::X) -> i32 {
+    pub fn x_anchor_of_str(&self, str: &str, anchor: anchor::X) -> Length {
         // No need to do layout calculations if we're already at the left.
         if matches!(anchor, anchor::X::Left) {
             0
@@ -89,14 +88,17 @@ impl Metrics {
     ///
     /// If `size` is negative, the result will be negative.
     #[must_use]
-    pub fn span_h(&self, size: i32) -> i32 {
-        sat_i32(self.padded_h()) * size
+    pub fn span_h(&self, size: Length) -> Length {
+        self.padded_h() * size
     }
 
     /// Converts a size in chars into a size in pixels.
     #[must_use]
-    pub fn text_size(&self, w_chars: i32, h_chars: i32) -> Size {
-        Size::from_i32s(self.span_w(w_chars), self.span_h(h_chars))
+    pub fn text_size(&self, w_chars: Length, h_chars: Length) -> Size {
+        Size {
+            w: self.span_w(w_chars),
+            h: self.span_h(h_chars),
+        }
     }
 
     /// Calculates layout for a byte-string as a series of [Glyph]s.
@@ -108,7 +110,7 @@ impl Metrics {
         bytes.as_ref().iter().scan(start, move |point, char| {
             // TODO(@MattWindsor91): proportionality
             let src = self.glyph_rect(*char);
-            let offset = sat_i32(src.size.w) + sat_i32(self.pad.w);
+            let offset = src.size.w + self.pad.w;
             let next_point = point.offset(offset, 0);
             let dst_tl = std::mem::replace(point, next_point);
             let dst = Rect {
@@ -147,7 +149,7 @@ impl Metrics {
         size
     }
 
-    fn glyph_override(&self, char: u8) -> Option<u32> {
+    fn glyph_override(&self, char: u8) -> Option<Length> {
         char::from_u32(char.into())
             .and_then(|x| self.width_overrides.get(&x))
             .copied()
@@ -156,9 +158,9 @@ impl Metrics {
 
 /// Calculates one axis of the top-left of the glyph.
 #[must_use]
-fn glyph_axis(index: u8, size: u32) -> i32 {
+fn glyph_axis(index: u8, size: Length) -> Length {
     // Can't multiply _then_ convert, because of overflow on big fonts.
-    i32::from(index) * sat_i32(size)
+    Length::from(index) * size
 }
 
 /// A representation of a glyph to be rendered.

@@ -2,7 +2,6 @@
 use serde::{Deserialize, Serialize};
 
 pub mod anchor;
-pub mod conv;
 pub mod point;
 pub mod rect;
 pub mod size;
@@ -10,23 +9,23 @@ pub mod size;
 pub use anchor::Anchor;
 pub use point::Point;
 pub use rect::Rect;
-pub use size::Size;
+pub use size::{Length, Size};
 
 /// Window metrics.
 #[derive(Copy, Clone, Debug, Deserialize, Serialize)]
 pub struct Window {
     /// The window width.
-    pub win_w: u32,
+    pub win_w: Length,
     /// The window height.
-    pub win_h: u32,
+    pub win_h: Length,
     /// Standard padding on contents.
-    pub padding: u32,
+    pub padding: Length,
     /// The height of the header.
-    pub header_h: u32,
+    pub header_h: Length,
     /// The height of the total section.
-    pub footer_h: u32,
+    pub footer_h: Length,
     /// The height of one split.
-    pub split_h: u32,
+    pub split_h: Length,
 }
 
 impl Window {
@@ -55,7 +54,7 @@ impl Window {
                 h: self.header_h,
             },
         }
-        .shrink(self.padding)
+        .grow(-self.padding)
     }
 
     /// Gets the bounding box of the splits part of the window.
@@ -64,14 +63,14 @@ impl Window {
         Rect {
             top_left: Point {
                 x: 0,
-                y: self.splits_y(),
+                y: self.header_h,
             },
             size: Size {
                 w: self.win_w,
                 h: self.splits_h(),
             },
         }
-        .shrink(self.padding)
+        .grow(-self.padding)
     }
 
     /// Gets the bounding box of the total part of the window.
@@ -87,21 +86,16 @@ impl Window {
                 h: self.footer_h,
             },
         }
-        .shrink(self.padding)
-    }
-
-    /// Gets the Y position of the splits part of the window.
-    fn splits_y(&self) -> i32 {
-        conv::sat_i32(self.header_h)
+        .grow(-self.padding)
     }
 
     /// Gets the Y position of the total part of the window.
-    fn total_y(&self) -> i32 {
-        conv::sat_i32(self.win_h - self.footer_h)
+    fn total_y(&self) -> Length {
+        self.win_h - self.footer_h
     }
 
     /// Gets the height of the splits part of the window.
-    fn splits_h(&self) -> u32 {
+    fn splits_h(&self) -> Length {
         self.win_h - self.header_h - self.footer_h
     }
 }

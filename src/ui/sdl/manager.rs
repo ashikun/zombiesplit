@@ -7,7 +7,7 @@ use super::{
         error::{Error, Result},
         view,
     },
-    event, font, Renderer,
+    event, font, metrics, Renderer,
 };
 
 /// Manages top-level SDL resources.
@@ -82,7 +82,11 @@ fn make_window(
     wmetrics: view::gfx::metrics::Window,
 ) -> Result<sdl2::video::Window> {
     let window = video
-        .window("zombiesplit", wmetrics.win_w, wmetrics.win_h)
+        .window(
+            "zombiesplit",
+            metrics::u32_or_zero(wmetrics.win_w),
+            metrics::u32_or_zero(wmetrics.win_h),
+        )
         .position_centered()
         .build()
         .map_err(Error::Window)?;

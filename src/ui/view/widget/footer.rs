@@ -8,7 +8,7 @@ use super::{
         super::presenter::state::{self, footer},
         gfx::{
             self, colour, font,
-            metrics::{self, conv::u32_or_zero, Anchor, Size},
+            metrics::{self, Anchor, Size},
             Renderer, Writer,
         },
     },
@@ -38,13 +38,7 @@ impl layout::Layoutable for Footer {
         let mut top_left = self.rect.top_left;
         for row in &mut self.rows {
             let h = ctx.font_metrics[row.time.font_id].span_h(1);
-            let row_rect = top_left.to_rect(
-                Size {
-                    w,
-                    h: u32_or_zero(h),
-                },
-                Anchor::TOP_LEFT,
-            );
+            let row_rect = top_left.to_rect(Size { w, h }, Anchor::TOP_LEFT);
             row.layout(ctx.with_bounds(row_rect));
             top_left.offset_mut(0, h);
         }

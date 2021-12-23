@@ -1,6 +1,9 @@
 //! The [Point] struct and related functionality.
 
-use super::{Anchor, Rect, Size};
+use super::{Anchor, Length, Rect, Size};
+
+/// Type of coordinates.
+pub type Coord = i32;
 
 /// A two-dimensional point.
 ///
@@ -8,9 +11,9 @@ use super::{Anchor, Rect, Size};
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 pub struct Point {
     /// The X-coordinate of the point.
-    pub x: i32,
+    pub x: Coord,
     /// The Y-coordinate of the point.
-    pub y: i32,
+    pub y: Coord,
 }
 
 impl Point {
@@ -33,7 +36,7 @@ impl Point {
     /// assert_eq!(12, r.y);
     /// ```
     #[must_use]
-    pub fn offset(mut self, dx: i32, dy: i32) -> Self {
+    pub fn offset(mut self, dx: Length, dy: i32) -> Self {
         self.offset_mut(dx, dy);
         self
     }
@@ -53,7 +56,7 @@ impl Point {
     /// assert_eq!(-2, p.x);
     /// assert_eq!(12, p.y);
     /// ```
-    pub fn offset_mut(&mut self, dx: i32, dy: i32) {
+    pub fn offset_mut(&mut self, dx: Length, dy: Length) {
         self.x += dx;
         self.y += dy;
     }
@@ -75,10 +78,7 @@ impl Point {
     #[must_use]
     pub fn to_rect(self, size: Size, anchor: Anchor) -> Rect {
         Rect {
-            top_left: self.offset(
-                -anchor.x.offset(size.w_i32()),
-                -anchor.y.offset(size.h_i32()),
-            ),
+            top_left: self.offset(-anchor.x.offset(size.w), -anchor.y.offset(size.h)),
             size,
         }
     }

@@ -5,7 +5,7 @@ mod row;
 use super::super::{
     super::presenter::state::State,
     gfx::{
-        metrics::{conv::sat_i32, Anchor, Rect, Size},
+        metrics::{Anchor, Length, Rect, Size},
         Renderer, Result,
     },
     layout::{self, Layoutable},
@@ -57,10 +57,9 @@ fn row(ctx: layout::Context, index: usize) -> row::Row {
 
 fn row_bounds(ctx: layout::Context, index: usize) -> Rect {
     let split_h = ctx.config.window.split_h;
+    let ix: Length = index.try_into().unwrap_or_default();
     Rect {
-        top_left: ctx
-            .bounds
-            .point(0, sat_i32(index) * sat_i32(split_h), Anchor::TOP_LEFT),
+        top_left: ctx.bounds.point(0, ix * split_h, Anchor::TOP_LEFT),
         size: Size {
             w: ctx.bounds.size.w,
             h: split_h,

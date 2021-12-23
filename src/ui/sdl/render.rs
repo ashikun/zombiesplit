@@ -30,9 +30,7 @@ impl<'a> render::Renderer for Renderer<'a> {
             let dst = super::metrics::convert_rect(&glyph.dst);
 
             // Move from the end of the last character to the start of the next one.
-            pos = glyph
-                .dst
-                .point(fm.pad.w_i32(), 0, metrics::Anchor::TOP_RIGHT);
+            pos = glyph.dst.point(fm.pad.w, 0, metrics::Anchor::TOP_RIGHT);
 
             self.screen.copy(&texture, src, dst).map_err(Error::Blit)?;
         }
@@ -41,7 +39,7 @@ impl<'a> render::Renderer for Renderer<'a> {
     }
 
     fn fill(&mut self, rect: metrics::Rect, colour: colour::bg::Id) -> Result<()> {
-        let rect = rect_to_sdl(rect);
+        let rect = super::metrics::convert_rect(&rect);
         self.set_screen_bg(colour);
         self.screen.fill_rect(rect).map_err(Error::Blit)
     }
@@ -82,11 +80,6 @@ impl<'a> Renderer<'a> {
         let colour = self.colour_set.bg.get(bg);
         self.screen.set_draw_color(colour_to_sdl(colour));
     }
-}
-
-/// Converts a zombiesplit rect to a SDL one.
-fn rect_to_sdl(rect: metrics::Rect) -> sdl2::rect::Rect {
-    sdl2::rect::Rect::new(rect.top_left.x, rect.top_left.y, rect.size.w, rect.size.h)
 }
 
 /// Converts a zombiesplit colour to a SDL one.
