@@ -1,7 +1,5 @@
 //! Structures common to time displaying widgets.
 
-// TODO(@MattWindsor91): port footer to this
-
 use super::{
     super::gfx::{
         colour, font,
@@ -10,7 +8,7 @@ use super::{
     },
     layout,
 };
-use crate::model::time::position;
+use crate::model::time::{format, position};
 use std::{
     fmt::{Display, Write},
     ops::Index,
@@ -127,7 +125,7 @@ fn try_fill(r: &mut dyn Renderer, rect: Rect, colour: &Colour) -> Result<()> {
 }
 
 /// Calculates the width of a position in a time widget, excluding any padding.
-fn position_width(fm: &font::Metrics, pos: super::super::config::time::Position) -> i32 {
+fn position_width(fm: &font::Metrics, pos: format::Position) -> i32 {
     let nd: i32 = pos.num_digits.try_into().unwrap_or_default();
     let digits = fm.span_w(nd);
     let mut sigil = fm.span_w_str(unit_sigil(pos.index));
@@ -153,7 +151,7 @@ const fn unit_sigil(idx: position::Index) -> &'static str {
 /// Calculated positioning information for a time widget.
 #[derive(Debug, Copy, Clone)]
 struct Position {
-    index_layout: super::super::config::time::Position,
+    index_layout: format::Position,
     rect: Rect,
 }
 

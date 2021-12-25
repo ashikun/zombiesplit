@@ -1,5 +1,4 @@
 //! zombiesplit's notion of times.
-use serde_with::{DeserializeFromStr, SerializeDisplay};
 use std::ops::Index;
 use std::{
     convert::TryFrom,
@@ -8,13 +7,17 @@ use std::{
     str::FromStr,
 };
 
-pub mod carry;
-pub mod error;
-pub mod field;
-pub mod position;
+use serde_with::{DeserializeFromStr, SerializeDisplay};
 
 pub use error::Error;
 pub use field::{Field, Hour, Minute, Msec, Second};
+pub use format::Format;
+
+pub mod carry;
+pub mod error;
+pub mod field;
+pub mod format;
+pub mod position;
 
 /// A hh:mm:ss:ms timing.
 #[derive(

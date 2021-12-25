@@ -1,8 +1,8 @@
 //! View configuration.
 
-pub mod time;
-
 use serde::{Deserialize, Serialize};
+
+use crate::model::time;
 
 use super::gfx::{colour, font, metrics};
 
@@ -23,6 +23,6 @@ pub struct Config<'p> {
 pub struct Layout {
     /// Window metrics.
     pub window: metrics::Window,
-    /// Information on how to lay-out times.
-    pub time: time::Time,
+    /// Default format for times.
+    pub time: time::Format,
 }

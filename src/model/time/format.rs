@@ -1,6 +1,6 @@
-/*! Time layout configuration.
+/*! User-suppliable formatting for times.
 
-These structures and related support tell zombiesplit how to lay out times on the UI. */
+These structures and related support let users tell zombiesplit how to lay out times on the UI. */
 
 use crate::model::time::position;
 use itertools::Itertools;
@@ -11,21 +11,21 @@ use std::{
 };
 use thiserror::Error;
 
-/// Layout configuration for times.
+/// Format configuration for times.
 ///
 /// This conceptually takes the form of a list of (position, digit length) pairs, for instance
 /// (hour, 3).
 #[derive(DeserializeFromStr, SerializeDisplay, Clone, Debug)]
-pub struct Time(Vec<Position>);
+pub struct Format(Vec<Position>);
 
-impl Time {
+impl Format {
     /// Iterates over the position layout details in this time layout.
     pub fn positions(&self) -> impl Iterator<Item = &Position> {
         self.0.iter()
     }
 }
 
-impl FromStr for Time {
+impl FromStr for Format {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self> {
@@ -34,7 +34,7 @@ impl FromStr for Time {
             .into_iter()
             .map(|(c, group)| parse_run(c, group.count()))
             .try_collect()
-            .map(Time)
+            .map(Format)
     }
 }
 
@@ -46,7 +46,7 @@ fn parse_run(c: char, num_digits: usize) -> Result<Position> {
 }
 
 /// Time layouts can be displayed, in the same format as they are parsed.
-impl Display for Time {
+impl Display for Format {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         for Position { index, num_digits } in &self.0 {
             f.write_str(&String::from(emit_char(*index)).repeat(*num_digits))?;
@@ -107,7 +107,7 @@ mod tests {
     /// Tests parsing a 2-minute/2-second/3-millisecond layout.
     #[test]
     fn test_time_parse_empty() {
-        let actual: Time = "".parse().expect("parse failure");
+        let actual: Format = "".parse().expect("parse failure");
         assert_eq!(0, actual.positions().count());
     }
 
@@ -131,7 +131,7 @@ mod tests {
             },
         ];
 
-        let actual: Time = "mmssuuu".parse().expect("parse failure");
+        let actual: Format = "mmssuuu".parse().expect("parse failure");
         let apos: Vec<Position> = actual.positions().cloned().collect();
         assert_eq!(expected, apos);
     }
