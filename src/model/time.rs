@@ -10,11 +10,10 @@ use std::{
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 
 pub use error::Error;
-pub use field::{Field, Hour, Minute, Msec, Second};
+pub use field::Field;
 pub use format::Format;
 pub use position::Position;
 
-pub mod carry;
 pub mod error;
 pub mod field;
 pub mod format;
@@ -22,27 +21,31 @@ pub mod position;
 
 /// A hh:mm:ss:ms timing.
 #[derive(
-    Copy,
-    Clone,
-    Default,
-    SerializeDisplay,
-    DeserializeFromStr,
-    Debug,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
+    Copy, Clone, SerializeDisplay, DeserializeFromStr, Debug, PartialEq, Eq, PartialOrd, Hash,
 )]
 pub struct Time {
     /// Number of hours.
-    pub hours: Hour,
+    pub hours: Field,
     /// Number of minutes.
-    pub mins: Minute,
+    pub mins: Field,
     /// Number of seconds.
-    pub secs: Second,
+    pub secs: Field,
     /// Number of milliseconds.
-    pub millis: Msec,
+    pub millis: Field,
+}
+
+/// This cannot be autoderived as fields don't have a default (what would the default position be?);
+/// however, an invariant of times is that the fields' positions line up with their parts of the
+/// struct, and so we can fill in accordingly.
+impl Default for Time {
+    fn default() -> Self {
+        Time {
+            hours: Field::zero(Position::Hours),
+            mins: Field::zero(Position::Minutes),
+            secs: Field::zero(Position::Seconds),
+            millis: Field::zero(Position::Milliseconds),
+        }
+    }
 }
 
 impl Time {
@@ -110,15 +113,15 @@ impl TryFrom<u32> for Time {
     /// assert_eq!(u16::from(time.millis), 789);
     /// ```
     fn try_from(stamp: u32) -> Result<Self, Self::Error> {
-        let millis = Msec::new_with_carry(stamp);
-        let secs = Second::new_with_carry(millis.carry);
-        let mins = Minute::new_with_carry(secs.carry);
-        let hours = Hour::try_from(mins.carry)?;
+        let millis = field::Carry::new(Position::Milliseconds, stamp);
+        let secs = field::Carry::new(Position::Seconds, millis.carry);
+        let mins = field::Carry::new(Position::Minutes, secs.carry);
+        let hours = Field::new(Position::Hours, mins.carry)?;
         Ok(Self {
             hours,
-            mins: mins.value,
-            secs: secs.value,
-            millis: millis.value,
+            mins: mins.field,
+            secs: secs.field,
+            millis: millis.field,
         })
     }
 }
@@ -195,10 +198,10 @@ impl FromStr for Time {
     type Err = error::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (hours, s) = Hour::parse_delimited(s)?;
-        let (mins, s) = Minute::parse_delimited(s)?;
-        let (secs, s) = Second::parse_delimited(s)?;
-        let millis = s.parse()?;
+        let (hours, s) = Field::parse_delimited(Position::Hours, s)?;
+        let (mins, s) = Field::parse_delimited(Position::Minutes, s)?;
+        let (secs, s) = Field::parse_delimited(Position::Seconds, s)?;
+        let millis = Field::parse(Position::Milliseconds, s)?;
         Ok(Self {
             hours,
             mins,
@@ -226,7 +229,7 @@ impl rusqlite::ToSql for Time {
 
 /// We can index into a time by position index, returning a field.
 impl Index<Position> for Time {
-    type Output = dyn field::Any;
+    type Output = field::Field;
 
     fn index(&self, index: Position) -> &Self::Output {
         match index {

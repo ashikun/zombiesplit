@@ -181,7 +181,7 @@ impl Field {
     /// Fails if the string is not parseable for the particular field we're
     /// editing.
     pub fn commit(&self, time: &mut time::Time) -> time::error::Result<()> {
-        time[self.position].parse_from(&self.string)?;
+        time[self.position] = time::Field::parse(self.position, &self.string)?;
         Ok(())
     }
 

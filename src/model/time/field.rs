@@ -1,246 +1,252 @@
 //! Time fields and associated functions.
 use super::{
-    carry::{self, Carry},
     error::{Error, Result},
-    position::{self, Marker},
+    Position,
 };
-use std::hash::{Hash, Hasher};
+use std::fmt::Write;
+use std::hash::Hash;
 use std::{
     convert::{TryFrom, TryInto},
     fmt,
-    marker::PhantomData,
-    str::FromStr,
 };
 
-/// A field in a time struct, containing a phantom position marker type.
+/// A field in a time struct.
+///
+/// Fields are only ordered if they have the same position.
 ///
 /// To get the value of a field, convert it to a `u16` using [From]/[Into].
-pub struct Field<P> {
-    /// The value.
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+pub struct Field {
+    // We don't expose these fields because doing so would allow invariant breakage:
+    // 1. the maximum value of `val` is `position.cap() - 1`;
+    // 2. `Time` relies on the fields' positions lining up with their parts of the struct.
+    /// The value, in terms of the units of `position`.
     val: u16,
-    /// The phantom type.
-    phantom: PhantomData<*const P>,
-}
-
-/// Object-safe, position-erased trait for fields.
-///
-/// This is used to make it possible to be generic over the particular position marker in use.
-pub trait Any: fmt::Display {
-    // Move things into this trait as soon as we need them.
-
-    /// Parses an input string into this field.
-    ///
-    /// It isn't possible to make [Any] a subtrait of `std::str::FromStr` for object safety and
-    /// sizedness reasons, so this is the next best thing.
-    ///
-    /// # Errors
-    ///
-    /// Fails if the parse operation fails for any reason.
-    fn parse_from(&mut self, input: &str) -> Result<()>;
-}
-
-// The phantom type makes derivations difficult.
-
-impl<P> Clone for Field<P> {
-    fn clone(&self) -> Self {
-        Self::new(self.val)
-    }
-}
-
-impl<P> Copy for Field<P> {}
-
-impl<P> std::fmt::Debug for Field<P> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.val.fmt(f)
-    }
-}
-
-impl<P> Default for Field<P> {
-    fn default() -> Self {
-        Self::new(0)
-    }
-}
-
-impl<P> Hash for Field<P> {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.val.hash(state);
-    }
+    /// The position this field represents.
+    position: Position,
 }
 
 /// We can extract the value of the field, regardless of position.
-impl<P> From<Field<P>> for u16 {
-    fn from(field: Field<P>) -> u16 {
+impl From<Field> for u16 {
+    fn from(field: Field) -> u16 {
         field.val
     }
 }
 
-impl<P> PartialEq for Field<P> {
-    fn eq(&self, other: &Self) -> bool {
-        self.val == other.val
-    }
-}
-
-impl<P> Eq for Field<P> {}
-
-impl<P> PartialOrd for Field<P> {
+impl PartialOrd for Field {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.val.partial_cmp(&other.val)
+        if self.position == other.position {
+            Some(self.val.cmp(&other.val))
+        } else {
+            None
+        }
     }
 }
 
-impl<P> Ord for Field<P> {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.val.cmp(&other.val)
+impl fmt::Display for Field {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let nd = self.position.num_digits();
+        let width = f.width().unwrap_or(nd);
+        let mut v = self.val;
+
+        // Drop digits from the right if we are showing msec and need a shorter width than usual.
+        if self.is_msecs() && width < nd {
+            v = truncate_digits(v, nd - width);
+        }
+
+        write!(f, "{:0>width$}", v, width = width)
     }
 }
 
-impl<P: Marker> TryFrom<u32> for Field<P> {
-    type Error = Error;
+fn truncate_digits(v: u16, to_drop: usize) -> u16 {
+    v / (10_u16).saturating_pow(to_drop.try_into().unwrap_or(1))
+}
 
-    /// Tries to fit `val` into this field.
+impl Field {
+    /// Creates a field at `position` with value zero.
     ///
     /// ```
     /// use std::convert::TryFrom;
-    /// use zombiesplit::model::time::Second;
+    /// use zombiesplit::model::time::{Field, Position};
     ///
-    /// let f1 = Second::try_from(4);
+    /// let f = Field::zero(Position::Seconds);
+    /// assert_eq!(u16::from(f), 0);
+    /// ```
+    #[must_use]
+    pub fn zero(position: Position) -> Self {
+        Self { position, val: 0 }
+    }
+
+    /// Tries to construct a field with a given position and value, failing if the value is too big.
+    ///
+    /// ```
+    /// use std::convert::TryFrom;
+    /// use zombiesplit::model::time::{Field, Position};
+    ///
+    /// let f1 = Field::new(Position::Seconds, 4);
     /// assert!(f1.is_ok(), "shouldn't have overflowed");
-    /// let f2 = Second::try_from(64);
+    /// let f2 = Field::new(Position::Seconds, 64);
     /// assert!(!f2.is_ok(), "should have overflowed");
     /// ```
     ///
     /// # Errors
     ///
     /// Returns `Error::FieldTooBig` if `val` is too large for the field.
-    fn try_from(val: u32) -> Result<Self> {
-        Self::new_with_carry(val).try_into()
+    pub fn new(position: Position, val: u32) -> Result<Self> {
+        Carry::new(position, val).try_into()
     }
-}
 
-impl<P: Marker> fmt::Display for Field<P> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        P::fmt_value(self.val, f)
-    }
-}
-
-impl<P: Marker> FromStr for Field<P> {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Self> {
-        if s.is_empty() {
-            return Ok(Self::default());
-        }
-
-        let val: u32 = P::preprocess_string(s)
-            .parse()
-            .map_err(|err| Error::FieldParse {
-                pos: P::position(),
-                err,
-            })?;
-        Self::try_from(val)
-    }
-}
-
-impl<P> Field<P> {
-    /// Creates a new field with the given value.
+    /// Tries to construct a field with a given position, parsing it from an undelimited string.
     ///
-    /// This is not widely exposed to avoid the invariant (val is between 0 and
-    /// position maximum) being broken.
-    #[must_use]
-    fn new(val: u16) -> Self {
-        Self {
-            val,
-            phantom: PhantomData::default(),
-        }
+    /// ```
+    /// use zombiesplit::model::time::{Field, Position};
+    ///
+    /// let f1 = Field::new(Position::Seconds, 4);
+    /// assert!(f1.is_ok(), "shouldn't have overflowed");
+    /// let f2 = Field::new(Position::Seconds, 64);
+    /// assert!(!f2.is_ok(), "should have overflowed");
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns any errors from parsing the value (typically wrapped integer parsing errors) or
+    /// from `new`.
+    pub fn parse(position: Position, s: &str) -> Result<Self> {
+        let val = if s.is_empty() {
+            Ok(0)
+        } else {
+            position.parse_value(s)
+        }?;
+        Self::new(position, val)
     }
-}
 
-impl<P: Marker> Field<P> {
+    /// Tries to find `position`'s delimiter in `s`, and parses the
+    /// delimited number if one exists; otherwise, returns an empty field.
+    ///
+    /// # Errors
+    ///
+    /// Returns any errors from parsing the value (typically wrapped integer parsing errors) or
+    /// from `new`.
+    pub(super) fn parse_delimited(position: Position, s: &str) -> Result<(Self, &str)> {
+        let (to_parse, to_return) = position.split_delimiter(s);
+        Ok((Self::parse(position, to_parse)?, to_return))
+    }
+
+    /// Formats the value `v` in a way appropriate for this position.
+    ///
+    /// # Errors
+    ///
+    /// Returns various `fmt::Error` errors if formatting the value or its
+    /// delimiter fails.
+    pub(super) fn fmt_value(self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let nd = self.position.num_digits();
+
+        let width = f.width().unwrap_or(nd);
+
+        let v = if self.is_msecs() && width < nd {
+            truncate_digits(self.val, width - nd)
+        } else {
+            self.val
+        };
+
+        write!(f, "{:0>width$}", v, width = width)
+    }
+
     /// Formats the value `v` with a delimiter, if nonzero.
     pub(super) fn fmt_value_delimited(self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        P::fmt_value_delimited(self.val, f)
+        if self.is_msecs() {
+            // No delimiter, always format
+            self.fmt_value(f)?;
+        } else if self.val != 0 {
+            self.fmt_value(f)?;
+            f.write_char(self.position.delimiter())?;
+        }
+
+        Ok(())
     }
 
-    /// Tries to find this field's position delimiter in `s`, and parses the
-    /// delimited number if one exists; otherwise, returns an empty field.
-    pub(super) fn parse_delimited(s: &str) -> Result<(Self, &str)> {
-        let (to_parse, to_return) = P::split_delimiter(s);
-        Ok((to_parse.parse()?, to_return))
-    }
-
-    /// Fits as much of `val` as possible into a field, and returns the field
-    /// and any carry.
-    ///
-    /// ```
-    /// use zombiesplit::model::time::Second;
-    /// let result = Second::new_with_carry(64);
-    /// assert_eq!(u16::from(result.value), 4, "should have taken 4 seconds");
-    /// assert_eq!(result.carry, 1, "should have carried over 1 minute")
-    /// ```
-    #[must_use]
-    pub fn new_with_carry(val: u32) -> Carry<Self> {
-        Carry::from_division(val, P::cap()).map(|x| Self::new(x.try_into().unwrap_or_default()))
-    }
     /// Returns this field's value as milliseconds.
     ///
     /// ```
-    /// use zombiesplit::model::time::Second;
+    /// use zombiesplit::model::time::{Field, Position};
     /// use std::convert::TryFrom;
-    /// let msec = Second::try_from(20).unwrap().as_msecs();
+    /// let msec = Field::new(Position::Seconds, 20).unwrap().as_msecs();
     /// assert_eq!(msec, 20_000, "20 secs = 20,000 msecs");
     /// ```
     #[must_use]
     pub fn as_msecs(self) -> u32 {
-        u32::from(self.val) * P::ms_offset()
+        u32::from(self.val) * self.position.ms_offset()
+    }
+
+    fn is_msecs(self) -> bool {
+        matches!(self.position, Position::Milliseconds)
     }
 }
 
-impl<P: Marker> TryFrom<carry::Carry<Field<P>>> for Field<P> {
+/// A field with carry into the next position.
+pub struct Carry {
+    /// The field, modulo its position's capacity.
+    pub field: Field,
+    /// Any carry into the next position.
+    pub carry: u32,
+    /// The original value, stored for error reporting.
+    pub original: u32,
+}
+
+impl Carry {
+    /// Constructs a field at `position` with `val` modulo `position`'s cap.
+    /// The remainder is stored as carry.
+    #[must_use]
+    pub fn new(position: Position, val: u32) -> Self {
+        let divisor = position.cap();
+        let carried = val % divisor;
+        Self {
+            field: Field {
+                position,
+                val: carried.try_into().expect("all caps should be <u16"),
+            },
+            carry: (val - carried) / divisor,
+            original: val,
+        }
+    }
+}
+
+/// We can convert from a carry to a field, if the carry is empty.
+impl TryFrom<Carry> for Field {
     type Error = Error;
 
-    fn try_from(c: carry::Carry<Field<P>>) -> Result<Field<P>> {
+    fn try_from(c: Carry) -> Result<Field> {
         if c.carry == 0 {
-            Ok(c.value)
+            Ok(c.field)
         } else {
             Err(Error::FieldTooBig {
-                pos: P::position(),
+                pos: c.field.position,
                 val: c.original,
             })
         }
     }
 }
 
-/// Erasing the position field.
-impl<P: Marker> Any for Field<P> {
-    fn parse_from(&mut self, input: &str) -> Result<()> {
-        // TODO(@MattWindsor91): do this more efficiently
-        *self = input.parse()?;
-        Ok(())
-    }
-}
-
-/// Shorthand for an hour field.
-pub type Hour = Field<position::Hour>;
-/// Shorthand for a minute field.
-pub type Minute = Field<position::Minute>;
-/// Shorthand for a second field.
-pub type Second = Field<position::Second>;
-/// Shorthand for a millisecond field.
-pub type Msec = Field<position::Msec>;
-
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     /// Tests that the unusual parsing behaviour of milliseconds works properly.
     mod msec {
+        use super::*;
+
         /// Tests a millisecond parse.
         fn test_parse(from: &'static str, want: u16) {
-            let t: super::super::Msec = from.parse().expect("should be valid");
+            let t = Field::parse(Position::Milliseconds, from).expect("should be valid");
             assert_eq!(u16::from(t), want);
         }
 
         /// Tests a millisecond display.
         fn test_display(from: u16, want: &'static str) {
-            let t: super::super::Msec = super::super::Msec::new(from);
+            let t = Field {
+                position: Position::Milliseconds,
+                val: from,
+            };
             assert_eq!(format!("{}", t), want);
         }
 
@@ -336,14 +342,20 @@ mod tests {
         /// Tests that truncating a millisecond field to two digits drops digits from the right.
         #[test]
         fn display_three_digits_as_two() {
-            let t: super::super::Msec = super::super::Msec::new(123);
+            let t = Field {
+                val: 123,
+                position: Position::Milliseconds,
+            };
             assert_eq!(format!("{:2}", t), "12");
         }
 
         /// Tests that stretching a millisecond field to four digits zero-pads on the left.
         #[test]
         fn display_three_digits_as_four() {
-            let t: super::super::Msec = super::super::Msec::new(123);
+            let t: Field = Field {
+                position: Position::Milliseconds,
+                val: 123,
+            };
             assert_eq!(format!("{:4}", t), "0123");
         }
     }
