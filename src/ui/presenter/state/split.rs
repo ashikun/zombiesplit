@@ -6,7 +6,6 @@ use crate::model::{
     aggregate,
     attempt::observer::{split, time},
     comparison::pace::{self, PacedTime},
-    time::position,
 };
 
 /// Presenter state about one split.
@@ -99,13 +98,7 @@ impl Split {
             if let Some(ref field) = e.field {
                 let pos = field.position();
                 out.field = Some(pos);
-                let target = match pos {
-                    position::Index::Hours => &mut out.hours,
-                    position::Index::Minutes => &mut out.mins,
-                    position::Index::Seconds => &mut out.secs,
-                    position::Index::Milliseconds => &mut out.msecs,
-                };
-                *target = field.to_string();
+                out[pos] = field.to_string();
             }
 
             out

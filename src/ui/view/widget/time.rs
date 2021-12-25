@@ -8,7 +8,7 @@ use super::{
     },
     layout,
 };
-use crate::model::time::{format, position};
+use crate::model::time;
 use std::{
     fmt::{Display, Write},
     ops::Index,
@@ -84,7 +84,7 @@ impl Layout {
     /// both times and editors to be rendered using the same codepath.
     ///
     /// If `time` is `None`, a placeholder will be rendered instead.
-    pub fn render<T: Index<position::Index, Output = W>, W: Display + ?Sized>(
+    pub fn render<T: Index<time::Position, Output = W>, W: Display + ?Sized>(
         &self,
         r: &mut dyn Renderer,
         time: Option<&T>,
@@ -125,7 +125,7 @@ fn try_fill(r: &mut dyn Renderer, rect: Rect, colour: &Colour) -> Result<()> {
 }
 
 /// Calculates the width of a position in a time widget, excluding any padding.
-fn position_width(fm: &font::Metrics, pos: format::Position) -> i32 {
+fn position_width(fm: &font::Metrics, pos: time::format::Position) -> i32 {
     let nd: i32 = pos.num_digits.try_into().unwrap_or_default();
     let digits = fm.span_w(nd);
     let mut sigil = fm.span_w_str(unit_sigil(pos.index));
@@ -138,20 +138,20 @@ fn position_width(fm: &font::Metrics, pos: format::Position) -> i32 {
 }
 
 /// The sigil displayed after the position indexed by `idx`.
-const fn unit_sigil(idx: position::Index) -> &'static str {
+const fn unit_sigil(idx: time::Position) -> &'static str {
     // TODO(@MattWindsor91): consider making these user configurable.
     match idx {
-        position::Index::Hours => ":",
-        position::Index::Minutes => "'",
-        position::Index::Seconds => "\"",
-        position::Index::Milliseconds => "",
+        time::Position::Hours => ":",
+        time::Position::Minutes => "'",
+        time::Position::Seconds => "\"",
+        time::Position::Milliseconds => "",
     }
 }
 
 /// Calculated positioning information for a time widget.
 #[derive(Debug, Copy, Clone)]
 struct Position {
-    index_layout: format::Position,
+    index_layout: time::format::Position,
     rect: Rect,
 }
 
@@ -173,10 +173,10 @@ impl From<colour::fg::Id> for Colour {
     }
 }
 
-impl Index<position::Index> for Colour {
+impl Index<time::Position> for Colour {
     type Output = colour::Pair;
 
-    fn index(&self, index: position::Index) -> &Self::Output {
+    fn index(&self, index: time::Position) -> &Self::Output {
         self.field
             .as_ref()
             .filter(|x| x.field == index)
@@ -189,7 +189,7 @@ impl Index<position::Index> for Colour {
 /// This is generally used for field editors.
 pub struct FieldColour {
     /// The field that triggers this override.
-    pub field: position::Index,
+    pub field: time::Position,
     /// The overriding colour.
     pub colour: colour::Pair,
 }

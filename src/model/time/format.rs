@@ -2,7 +2,7 @@
 
 These structures and related support let users tell zombiesplit how to lay out times on the UI. */
 
-use crate::model::time::position;
+use crate::model::time;
 use itertools::Itertools;
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 use std::{
@@ -65,22 +65,22 @@ pub enum Error {
 /// Shorthand for results over time parsing.
 pub type Result<T> = std::result::Result<T, Error>;
 
-fn parse_char(c: char) -> Result<position::Index> {
+fn parse_char(c: char) -> Result<time::Position> {
     match c {
-        CHAR_HOUR => Ok(position::Index::Hours),
-        CHAR_MIN => Ok(position::Index::Minutes),
-        CHAR_SEC => Ok(position::Index::Seconds),
-        CHAR_MSEC => Ok(position::Index::Milliseconds),
+        CHAR_HOUR => Ok(time::Position::Hours),
+        CHAR_MIN => Ok(time::Position::Minutes),
+        CHAR_SEC => Ok(time::Position::Seconds),
+        CHAR_MSEC => Ok(time::Position::Milliseconds),
         _ => Err(Error::BadChar(c)),
     }
 }
 
-fn emit_char(i: position::Index) -> char {
+fn emit_char(i: time::Position) -> char {
     match i {
-        position::Index::Hours => CHAR_HOUR,
-        position::Index::Minutes => CHAR_MIN,
-        position::Index::Seconds => CHAR_SEC,
-        position::Index::Milliseconds => CHAR_MSEC,
+        time::Position::Hours => CHAR_HOUR,
+        time::Position::Minutes => CHAR_MIN,
+        time::Position::Seconds => CHAR_SEC,
+        time::Position::Milliseconds => CHAR_MSEC,
     }
 }
 
@@ -95,7 +95,7 @@ const CHAR_MSEC: char = 'u';
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct Position {
     /// The index being displayed.
-    pub index: position::Index,
+    pub index: time::Position,
     /// The number of digits to display for this index.
     pub num_digits: usize,
 }
@@ -114,19 +114,17 @@ mod tests {
     /// Tests parsing a 2-minute/2-second/3-millisecond layout.
     #[test]
     fn test_time_parse_mmssuuu() {
-        use position::Index;
-
         let expected = vec![
             Position {
-                index: Index::Minutes,
+                index: time::Position::Minutes,
                 num_digits: 2,
             },
             Position {
-                index: Index::Seconds,
+                index: time::Position::Seconds,
                 num_digits: 2,
             },
             Position {
-                index: Index::Milliseconds,
+                index: time::Position::Milliseconds,
                 num_digits: 3,
             },
         ];
@@ -139,13 +137,13 @@ mod tests {
     /// Tests that round-tripping the parse/emit for index characters works ok.
     #[test]
     fn test_parse_char_round_trip() {
-        use position::Index;
+        use time::Position;
 
         let positions = [
-            Index::Hours,
-            Index::Minutes,
-            Index::Seconds,
-            Index::Milliseconds,
+            Position::Hours,
+            Position::Minutes,
+            Position::Seconds,
+            Position::Milliseconds,
         ];
 
         for i in positions {

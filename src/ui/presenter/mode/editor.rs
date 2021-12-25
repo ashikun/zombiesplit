@@ -11,10 +11,7 @@ use super::{
     nav::Nav,
     EventResult, Mode,
 };
-use crate::model::{
-    attempt::Action,
-    time::{self, position},
-};
+use crate::model::{attempt, time};
 
 /// A split editor.
 pub struct Editor {
@@ -49,10 +46,10 @@ impl Mode for Editor {
         result
     }
 
-    fn on_exit(&mut self, state: &mut State) -> Option<Action> {
+    fn on_exit(&mut self, state: &mut State) -> Option<attempt::Action> {
         self.commit_field();
         state.set_editor(None);
-        Some(Action::Push(
+        Some(attempt::Action::Push(
             self.cur.position(),
             std::mem::take(&mut self.time),
         ))
@@ -62,7 +59,7 @@ impl Mode for Editor {
 impl Editor {
     /// Constructs a new editor at the given cursor, on the given field if any.
     #[must_use]
-    pub fn new(cur: Cursor, field: Option<position::Index>) -> Self {
+    pub fn new(cur: Cursor, field: Option<time::Position>) -> Self {
         Self {
             cur,
             time: time::Time::default(),
@@ -83,7 +80,7 @@ impl Editor {
 
     /// Enters the named field, committing any edits on any current field.
     #[must_use]
-    pub fn enter_field(&mut self, field: position::Index) -> EventResult {
+    pub fn enter_field(&mut self, field: time::Position) -> EventResult {
         self.commit_field();
         self.field = Some(Field::new(field));
         EventResult::Handled
@@ -132,7 +129,7 @@ impl Editor {
 /// A split field editor.
 pub struct Field {
     /// The position being edited.
-    position: position::Index,
+    position: time::Position,
     /// The current string.
     string: String,
 }
@@ -140,7 +137,7 @@ pub struct Field {
 impl Field {
     /// Creates a new editor for position `position`.
     #[must_use]
-    pub fn new(position: position::Index) -> Self {
+    pub fn new(position: time::Position) -> Self {
         Self {
             position,
             string: String::with_capacity(max_digits(position)),
@@ -149,7 +146,7 @@ impl Field {
 
     /// Gets this editor's position.
     #[must_use]
-    pub fn position(&self) -> position::Index {
+    pub fn position(&self) -> time::Position {
         self.position
     }
 
@@ -184,7 +181,8 @@ impl Field {
     /// Fails if the string is not parseable for the particular field we're
     /// editing.
     pub fn commit(&self, time: &mut time::Time) -> time::error::Result<()> {
-        time.set_field_str(self.position, &self.string)
+        time[self.position].parse_from(&self.string)?;
+        Ok(())
     }
 
     fn max_digits(&self) -> usize {
@@ -192,12 +190,12 @@ impl Field {
     }
 }
 
-fn max_digits(position: position::Index) -> usize {
-    use position::Index;
+fn max_digits(position: time::Position) -> usize {
+    // TODO(@MattWindsor91): this should depend on the user format information
     match position {
-        Index::Hours => 0, // for now
-        Index::Minutes | Index::Seconds => 2,
-        Index::Milliseconds => 3,
+        time::Position::Hours => 0, // for now
+        time::Position::Minutes | time::Position::Seconds => 2,
+        time::Position::Milliseconds => 3,
     }
 }
 

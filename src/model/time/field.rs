@@ -2,7 +2,7 @@
 use super::{
     carry::{self, Carry},
     error::{Error, Result},
-    position::{self, Position},
+    position::{self, Marker},
 };
 use std::hash::{Hash, Hasher};
 use std::{
@@ -25,8 +25,18 @@ pub struct Field<P> {
 /// Object-safe, position-erased trait for fields.
 ///
 /// This is used to make it possible to be generic over the particular position marker in use.
-pub trait Any: std::fmt::Display {
+pub trait Any: fmt::Display {
     // Move things into this trait as soon as we need them.
+
+    /// Parses an input string into this field.
+    ///
+    /// It isn't possible to make [Any] a subtrait of `std::str::FromStr` for object safety and
+    /// sizedness reasons, so this is the next best thing.
+    ///
+    /// # Errors
+    ///
+    /// Fails if the parse operation fails for any reason.
+    fn parse_from(&mut self, input: &str) -> Result<()>;
 }
 
 // The phantom type makes derivations difficult.
@@ -84,7 +94,7 @@ impl<P> Ord for Field<P> {
     }
 }
 
-impl<P: Position> TryFrom<u32> for Field<P> {
+impl<P: Marker> TryFrom<u32> for Field<P> {
     type Error = Error;
 
     /// Tries to fit `val` into this field.
@@ -107,13 +117,13 @@ impl<P: Position> TryFrom<u32> for Field<P> {
     }
 }
 
-impl<P: Position> fmt::Display for Field<P> {
+impl<P: Marker> fmt::Display for Field<P> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         P::fmt_value(self.val, f)
     }
 }
 
-impl<P: Position> FromStr for Field<P> {
+impl<P: Marker> FromStr for Field<P> {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self> {
@@ -124,7 +134,7 @@ impl<P: Position> FromStr for Field<P> {
         let val: u32 = P::preprocess_string(s)
             .parse()
             .map_err(|err| Error::FieldParse {
-                pos: P::name(),
+                pos: P::position(),
                 err,
             })?;
         Self::try_from(val)
@@ -145,7 +155,7 @@ impl<P> Field<P> {
     }
 }
 
-impl<P: Position> Field<P> {
+impl<P: Marker> Field<P> {
     /// Formats the value `v` with a delimiter, if nonzero.
     pub(super) fn fmt_value_delimited(self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         P::fmt_value_delimited(self.val, f)
@@ -185,7 +195,7 @@ impl<P: Position> Field<P> {
     }
 }
 
-impl<P: Position> TryFrom<carry::Carry<Field<P>>> for Field<P> {
+impl<P: Marker> TryFrom<carry::Carry<Field<P>>> for Field<P> {
     type Error = Error;
 
     fn try_from(c: carry::Carry<Field<P>>) -> Result<Field<P>> {
@@ -193,7 +203,7 @@ impl<P: Position> TryFrom<carry::Carry<Field<P>>> for Field<P> {
             Ok(c.value)
         } else {
             Err(Error::FieldTooBig {
-                pos: P::name(),
+                pos: P::position(),
                 val: c.original,
             })
         }
@@ -201,7 +211,13 @@ impl<P: Position> TryFrom<carry::Carry<Field<P>>> for Field<P> {
 }
 
 /// Erasing the position field.
-impl<P: Position> Any for Field<P> {}
+impl<P: Marker> Any for Field<P> {
+    fn parse_from(&mut self, input: &str) -> Result<()> {
+        // TODO(@MattWindsor91): do this more efficiently
+        *self = input.parse()?;
+        Ok(())
+    }
+}
 
 /// Shorthand for an hour field.
 pub type Hour = Field<position::Hour>;

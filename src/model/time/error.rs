@@ -1,6 +1,5 @@
 //! Low-level helpers for parsing times.
 
-use super::position;
 use std::num::ParseIntError;
 use thiserror::Error;
 
@@ -9,11 +8,11 @@ use thiserror::Error;
 pub enum Error {
     #[error("field {pos} failed parsing: {err}")]
     FieldParse {
-        pos: position::Index,
+        pos: super::Position,
         err: ParseIntError,
     },
     #[error("field {pos} too big: was {val}")]
-    FieldTooBig { pos: position::Index, val: u32 },
+    FieldTooBig { pos: super::Position, val: u32 },
     #[error("millisecond value {0} too large")]
     MsecOverflow(u32),
 }

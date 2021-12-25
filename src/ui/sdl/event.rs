@@ -1,6 +1,6 @@
 //! Mapping between SDL events and presenter events.
 
-use crate::model::{attempt::Action, time::position};
+use crate::model::{attempt, time};
 use crate::ui::presenter::Core;
 
 use super::super::presenter::{
@@ -48,10 +48,10 @@ fn from_key(k: sdl2::keyboard::Keycode) -> Option<Event> {
         Keycode::Backspace => Some(Event::Modal(Modal::Edit(Edit::Remove))),
         // Time fields
         // We don't allow entering hours yet, but this may change.
-        Keycode::M => Some(Event::Modal(Modal::EnterField(position::Index::Minutes))),
-        Keycode::S => Some(Event::Modal(Modal::EnterField(position::Index::Seconds))),
+        Keycode::M => Some(Event::Modal(Modal::EnterField(time::Position::Minutes))),
+        Keycode::S => Some(Event::Modal(Modal::EnterField(time::Position::Seconds))),
         Keycode::Period => Some(Event::Modal(Modal::EnterField(
-            position::Index::Milliseconds,
+            time::Position::Milliseconds,
         ))),
         // Cursor motions
         Keycode::J | Keycode::Down | Keycode::Space | Keycode::Return => {
@@ -62,7 +62,7 @@ fn from_key(k: sdl2::keyboard::Keycode) -> Option<Event> {
         Keycode::H | Keycode::Left => Some(Event::Modal(Modal::Undo)),
         Keycode::L | Keycode::Right => Some(Event::Modal(Modal::Commit)),
         Keycode::X | Keycode::Delete => Some(Event::Modal(Modal::Delete)),
-        Keycode::Z => Some(Event::Action(Action::NewRun)),
+        Keycode::Z => Some(Event::Action(attempt::Action::NewRun)),
         Keycode::Escape => Some(Event::Quit),
         _ => None,
     }

@@ -8,11 +8,9 @@ pub mod footer;
 pub mod split;
 
 use std::fmt::Display;
-use std::ops::Index;
+use std::ops::{Index, IndexMut};
 
-use crate::model::{
-    aggregate, attempt, comparison::pace::PacedTime, game::category, short, time::position,
-};
+use crate::model::{aggregate, attempt, comparison::pace::PacedTime, game::category, short, time};
 
 use super::cursor::SplitPosition;
 
@@ -170,7 +168,7 @@ impl State {
 #[derive(Debug, Default, Clone)]
 pub struct Editor {
     /// The current field being edited, if any.
-    pub field: Option<position::Index>,
+    pub field: Option<time::Position>,
     /// The current hours string.
     ///
     /// This is not actually exposed anywhere yet, but exists to simplify the index impl.
@@ -184,28 +182,34 @@ pub struct Editor {
 }
 
 impl Editor {
-    /// Gets a readout of the field at position `name`.
+    /// Gets a readout of the field at position `pos`.
     #[must_use]
-    pub fn field(&self, name: position::Index) -> &str {
-        match name {
-            position::Index::Minutes => &self.mins,
-            position::Index::Seconds => &self.secs,
-            position::Index::Milliseconds => &self.msecs,
-            position::Index::Hours => &self.hours,
+    pub fn field(&self, pos: time::Position) -> &str {
+        &*self[pos]
+    }
+}
+
+impl Index<time::Position> for Editor {
+    type Output = String;
+
+    // TODO(@MattWindsor91): this returns &String, which is somewhat odd.
+    fn index(&self, index: time::Position) -> &Self::Output {
+        match index {
+            time::Position::Hours => &self.hours,
+            time::Position::Minutes => &self.mins,
+            time::Position::Seconds => &self.secs,
+            time::Position::Milliseconds => &self.msecs,
         }
     }
 }
 
-impl Index<position::Index> for Editor {
-    type Output = String;
-
-    // TODO(@MattWindsor91): this is hacky.
-    fn index(&self, index: position::Index) -> &Self::Output {
+impl IndexMut<time::Position> for Editor {
+    fn index_mut(&mut self, index: time::Position) -> &mut Self::Output {
         match index {
-            position::Index::Hours => &self.hours,
-            position::Index::Minutes => &self.mins,
-            position::Index::Seconds => &self.secs,
-            position::Index::Milliseconds => &self.msecs,
+            time::Position::Hours => &mut self.hours,
+            time::Position::Minutes => &mut self.mins,
+            time::Position::Seconds => &mut self.secs,
+            time::Position::Milliseconds => &mut self.msecs,
         }
     }
 }

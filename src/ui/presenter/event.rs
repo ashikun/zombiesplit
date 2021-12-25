@@ -1,6 +1,6 @@
 //! Events understood by the user interface.
 
-use crate::model::{attempt::Action, time::position};
+use crate::model::{attempt, time};
 
 /// A high-level event.
 ///
@@ -12,7 +12,7 @@ pub enum Event {
     Modal(Modal),
     /// An event that translates directly into an action on the current attempt.
     /// These are handled globally.
-    Action(Action),
+    Action(attempt::Action),
     /// A request to quit the user interface.
     Quit,
 }
@@ -40,7 +40,7 @@ pub enum Modal {
     /// Perform an event on the currently open editor.
     Edit(Edit),
     /// Start editing a field at a particular position.
-    EnterField(position::Index),
+    EnterField(time::Position),
     /// Move the cursor.
     Cursor(super::cursor::Motion),
 }

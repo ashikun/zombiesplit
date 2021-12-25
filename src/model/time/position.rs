@@ -9,12 +9,12 @@ const SECS_IN_MIN: u32 = 60;
 const MSECS_IN_SEC: u32 = 1000;
 
 /// Trait for position phantom types.
-pub trait Position {
+pub trait Marker {
     /// The delimiter for this position.
     fn delimiter() -> char;
 
-    /// The name of the position.
-    fn name() -> Index;
+    /// The position for which this is a marker.
+    fn position() -> Position;
 
     /// The multiplier needed to convert this position to milliseconds.
     fn ms_offset() -> u32;
@@ -65,13 +65,13 @@ pub trait Position {
 
 /// Phantom type for hours.
 pub struct Hour;
-impl Position for Hour {
+impl Marker for Hour {
     fn delimiter() -> char {
         'h'
     }
 
-    fn name() -> Index {
-        Index::Hours
+    fn position() -> Position {
+        Position::Hours
     }
 
     fn ms_offset() -> u32 {
@@ -85,13 +85,13 @@ impl Position for Hour {
 
 /// Phantom type for minutes.
 pub struct Minute;
-impl Position for Minute {
+impl Marker for Minute {
     fn delimiter() -> char {
         'm'
     }
 
-    fn name() -> Index {
-        Index::Minutes
+    fn position() -> Position {
+        Position::Minutes
     }
 
     fn ms_offset() -> u32 {
@@ -105,13 +105,13 @@ impl Position for Minute {
 
 /// Phantom type for seconds.
 pub struct Second;
-impl Position for Second {
+impl Marker for Second {
     fn delimiter() -> char {
         's'
     }
 
-    fn name() -> Index {
-        Index::Seconds
+    fn position() -> Position {
+        Position::Seconds
     }
 
     fn ms_offset() -> u32 {
@@ -127,13 +127,13 @@ impl Position for Second {
 ///
 /// Milliseconds have a subtly different parse/format from the other components.
 pub struct Msec;
-impl Position for Msec {
+impl Marker for Msec {
     fn delimiter() -> char {
         '\0'
     }
 
-    fn name() -> Index {
-        Index::Milliseconds
+    fn position() -> Position {
+        Position::Milliseconds
     }
 
     fn ms_offset() -> u32 {
@@ -184,7 +184,7 @@ const MSEC_DIGITS: usize = 3;
 
 /// Enumeration of possible positions in a time.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub enum Index {
+pub enum Position {
     /// Denotes the hours field.
     Hours,
     /// Denotes the minutes field.
@@ -195,7 +195,7 @@ pub enum Index {
     Milliseconds,
 }
 
-impl Display for Index {
+impl Display for Position {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
             Self::Hours => "hours",
