@@ -3,10 +3,12 @@
 These structures and related support let users tell zombiesplit how to lay out times on the UI. */
 
 use crate::model::time;
+use crate::model::time::Position;
 use itertools::Itertools;
+use num_integer::Integer;
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 use std::{
-    fmt::{Display, Formatter},
+    fmt::{Display, Formatter, Write},
     str::FromStr,
 };
 use thiserror::Error;
@@ -16,11 +18,11 @@ use thiserror::Error;
 /// This conceptually takes the form of a list of (position, digit length) pairs, for instance
 /// (hour, 3).
 #[derive(DeserializeFromStr, SerializeDisplay, Clone, Debug)]
-pub struct Format(Vec<Position>);
+pub struct Format(Vec<Component>);
 
 impl Format {
     /// Iterates over the position layout details in this time layout.
-    pub fn positions(&self) -> impl Iterator<Item = &Position> {
+    pub fn components(&self) -> impl Iterator<Item = &Component> {
         self.0.iter()
     }
 }
@@ -29,53 +31,69 @@ impl FromStr for Format {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self> {
-        s.chars()
-            .group_by(|x| *x)
-            .into_iter()
-            .map(|(c, group)| parse_run(c, group.count()))
-            .try_collect()
-            .map(Format)
+        // TODO(@MattWindsor91): there might be a more efficient way of doing this
+        let mut is_escaping = false;
+        let mut result = Vec::with_capacity(s.len());
+
+        for (mut count, c) in s.chars().dedup_with_count() {
+            // Handle any escaped character first.
+            if is_escaping {
+                is_escaping = false;
+                count -= 1;
+                result.push(Component::Delimiter(c));
+            }
+            // Are there now further, unescaped, characters to go?
+            if 0 < count {
+                if c == CHAR_ESC {
+                    // Pairs of consecutive escape characters are escaped escapes, so pass those
+                    // through to the next part.
+                    let (whole_escs, rem) = count.div_rem(&2_usize);
+                    count = whole_escs;
+                    is_escaping = rem != 0;
+                }
+
+                if let Some(index) = parse_position_char(c) {
+                    result.push(Component::Position {
+                        index,
+                        num_digits: count,
+                    });
+                } else {
+                    for _ in 0..count {
+                        result.push(Component::Delimiter(c));
+                    }
+                }
+            }
+        }
+
+        if is_escaping {
+            Err(Self::Err::UnbalancedEscape)
+        } else {
+            Ok(Self(result))
+        }
     }
 }
 
-fn parse_run(c: char, num_digits: usize) -> Result<Position> {
-    Ok(Position {
-        index: parse_char(c)?,
-        num_digits,
-    })
+fn parse_position_char(c: char) -> Option<time::Position> {
+    match c {
+        CHAR_HOUR => Some(time::Position::Hours),
+        CHAR_MIN => Some(time::Position::Minutes),
+        CHAR_SEC => Some(time::Position::Seconds),
+        CHAR_MSEC => Some(time::Position::Milliseconds),
+        _ => None,
+    }
 }
 
 /// Time layouts can be displayed, in the same format as they are parsed.
 impl Display for Format {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        for Position { index, num_digits } in &self.0 {
-            f.write_str(&String::from(emit_char(*index)).repeat(*num_digits))?;
+        for c in &self.0 {
+            c.fmt(f)?;
         }
         Ok(())
     }
 }
 
-/// Time parsing errors.
-#[derive(Copy, Clone, Debug, Error, Eq, PartialEq)]
-pub enum Error {
-    #[error("Unexpected character: {0}")]
-    BadChar(char),
-}
-
-/// Shorthand for results over time parsing.
-pub type Result<T> = std::result::Result<T, Error>;
-
-fn parse_char(c: char) -> Result<time::Position> {
-    match c {
-        CHAR_HOUR => Ok(time::Position::Hours),
-        CHAR_MIN => Ok(time::Position::Minutes),
-        CHAR_SEC => Ok(time::Position::Seconds),
-        CHAR_MSEC => Ok(time::Position::Milliseconds),
-        _ => Err(Error::BadChar(c)),
-    }
-}
-
-fn emit_char(i: time::Position) -> char {
+fn char_of_position(i: time::Position) -> char {
     match i {
         time::Position::Hours => CHAR_HOUR,
         time::Position::Minutes => CHAR_MIN,
@@ -88,17 +106,58 @@ const CHAR_HOUR: char = 'h';
 const CHAR_MIN: char = 'm';
 const CHAR_SEC: char = 's';
 const CHAR_MSEC: char = 'u';
+const CHAR_ESC: char = '\\';
+const SPECIAL_CHARS: [char; 5] = [CHAR_HOUR, CHAR_MIN, CHAR_SEC, CHAR_MSEC, CHAR_ESC];
 
-/// Layout information for one position index in a time layout.
+/// Layout information for one component in a time layout.
 ///
 /// A vector of these structures fully defines how the UI should render times.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub struct Position {
-    /// The index being displayed.
-    pub index: time::Position,
-    /// The number of digits to display for this index.
-    pub num_digits: usize,
+pub enum Component {
+    /// A position component.
+    Position {
+        /// The index being displayed.
+        index: time::Position,
+        /// The number of digits to display for this index.
+        num_digits: usize,
+    },
+    /// A delimiter.
+    Delimiter(char),
 }
+
+impl Display for Component {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match *self {
+            Self::Position { index, num_digits } => emit_position(f, index, num_digits),
+            Self::Delimiter(c) => emit_delimiter(f, c),
+        }
+    }
+}
+
+fn emit_position(f: &mut Formatter, index: Position, num_digits: usize) -> std::fmt::Result {
+    let c = char_of_position(index);
+    for _ in 0..num_digits {
+        f.write_char(c)?;
+    }
+    Ok(())
+}
+
+fn emit_delimiter(f: &mut Formatter, c: char) -> std::fmt::Result {
+    if SPECIAL_CHARS.contains(&c) {
+        f.write_char(CHAR_ESC)?;
+    }
+    f.write_char(c)
+}
+
+/// Time parsing errors.
+#[derive(Copy, Clone, Debug, Error, Eq, PartialEq)]
+pub enum Error {
+    #[error("Expected a character after '\\'")]
+    UnbalancedEscape,
+}
+
+/// Shorthand for results over time parsing.
+pub type Result<T> = std::result::Result<T, Error>;
 
 #[cfg(test)]
 mod tests {
@@ -108,29 +167,93 @@ mod tests {
     #[test]
     fn test_time_parse_empty() {
         let actual: Format = "".parse().expect("parse failure");
-        assert_eq!(0, actual.positions().count());
+        assert_eq!(0, actual.components().count());
+    }
+
+    /// Tests parsing a failed escape.
+    #[test]
+    fn test_time_parse_failed_escape() {
+        let e = "\\"
+            .parse::<Format>()
+            .expect_err("should have failed to parse here");
+        assert_eq!(Error::UnbalancedEscape, e);
+    }
+
+    /// Tests parsing a 2-minute/2-second/2-millisecond layout with a fairly contrived use of / as
+    /// delimiter.
+    #[test]
+    fn test_time_parse_mmssuu_slashes() {
+        let expected = vec![
+            Component::Position {
+                index: time::Position::Minutes,
+                num_digits: 2,
+            },
+            Component::Delimiter('\\'),
+            Component::Position {
+                index: time::Position::Seconds,
+                num_digits: 2,
+            },
+            Component::Delimiter('\\'),
+            Component::Delimiter('\\'),
+            Component::Position {
+                index: time::Position::Milliseconds,
+                num_digits: 2,
+            },
+        ];
+
+        let actual: Format = r"mm\\ss\\\\uu".parse().expect("parse failure");
+        let apos: Vec<Component> = actual.components().cloned().collect();
+        assert_eq!(expected, apos);
     }
 
     /// Tests parsing a 2-minute/2-second/3-millisecond layout.
     #[test]
     fn test_time_parse_mmssuuu() {
         let expected = vec![
-            Position {
+            Component::Position {
                 index: time::Position::Minutes,
                 num_digits: 2,
             },
-            Position {
+            Component::Delimiter('"'),
+            Component::Position {
                 index: time::Position::Seconds,
                 num_digits: 2,
             },
-            Position {
+            Component::Delimiter('\''),
+            Component::Position {
                 index: time::Position::Milliseconds,
                 num_digits: 3,
             },
         ];
 
-        let actual: Format = "mmssuuu".parse().expect("parse failure");
-        let apos: Vec<Position> = actual.positions().cloned().collect();
+        let actual: Format = "mm\"ss\'uuu".parse().expect("parse failure");
+        let apos: Vec<Component> = actual.components().cloned().collect();
+        assert_eq!(expected, apos);
+    }
+
+    /// Tests parsing a 2-hour/2-minute/2-second layout with 'h', 'm', and 's' delimiters.
+    #[test]
+    fn test_time_parse_hms_with_letters() {
+        let expected = vec![
+            Component::Position {
+                index: time::Position::Hours,
+                num_digits: 2,
+            },
+            Component::Delimiter('h'),
+            Component::Position {
+                index: time::Position::Minutes,
+                num_digits: 2,
+            },
+            Component::Delimiter('m'),
+            Component::Position {
+                index: time::Position::Seconds,
+                num_digits: 2,
+            },
+            Component::Delimiter('s'),
+        ];
+
+        let actual: Format = r"hh\hmm\mss\s".parse().expect("parse failure");
+        let apos: Vec<Component> = actual.components().cloned().collect();
         assert_eq!(expected, apos);
     }
 
@@ -147,7 +270,10 @@ mod tests {
         ];
 
         for i in positions {
-            assert_eq!(i, parse_char(emit_char(i)).expect("parse failure"));
+            assert_eq!(
+                i,
+                parse_position_char(char_of_position(i)).expect("parse failure")
+            );
         }
     }
 }

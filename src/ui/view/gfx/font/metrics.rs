@@ -70,6 +70,19 @@ impl Metrics {
             })
     }
 
+    /// Like `span_w`, but calculates the width of `c` including any proportionality adjustments.
+    #[must_use]
+    pub fn span_w_char(&self, c: char) -> Length {
+        if c.len_utf8() == 1 {
+            let mut buf: [u8; 1] = [0];
+            let _ = c.encode_utf8(&mut buf);
+            self.glyph_size(buf[0]).w
+        } else {
+            // TODO(@MattWindsor91): maybe one day handle non-'high ASCII' UTF-8?
+            self.span_w(1)
+        }
+    }
+
     /// Calculates the relative X-coordinate of `anchor` within `str`.
     #[must_use]
     pub fn x_anchor_of_str(&self, str: &str, anchor: anchor::X) -> Length {

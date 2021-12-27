@@ -1,6 +1,9 @@
 //! The [Writer] struct.
 
 use super::{colour, font, metrics};
+use crate::ui::view::gfx::colour::bg::Id;
+use crate::ui::view::gfx::font::{Map, Metrics, Spec};
+use crate::ui::view::gfx::metrics::{Point, Rect};
 
 /// Helper for positioned writing of strings.
 pub struct Writer<'r, R: ?Sized> {
@@ -71,6 +74,29 @@ impl<'r, R: super::Renderer + ?Sized> Writer<'r, R> {
     pub fn align(mut self, anchor: metrics::anchor::X) -> Self {
         self.alignment = anchor;
         self
+    }
+}
+
+/// We can use a writer's underlying renderer through it.
+impl<'r, R: super::Renderer + ?Sized> super::Renderer for Writer<'r, R> {
+    fn write(&mut self, pos: Point, font: Spec, s: &str) -> crate::ui::view::gfx::Result<Point> {
+        self.renderer.write(pos, font, s)
+    }
+
+    fn fill(&mut self, rect: Rect, colour: Id) -> crate::ui::view::gfx::Result<()> {
+        self.renderer.fill(rect, colour)
+    }
+
+    fn clear(&mut self) {
+        self.renderer.clear();
+    }
+
+    fn present(&mut self) {
+        self.renderer.present();
+    }
+
+    fn font_metrics(&self) -> &Map<Metrics> {
+        self.renderer.font_metrics()
     }
 }
 

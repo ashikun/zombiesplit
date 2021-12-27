@@ -799,6 +799,7 @@ dependencies = [
  "env_logger",
  "itertools",
  "log",
+ "num-integer",
  "r2d2",
  "r2d2_sqlite",
  "rusqlite",

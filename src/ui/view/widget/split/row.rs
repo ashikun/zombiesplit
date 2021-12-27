@@ -56,7 +56,7 @@ impl<R: Renderer> Widget<R> for Row {
 }
 
 impl Row {
-    fn draw_name(&self, r: &mut dyn Renderer, state: &state::Split) -> gfx::Result<()> {
+    fn draw_name(&self, r: &mut impl Renderer, state: &state::Split) -> gfx::Result<()> {
         let colour = colour::fg::Id::Name(state.position);
 
         Writer::new(r)
@@ -66,7 +66,7 @@ impl Row {
         Ok(())
     }
 
-    fn draw_time_display(&self, r: &mut dyn Renderer, state: &state::Split) -> gfx::Result<()> {
+    fn draw_time_display(&self, r: &mut impl Renderer, state: &state::Split) -> gfx::Result<()> {
         if let Some(ref e) = state.editor {
             self.draw_editor(r, e)
         } else {
@@ -74,7 +74,7 @@ impl Row {
         }
     }
 
-    fn draw_editor(&self, r: &mut dyn Renderer, e: &state::Editor) -> gfx::Result<()> {
+    fn draw_editor(&self, r: &mut impl Renderer, e: &state::Editor) -> gfx::Result<()> {
         let field = e.field.map(|field| FieldColour {
             field,
             colour: colour::Pair {
@@ -92,7 +92,7 @@ impl Row {
         self.time.render(r, Some(e), &col)
     }
 
-    fn draw_time(&self, r: &mut dyn Renderer, state: &state::Split) -> gfx::Result<()> {
+    fn draw_time(&self, r: &mut impl Renderer, state: &state::Split) -> gfx::Result<()> {
         self.time.render(
             r,
             Some(time_to_display(state)),

@@ -3,12 +3,12 @@
 use super::{
     super::gfx::{
         colour, font,
-        metrics::{Anchor, Rect, Size},
+        metrics::{Anchor, Length, Rect, Size},
         Renderer, Result, Writer,
     },
     layout,
 };
-use crate::model::time;
+use crate::model::time::{self, format::Component};
 use std::{
     fmt::{Display, Write},
     ops::Index,
@@ -46,7 +46,7 @@ impl Layout {
         let raw: i32 = ctx
             .config
             .time
-            .positions()
+            .components()
             .map(|pos| position_width(fm, *pos) + fm.pad.w)
             .sum();
         // fix off by one from above padding
@@ -63,14 +63,14 @@ impl Layout {
 
         self.positions.clear();
 
-        for pos in ctx.config.time.positions() {
+        for component in ctx.config.time.components() {
             let size = Size {
-                w: position_width(fm, *pos),
+                w: position_width(fm, *component),
                 h: fm.span_h(1),
             };
             let rect = point.to_rect(size, Anchor::TOP_LEFT);
             self.positions.push(Position {
-                index_layout: *pos,
+                component: *component,
                 rect,
             });
 
@@ -86,72 +86,62 @@ impl Layout {
     /// If `time` is `None`, a placeholder will be rendered instead.
     pub fn render<T: Index<time::Position, Output = W>, W: Display + ?Sized>(
         &self,
-        r: &mut dyn Renderer,
+        r: &mut impl Renderer,
         time: Option<&T>,
         colour: &Colour,
     ) -> Result<()> {
-        try_fill(r, self.rect, colour)?;
+        let mut w = Writer::new(r).with_font_id(self.font_id);
 
-        for Position { index_layout, rect } in &self.positions {
-            let col = &colour[index_layout.index];
-            try_fill(r, *rect, colour)?;
+        try_fill(&mut w, self.rect, colour.base)?;
 
-            // TODO(@MattWindsor91): create w outside the loop
-            let mut w = Writer::new(r).with_font_id(self.font_id);
-            w = w.with_pos(rect.top_left).with_colour(col.fg);
+        for pos in &self.positions {
+            w = w.with_pos(pos.rect.top_left);
+            match pos.component {
+                Component::Position { index, num_digits } => {
+                    let col = colour[index];
+                    try_fill(&mut w, pos.rect, col)?;
+                    w = w.with_colour(col.fg);
 
-            if let Some(x) = time {
-                write!(
-                    w,
-                    "{:width$}",
-                    &x[index_layout.index],
-                    width = index_layout.num_digits
-                )?;
-            } else {
-                w.write_str(&"-".repeat(index_layout.num_digits))?;
+                    if let Some(x) = time {
+                        write!(w, "{:width$}", &x[index], width = num_digits)?;
+                    } else {
+                        w.write_str(&"-".repeat(num_digits))?;
+                    }
+                }
+                Component::Delimiter(c) => {
+                    w = w.with_colour(colour.base.fg);
+                    w.write_char(c)?;
+                }
             }
-
-            w.write_str(unit_sigil(index_layout.index))?;
         }
+
         Ok(())
     }
 }
 
-fn try_fill(r: &mut dyn Renderer, rect: Rect, colour: &Colour) -> Result<()> {
-    if let Some(bg) = colour.base.bg {
+fn try_fill(r: &mut impl Renderer, rect: Rect, colour: colour::Pair) -> Result<()> {
+    if let Some(bg) = colour.bg {
         r.fill(rect.grow(1), bg)?;
     }
     Ok(())
 }
 
 /// Calculates the width of a position in a time widget, excluding any padding.
-fn position_width(fm: &font::Metrics, pos: time::format::Position) -> i32 {
-    let nd: i32 = pos.num_digits.try_into().unwrap_or_default();
-    let digits = fm.span_w(nd);
-    let mut sigil = fm.span_w_str(unit_sigil(pos.index));
-    // Making sure we only pad if there was a sigil
-    if sigil != 0 {
-        sigil += fm.pad.w;
-    }
-
-    digits + sigil
-}
-
-/// The sigil displayed after the position indexed by `idx`.
-const fn unit_sigil(idx: time::Position) -> &'static str {
-    // TODO(@MattWindsor91): consider making these user configurable.
-    match idx {
-        time::Position::Hours => ":",
-        time::Position::Minutes => "'",
-        time::Position::Seconds => "\"",
-        time::Position::Milliseconds => "",
+fn position_width(metrics: &font::Metrics, c: Component) -> Length {
+    match c {
+        Component::Position { num_digits, .. } => {
+            metrics.span_w(num_digits.try_into().unwrap_or_default())
+        }
+        Component::Delimiter(c) => metrics.span_w_char(c),
     }
 }
 
 /// Calculated positioning information for a time widget.
 #[derive(Debug, Copy, Clone)]
 struct Position {
-    index_layout: time::format::Position,
+    /// The component that has been positioned.
+    component: time::format::Component,
+    /// The bounding box created for the component.
     rect: Rect,
 }
 
