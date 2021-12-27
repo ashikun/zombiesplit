@@ -11,7 +11,7 @@ use crate::ui::view::gfx::colour::fg::Id;
 pub use error::{Error, Result};
 
 /// Set of colour mappings used in the UI.
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, Default, Debug, Serialize, Deserialize)]
 pub struct Set {
     /// Foreground colours.
     pub fg: fg::Set,

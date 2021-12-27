@@ -10,6 +10,7 @@ use super::gfx::{colour, font, metrics};
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Config<'p> {
     /// Colour set.
+    #[serde(default)]
     pub colours: colour::Set,
     /// Font configuration.
     #[serde(borrow)]

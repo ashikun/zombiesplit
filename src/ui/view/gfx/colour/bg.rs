@@ -16,6 +16,7 @@ pub enum Id {
 
 /// A set of background colours.
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Set {
     /// Main background colour.
     pub window: Colour,
@@ -23,6 +24,17 @@ pub struct Set {
     pub editor: Colour,
     /// Background for the field editor.
     pub editor_field: Colour,
+}
+
+/// Provides default background colours.
+impl Default for Set {
+    fn default() -> Self {
+        Self {
+            window: Colour::rgb(0, 0, 0),             // EGA black
+            editor: Colour::rgb(0, 0, 0xAA),          // EGA blue
+            editor_field: Colour::rgb(0, 0xAA, 0xAA), // EGA teal
+        }
+    }
 }
 
 impl Set {

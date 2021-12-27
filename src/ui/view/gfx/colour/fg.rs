@@ -120,3 +120,23 @@ impl Set {
         }
     }
 }
+
+/// Provides default foreground colours.
+impl Default for Set {
+    fn default() -> Self {
+        Self {
+            editor: Colour::rgb(0x55, 0xFF, 0xFF),       // EGA bright teal
+            editor_field: Colour::rgb(0xFF, 0xFF, 0xFF), // EGA bright white
+            header: Colour::rgb(0xFF, 0x55, 0x55),       // EGA bright red
+            done: Colour::rgb(0x55, 0x55, 0x55),         // EGA bright black
+            normal: Colour::rgb(0xAA, 0xAA, 0xAA),       // EGA white
+            cursor: Colour::rgb(0xFF, 0x55, 0xFF),       // EGA bright magenta
+            time_none: Colour::rgb(0xAA, 0xAA, 0xAA),    // EGA white
+            time_ahead: Colour::rgb(0x55, 0xFF, 0xFF),   // EGA bright green
+            time_ahead_losing: Colour::rgb(0x00, 0xAA, 0xAA), // EGA green
+            time_behind_gaining: Colour::rgb(0xAA, 0x00, 0x00), // EGA red
+            time_behind: Colour::rgb(0xFF, 0xAA, 0xAA),  // EGA bright red
+            time_split_ahead: Colour::rgb(0xFF, 0xFF, 0x55), // EGA bright yellow
+        }
+    }
+}

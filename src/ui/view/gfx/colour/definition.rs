@@ -23,21 +23,36 @@ impl FromStr for Colour {
 }
 
 impl Colour {
+    /// Constructs a colour using bytes for red, green, and blue components (and full alpha).
+    ///
+    /// ```
+    /// use zombiesplit::ui::view::gfx::colour::definition::Colour;
+    ///
+    /// let col = Colour::rgb(12, 34, 56);
+    /// assert_eq!(12, col.red_byte());
+    /// assert_eq!(34, col.green_byte());
+    /// assert_eq!(56, col.blue_byte());
+    /// assert_eq!(255, col.alpha_byte());
+    #[must_use]
+    pub const fn rgb(r: u8, g: u8, b: u8) -> Self {
+        Self(css_color_parser::Color { r, g, b, a: 1.0 })
+    }
+
     /// Gets the red component of this colour as a byte.
     #[must_use]
-    pub fn red_byte(&self) -> u8 {
+    pub const fn red_byte(&self) -> u8 {
         self.0.r
     }
 
     /// Gets the green component of this colour as a byte.
     #[must_use]
-    pub fn green_byte(&self) -> u8 {
+    pub const fn green_byte(&self) -> u8 {
         self.0.g
     }
 
     /// Gets the blue component of this colour as a byte.
     #[must_use]
-    pub fn blue_byte(&self) -> u8 {
+    pub const fn blue_byte(&self) -> u8 {
         self.0.b
     }
 
