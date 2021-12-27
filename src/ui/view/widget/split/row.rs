@@ -78,14 +78,14 @@ impl Row {
         let field = e.field.map(|field| FieldColour {
             field,
             colour: colour::Pair {
-                fg: colour::fg::Id::Editor,
-                bg: Some(colour::bg::Id::Editor),
+                fg: colour::fg::Id::FieldEditor,
+                bg: Some(colour::bg::Id::FieldEditor),
             },
         });
         let col = Colour {
             base: colour::Pair {
-                fg: colour::fg::Id::FieldEditor,
-                bg: Some(colour::bg::Id::FieldEditor),
+                fg: colour::fg::Id::Editor,
+                bg: Some(colour::bg::Id::Editor),
             },
             field,
         };
