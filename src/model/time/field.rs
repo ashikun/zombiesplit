@@ -45,13 +45,13 @@ impl PartialOrd for Field {
 
 impl fmt::Display for Field {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let nd = self.position.num_digits();
-        let width = f.width().unwrap_or(nd);
+        let default_width = self.position.default_width();
+        let width = f.width().unwrap_or(default_width);
         let mut v = self.val;
 
         // Drop digits from the right if we are showing msec and need a shorter width than usual.
-        if self.is_msecs() && width < nd {
-            v = truncate_digits(v, nd - width);
+        if self.is_msecs() && width < default_width {
+            v = truncate_digits(v, default_width - width);
         }
 
         write!(f, "{:0>width$}", v, width = width)
@@ -139,7 +139,7 @@ impl Field {
     /// Returns various `fmt::Error` errors if formatting the value or its
     /// delimiter fails.
     pub(super) fn fmt_value(self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let nd = self.position.num_digits();
+        let nd = self.position.default_width();
 
         let width = f.width().unwrap_or(nd);
 

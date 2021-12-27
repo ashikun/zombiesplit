@@ -52,7 +52,7 @@ impl Position {
     }
 
     /// The number of digits displayed or parsed, by default, for this position.
-    pub(super) const fn num_digits(self) -> usize {
+    pub(super) const fn default_width(self) -> usize {
         match self {
             Position::Milliseconds => 3,
             _ => 2,
@@ -81,8 +81,8 @@ impl Position {
     /// For milliseconds, this involves left-padding it.
     #[must_use]
     fn preprocess_string(self, s: &str) -> Cow<str> {
-        if matches!(self, Self::Milliseconds) && s.len() < self.num_digits() {
-            Cow::Owned(format!("{:0<digits$}", s, digits = self.num_digits()))
+        if matches!(self, Self::Milliseconds) && s.len() < self.default_width() {
+            Cow::Owned(format!("{:0<digits$}", s, digits = self.default_width()))
         } else {
             Cow::Borrowed(s)
         }

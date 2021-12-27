@@ -31,16 +31,27 @@ impl FromStr for Format {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self> {
-        // TODO(@MattWindsor91): there might be a more efficient way of doing this
-        let mut is_escaping = false;
-        let mut result = Vec::with_capacity(s.len());
+        Parser::default().parse(s).map(Self)
+    }
+}
 
+#[derive(Default)]
+struct Parser {
+    /// Whether the parser just ate an escape character (and the next character is to be escaped).
+    is_escaping: bool,
+    /// The vector being built.
+    result: Vec<Component>,
+}
+
+impl Parser {
+    fn parse(mut self, s: &str) -> Result<Vec<Component>> {
+        // TODO(@MattWindsor91): there might be a more efficient way of doing this
         for (mut count, c) in s.chars().dedup_with_count() {
             // Handle any escaped character first.
-            if is_escaping {
-                is_escaping = false;
+            if self.is_escaping {
+                self.is_escaping = false;
+                self.push_delimiter(c);
                 count -= 1;
-                result.push(Component::Delimiter(c));
             }
             // Are there now further, unescaped, characters to go?
             if 0 < count {
@@ -49,27 +60,33 @@ impl FromStr for Format {
                     // through to the next part.
                     let (whole_escs, rem) = count.div_rem(&2_usize);
                     count = whole_escs;
-                    is_escaping = rem != 0;
+                    self.is_escaping = rem != 0;
                 }
 
                 if let Some(index) = parse_position_char(c) {
-                    result.push(Component::Position {
-                        index,
-                        num_digits: count,
-                    });
+                    self.push_position(count, index);
                 } else {
-                    for _ in 0..count {
-                        result.push(Component::Delimiter(c));
-                    }
+                    (0..count).for_each(|_| self.push_delimiter(c));
                 }
             }
         }
 
-        if is_escaping {
-            Err(Self::Err::UnbalancedEscape)
+        if self.is_escaping {
+            Err(Error::UnbalancedEscape)
         } else {
-            Ok(Self(result))
+            Ok(self.result)
         }
+    }
+
+    fn push_position(&mut self, num_digits: usize, index: Position) {
+        self.result.push(Component::Position {
+            position: index,
+            width: num_digits,
+        });
+    }
+
+    fn push_delimiter(&mut self, c: char) {
+        self.result.push(Component::Delimiter(c));
     }
 }
 
@@ -116,10 +133,10 @@ const SPECIAL_CHARS: [char; 5] = [CHAR_HOUR, CHAR_MIN, CHAR_SEC, CHAR_MSEC, CHAR
 pub enum Component {
     /// A position component.
     Position {
-        /// The index being displayed.
-        index: time::Position,
+        /// The position being displayed.
+        position: time::Position,
         /// The number of digits to display for this index.
-        num_digits: usize,
+        width: usize,
     },
     /// A delimiter.
     Delimiter(char),
@@ -128,15 +145,15 @@ pub enum Component {
 impl Display for Component {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match *self {
-            Self::Position { index, num_digits } => emit_position(f, index, num_digits),
+            Self::Position { position, width } => emit_position(f, position, width),
             Self::Delimiter(c) => emit_delimiter(f, c),
         }
     }
 }
 
-fn emit_position(f: &mut Formatter, index: Position, num_digits: usize) -> std::fmt::Result {
-    let c = char_of_position(index);
-    for _ in 0..num_digits {
+fn emit_position(f: &mut Formatter, position: Position, width: usize) -> std::fmt::Result {
+    let c = char_of_position(position);
+    for _ in 0..width {
         f.write_char(c)?;
     }
     Ok(())
@@ -185,19 +202,19 @@ mod tests {
     fn test_time_parse_mmssuu_slashes() {
         let expected = vec![
             Component::Position {
-                index: time::Position::Minutes,
-                num_digits: 2,
+                position: time::Position::Minutes,
+                width: 2,
             },
             Component::Delimiter('\\'),
             Component::Position {
-                index: time::Position::Seconds,
-                num_digits: 2,
+                position: time::Position::Seconds,
+                width: 2,
             },
             Component::Delimiter('\\'),
             Component::Delimiter('\\'),
             Component::Position {
-                index: time::Position::Milliseconds,
-                num_digits: 2,
+                position: time::Position::Milliseconds,
+                width: 2,
             },
         ];
 
@@ -211,18 +228,18 @@ mod tests {
     fn test_time_parse_mmssuuu() {
         let expected = vec![
             Component::Position {
-                index: time::Position::Minutes,
-                num_digits: 2,
+                position: time::Position::Minutes,
+                width: 2,
             },
             Component::Delimiter('"'),
             Component::Position {
-                index: time::Position::Seconds,
-                num_digits: 2,
+                position: time::Position::Seconds,
+                width: 2,
             },
             Component::Delimiter('\''),
             Component::Position {
-                index: time::Position::Milliseconds,
-                num_digits: 3,
+                position: time::Position::Milliseconds,
+                width: 3,
             },
         ];
 
@@ -236,18 +253,18 @@ mod tests {
     fn test_time_parse_hms_with_letters() {
         let expected = vec![
             Component::Position {
-                index: time::Position::Hours,
-                num_digits: 2,
+                position: time::Position::Hours,
+                width: 2,
             },
             Component::Delimiter('h'),
             Component::Position {
-                index: time::Position::Minutes,
-                num_digits: 2,
+                position: time::Position::Minutes,
+                width: 2,
             },
             Component::Delimiter('m'),
             Component::Position {
-                index: time::Position::Seconds,
-                num_digits: 2,
+                position: time::Position::Seconds,
+                width: 2,
             },
             Component::Delimiter('s'),
         ];

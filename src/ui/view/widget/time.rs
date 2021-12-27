@@ -97,15 +97,15 @@ impl Layout {
         for pos in &self.positions {
             w = w.with_pos(pos.rect.top_left);
             match pos.component {
-                Component::Position { index, num_digits } => {
-                    let col = colour[index];
+                Component::Position { position, width } => {
+                    let col = colour[position];
                     try_fill(&mut w, pos.rect, col)?;
                     w = w.with_colour(col.fg);
 
                     if let Some(x) = time {
-                        write!(w, "{:width$}", &x[index], width = num_digits)?;
+                        write!(w, "{:width$}", &x[position], width = width)?;
                     } else {
-                        w.write_str(&"-".repeat(num_digits))?;
+                        w.write_str(&"-".repeat(width))?;
                     }
                 }
                 Component::Delimiter(c) => {
@@ -129,9 +129,7 @@ fn try_fill(r: &mut impl Renderer, rect: Rect, colour: colour::Pair) -> Result<(
 /// Calculates the width of a position in a time widget, excluding any padding.
 fn position_width(metrics: &font::Metrics, c: Component) -> Length {
     match c {
-        Component::Position { num_digits, .. } => {
-            metrics.span_w(num_digits.try_into().unwrap_or_default())
-        }
+        Component::Position { width, .. } => metrics.span_w(width.try_into().unwrap_or_default()),
         Component::Delimiter(c) => metrics.span_w_char(c),
     }
 }
