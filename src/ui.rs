@@ -21,6 +21,8 @@ pub struct Instance<'s, 'p, E, R> {
     events: E,
     view: view::View<R>,
     presenter: presenter::EventForwarder<'s, 'p>,
+    // TODO(@MattWindsor91): decouple the SDL use here
+    limiter: sdl::Limiter,
 }
 
 impl<'s, 'p, E: presenter::event::Pump, R: view::gfx::Renderer> Instance<'s, 'p, E, R> {
@@ -44,8 +46,7 @@ impl<'s, 'p, E: presenter::event::Pump, R: view::gfx::Renderer> Instance<'s, 'p,
         self.presenter.pump();
         self.events.pump(&mut self.presenter.core);
         self.view.redraw(&self.presenter.core.state)?;
-
-        std::thread::sleep(std::time::Duration::from_millis(1));
+        self.limiter.delay();
 
         Ok(())
     }
@@ -64,6 +65,7 @@ pub fn run(cfg: view::Config, session: &mut crate::model::attempt::Session) -> R
         events: sdl.event_pump()?,
         view: View::new(sdl.renderer()?, &layout),
         presenter: EventForwarder::new(presenter),
+        limiter: sdl::Limiter::new(60)?,
     };
     inst.run()
 }
