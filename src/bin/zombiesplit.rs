@@ -1,5 +1,5 @@
 use clap::{crate_authors, crate_version, App, Arg};
-use zombiesplit::{cli, config, Server};
+use zombiesplit::{cli, config, ui, Manager};
 
 fn main() {
     cli::handle_error(run());
@@ -11,8 +11,10 @@ fn run() -> anyhow::Result<()> {
     let matches = app().get_matches();
     let cfg_raw = std::fs::read_to_string(matches.value_of("config").unwrap())?;
     let cfg = config::System::load(&cfg_raw)?;
-    let server = Server::new(cfg)?;
-    server.run(&cli::get_short_descriptor(&matches)?)?;
+    let ui_cfg = cfg.ui.clone();
+    let manager = Manager::new(cfg)?;
+    let mut server = manager.run(&cli::get_short_descriptor(&matches)?)?;
+    ui::run(ui_cfg, &mut server.session)?;
     Ok(())
 }
 

@@ -36,7 +36,7 @@ impl<'h, H: Handler> Presenter<'h, H> {
     /// Constructs a new presenter over a given action handler.
     ///
     /// The presenter can be used as an observer by feeding it events through, for instance, an
-    /// [EventForwarder].
+    /// `EventForwarder`.
     #[must_use]
     pub fn new(action_handler: &'h mut H) -> Self {
         Self {

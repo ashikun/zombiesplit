@@ -165,7 +165,7 @@ impl Reader {
     ///
     /// # Errors
     ///
-    /// Errors if we can't construct the low-level getters
+    /// Errors if we can't construct the low-level getters.
     pub fn inspect(&self, loc: &impl Locator) -> Result<Inspector> {
         let mut cat = self.categories()?;
         Ok(Inspector {

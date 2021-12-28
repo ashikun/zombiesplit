@@ -15,18 +15,16 @@ use super::{
 };
 use thiserror::Error;
 
-/// An instance of a zombiesplit server.
+/// A manager of a zombiesplit server.
 ///
-/// A server owns a running session, as well as the various observers attached to it, and performs
-/// many of the tasks of bringing up, maintaining, and tearing down those elements.
-///
-/// In future, a server will also expose its control plane to clients.
-pub struct Server<'c> {
+/// This holds the configuration and database handles that will be used by the server proper.
+pub struct Manager<'c> {
     cfg: config::System<'c>,
     db: Rc<db::Db>,
+    reader: db::Reader,
 }
 
-impl<'c> Server<'c> {
+impl<'c> Manager<'c> {
     /// Constructs a new server, opening a database connection.
     ///
     /// # Errors
@@ -34,28 +32,31 @@ impl<'c> Server<'c> {
     /// Returns any errors from trying to open the database.
     pub fn new(cfg: config::System<'c>) -> Result<Self> {
         let db = Rc::new(db::Db::new(&cfg.db_path)?);
-        Ok(Self { cfg, db })
+        let reader = db.reader()?;
+        Ok(Self { cfg, db, reader })
     }
 
-    /// Opens a split UI session for the given game/category descriptor.
+    /// Creates a server for the given game.
     ///
     /// # Errors
     ///
     /// Returns any database or UI errors caught during the session.
-    pub fn run(self, desc: &ShortDescriptor) -> Result<()> {
-        let handle = self.db.reader()?;
-        let insp = handle.inspect(desc)?;
+    pub fn run(&self, desc: &ShortDescriptor) -> Result<Server> {
+        let insp = self.reader.inspect(desc)?;
 
         let mut session = self.session(insp)?;
 
-        let db_obs: Rc<dyn attempt::Observer> = Rc::new(db::Observer::new(self.db));
+        let db_obs: Rc<dyn attempt::Observer> = Rc::new(db::Observer::new(self.db.clone()));
         session.observers.add(Rc::downgrade(&db_obs));
 
         let debug_obs: Rc<dyn attempt::Observer> = Rc::new(Debug);
         session.observers.add(Rc::downgrade(&debug_obs));
 
-        ui::run(self.cfg.ui, &mut session)?;
-        Ok(())
+        Ok(Server {
+            db_obs,
+            debug_obs,
+            session,
+        })
     }
 
     fn session<'a>(&self, mut insp: Inspector<'a>) -> Result<model::attempt::Session<'a>> {
@@ -70,6 +71,21 @@ impl<'c> Server<'c> {
             _ => Box::new(comparison::NullProvider),
         }
     }
+}
+
+/// A server, wrapping a session with the means to control it.
+///
+/// A server owns a running session, as well as the various observers attached to it, and performs
+/// many of the tasks of bringing up, maintaining, and tearing down those elements.
+///
+/// In future, a server will also expose its control plane to clients.
+pub struct Server<'cmp> {
+    // TODO(@MattWindsor91): de-public all of these
+    pub db_obs: Rc<dyn attempt::Observer>,
+    pub debug_obs: Rc<dyn attempt::Observer>,
+
+    /// The session being wrapped by this server.
+    pub session: attempt::Session<'cmp>,
 }
 
 /// The top-level server error type.
