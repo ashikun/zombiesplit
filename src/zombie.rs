@@ -6,25 +6,17 @@ use std::{
     rc::Rc,
 };
 
-use crate::{
-    db::inspect::Inspector,
-    model::{
-        attempt::{self, observer::Debug},
-        comparison::{self, Provider},
-        short, Time,
-    },
-};
-
 use super::{
     config,
     db::{self, category::Locator},
     model::{
         self,
+        comparison::{self, Provider},
         game::category::ShortDescriptor,
         history::{self, timing::Timing},
         load::Loadable,
+        short, Time,
     },
-    ui,
 };
 use tabwriter::TabWriter;
 use thiserror::Error;
@@ -33,20 +25,19 @@ use thiserror::Error;
 ///
 /// This struct wraps most of zombiesplit's functionality in a way that is
 /// easy for the command-line app to handle.
-pub struct Zombie<'c> {
-    cfg: config::System<'c>,
+pub struct Zombie {
     db: Rc<db::Db>,
 }
 
-impl<'c> Zombie<'c> {
+impl Zombie {
     /// Constructs a new instance of zombiesplit, opening a database connection.
     ///
     /// # Errors
     ///
     /// Returns any errors from trying to open the database.
-    pub fn new(cfg: config::System<'c>) -> Result<Self> {
+    pub fn new(cfg: &config::System) -> Result<Self> {
         let db = Rc::new(db::Db::new(&cfg.db_path)?);
-        Ok(Zombie { cfg, db })
+        Ok(Zombie { db })
     }
 
     /// Initialises the zombiesplit database.
@@ -165,40 +156,6 @@ impl<'c> Zombie<'c> {
 
         Ok(())
     }
-
-    /// Opens a split UI session for the given game/category descriptor.
-    ///
-    /// # Errors
-    ///
-    /// Returns any database or UI errors caught during the session.
-    pub fn run(self, desc: &ShortDescriptor) -> Result<()> {
-        let handle = self.db.reader()?;
-        let insp = handle.inspect(desc)?;
-
-        let mut session = self.session(insp)?;
-
-        let db_obs: Rc<dyn attempt::Observer> = Rc::new(db::Observer::new(self.db));
-        session.observers.add(Rc::downgrade(&db_obs));
-
-        let debug_obs: Rc<dyn attempt::Observer> = Rc::new(Debug);
-        session.observers.add(Rc::downgrade(&debug_obs));
-
-        ui::run(self.cfg.ui, session)?;
-        Ok(())
-    }
-
-    fn session<'a>(&self, mut insp: Inspector<'a>) -> Result<model::attempt::Session<'a>> {
-        let mut session = insp.init_session()?;
-        session.set_comparison_provider(self.comparison_provider(insp));
-        Ok(session)
-    }
-
-    fn comparison_provider<'a>(&self, insp: Inspector<'a>) -> Box<dyn comparison::Provider + 'a> {
-        match self.cfg.comparison_provider {
-            config::system::ComparisonProvider::Database => Box::new(insp),
-            _ => Box::new(comparison::NullProvider),
-        }
-    }
 }
 
 fn ensure_toml<P: AsRef<Path>>(path: P) -> PathBuf {
@@ -225,8 +182,6 @@ pub enum Error {
     Db(#[from] db::Error),
     #[error("IO error")]
     Io(#[from] std::io::Error),
-    #[error("UI error")]
-    View(#[from] ui::Error),
     #[error("error loading data from file")]
     GameLoad(#[from] model::load::Error),
     #[error("couldn't deduce game short-name")]
