@@ -1,7 +1,7 @@
 //! Mapping between SDL events and presenter events.
 
 use crate::model::{attempt, time};
-use crate::ui::presenter::Core;
+use crate::ui::presenter::Presenter;
 
 use super::super::presenter::{
     cursor,
@@ -12,7 +12,7 @@ use super::super::presenter::{
 pub struct Pump(pub sdl2::EventPump);
 
 impl event::Pump for Pump {
-    fn pump<'a>(&'a mut self, send_to: &'a mut Core) {
+    fn pump<'a>(&'a mut self, send_to: &'a mut Presenter) {
         for e in self.0.poll_iter().filter_map(|x| from_sdl(&x)) {
             send_to.handle_event(&e);
         }

@@ -54,7 +54,7 @@ impl<'c> Server<'c> {
         let debug_obs: Rc<dyn attempt::Observer> = Rc::new(Debug);
         session.observers.add(Rc::downgrade(&debug_obs));
 
-        ui::run(self.cfg.ui, session)?;
+        ui::run(self.cfg.ui, &mut session)?;
         Ok(())
     }
 

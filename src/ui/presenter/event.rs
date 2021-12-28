@@ -63,5 +63,5 @@ pub trait Pump {
     /// Pumps this pump's events.
     ///
     /// The implementation should call `send_to.handle_event` for each event detected.
-    fn pump<'a>(&'a mut self, send_to: &'a mut super::Core);
+    fn pump<'a>(&'a mut self, send_to: &'a mut super::Presenter);
 }

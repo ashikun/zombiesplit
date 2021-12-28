@@ -13,17 +13,17 @@ mod sdl;
 pub mod view;
 
 pub use error::{Error, Result};
-pub use presenter::Presenter;
+pub use presenter::EventForwarder;
 pub use view::View;
 
 /// Top-level user interface instance.
-pub struct Instance<'p, E, R> {
+pub struct Instance<'s, 'p, E, R> {
     events: E,
     view: view::View<R>,
-    presenter: presenter::Presenter<'p>,
+    presenter: presenter::EventForwarder<'s, 'p>,
 }
 
-impl<'p, E: presenter::event::Pump, R: view::gfx::Renderer> Instance<'p, E, R> {
+impl<'s, 'p, E: presenter::event::Pump, R: view::gfx::Renderer> Instance<'s, 'p, E, R> {
     /// Runs the UI loop.
     ///
     /// # Errors
@@ -56,13 +56,14 @@ impl<'p, E: presenter::event::Pump, R: view::gfx::Renderer> Instance<'p, E, R> {
 /// # Errors
 ///
 /// Propagates any errors from creating, spawning, or running the view.
-pub fn run(cfg: view::Config, session: crate::model::attempt::Session) -> Result<()> {
+pub fn run(cfg: view::Config, session: &mut crate::model::attempt::Session) -> Result<()> {
     let layout = cfg.layout.clone();
     let sdl = sdl::Manager::new(cfg)?;
+    let presenter = presenter::Presenter::new(session);
     let mut inst = Instance {
         events: sdl.event_pump()?,
         view: View::new(sdl.renderer()?, &layout),
-        presenter: Presenter::new(presenter::Core::new(session)),
+        presenter: EventForwarder::new(presenter),
     };
     inst.run()
 }

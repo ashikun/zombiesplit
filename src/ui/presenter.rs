@@ -6,9 +6,6 @@ user interface.
 The presenter translates events (ultimately from the keyboard and windowing
 system etc.) to operations on the [Session], while translating observations
 of changes made to the [Session] into visual and modal changes to the UI.
-
-For borrowck reasons, the presenter is split into two structs: [Presenter]
-and [Core].
 */
 
 pub mod cursor;
@@ -25,20 +22,20 @@ pub use mode::Editor;
 pub use state::State;
 use std::{rc::Rc, sync::mpsc};
 
-/// The core of a zombiesplit presenter, containing all state and modality.
-pub struct Core<'a> {
+/// A zombiesplit UI presenter, containing all state and modality.
+pub struct Presenter<'s, 'cmp> {
     /// The current mode.
-    pub mode: Box<dyn mode::Mode + 'a>,
+    pub mode: Box<dyn mode::Mode + 's>,
     /// The zombiesplit session being controlled by the presenter.
-    pub session: Session<'a>,
+    pub session: &'s mut Session<'cmp>,
     /// The visual state being updated by the presenter.
     pub state: state::State,
 }
 
-impl<'a> Core<'a> {
+impl<'s, 'cmp> Presenter<'s, 'cmp> {
     /// Constructs a new initial state for a given session.
     #[must_use]
-    pub fn new(session: Session<'a>) -> Self {
+    pub fn new(session: &'s mut Session<'cmp>) -> Self {
         // TODO(@MattWindsor91): remove session use here
         Self {
             mode: Box::new(mode::Inactive),
@@ -166,31 +163,40 @@ impl<'a> Core<'a> {
 
 /// A functional presenter, with the ability to listen to observations from the
 /// underlying session.
-pub struct Presenter<'a> {
+pub struct EventForwarder<'s, 'cmp> {
     /// The underlying core.
-    pub core: Core<'a>,
+    pub core: Presenter<'s, 'cmp>,
     obs_receiver: mpsc::Receiver<attempt::observer::Event>,
     /// Keeps the observer feeding `obs_receiver` alive.
     obs_sender: Rc<dyn attempt::Observer>,
 }
 
-impl<'a> Presenter<'a> {
+impl<'s, 'cmp> EventForwarder<'s, 'cmp> {
     /// Lifts a presenter into an observable presenter.
     ///
     /// This installs an observer into the [Session] that allows
     /// events to be fed asynchronously into the [Core].
     #[must_use]
-    pub fn new(core: Core<'a>) -> Self {
+    pub fn new(core: Presenter<'s, 'cmp>) -> Self {
         let (obs_sender, obs_receiver) = mpsc::channel();
         let obs_sender: Rc<dyn attempt::Observer> = Rc::new(Observer { sender: obs_sender });
-        let mut o = Self {
+        let o = Self {
             core,
             obs_receiver,
             obs_sender,
         };
-        o.core.session.observers.add(Rc::downgrade(&o.obs_sender));
+        // TODO(@MattWindsor91): split this bit out, make it part of the UI bootup.
+        o.core.session.observers.add(o.observer());
         o.core.session.dump_to_observers();
         o
+    }
+
+    /// Gets this presenter as an observer.
+    #[must_use]
+    pub fn observer(&self) -> std::rc::Weak<dyn attempt::Observer> {
+        // TODO(@MattWindsor91): this will be exposed as public once the presenter no longer takes
+        // the entire session in as a mutable borrow.
+        Rc::downgrade(&self.obs_sender)
     }
 
     pub fn pump(&mut self) {
