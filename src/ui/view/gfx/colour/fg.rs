@@ -1,7 +1,7 @@
 //! Foreground colour sets and IDs.
 
 use super::{super::super::presenter::cursor::SplitPosition, definition::Colour};
-use crate::model::comparison::{pace, Pace};
+use crate::model::comparison::pace;
 use serde::{Deserialize, Serialize};
 
 /// Foreground colour IDs.
@@ -15,23 +15,24 @@ pub enum Id {
     Header,
     /// The colour of a split name at a given position.
     Name(SplitPosition),
-    /// A time that hasn't been reported.
-    NoTime,
+    /// Neutral colour.
+    Normal,
     /// A split-in-run pacing colour.
     SplitInRunPace(pace::SplitInRun),
     /// A pacing colour.
-    Pace(Pace),
+    Pace(pace::Pace),
 }
 
-/// There is a default foreground colour, but it is fairly arbitrary at the moment.
+/// There is a default foreground colour, `Normal`.
 impl Default for Id {
     fn default() -> Self {
-        Self::Name(SplitPosition::Coming)
+        Self::Normal
     }
 }
 
 /// A set of foreground colours.
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Set {
     // Foreground text for the split editor.
     pub editor: Colour,
@@ -45,7 +46,7 @@ pub struct Set {
     /// Foreground text for splits already passed.
     pub done: Colour,
 
-    /// Foreground text for normal splits.
+    /// Normal foreground text.
     pub normal: Colour,
 
     /// Foreground text for the split currently under the cursor.
@@ -54,24 +55,8 @@ pub struct Set {
     /// Foreground text for a time when there is no time entered.
     pub time_none: Colour,
 
-    /// Foreground text for a time when the run is ahead of comparison,
-    /// and the split was also ahead.
-    pub time_ahead: Colour,
-
-    /// Foreground text for a time when the run is ahead of comparison,
-    /// but the split was behind.
-    pub time_ahead_losing: Colour,
-
-    /// Foreground text for a time when the run is behind comparison,
-    /// but the split was also ahead.
-    pub time_behind_gaining: Colour,
-
-    /// Foreground text for a time when the run is behind comparison.
-    pub time_behind: Colour,
-
-    /// Foreground text for a time when the split is ahead of comparison.
-    /// (Often referred to as a 'gold split'.)
-    pub time_split_ahead: Colour,
+    /// Foreground text for times with an associated pace.
+    pub pace: Pace,
 }
 
 impl Set {
@@ -81,33 +66,11 @@ impl Set {
         match id {
             Id::Header => self.header,
             Id::Name(pos) => self.by_split_position(pos),
-            Id::NoTime => self.time_none,
-            Id::SplitInRunPace(pace) => self.by_split_in_run_pace(pace),
-            Id::Pace(pace) => self.by_pace(pace),
+            Id::Normal => self.time_none,
+            Id::SplitInRunPace(pace) => self.pace[pace],
+            Id::Pace(pace) => self.pace[pace],
             Id::Editor => self.editor,
             Id::FieldEditor => self.editor_field,
-        }
-    }
-
-    #[must_use]
-    fn by_split_in_run_pace(&self, pace: pace::SplitInRun) -> Colour {
-        match pace {
-            pace::SplitInRun::SplitPersonalBest => self.time_split_ahead,
-            pace::SplitInRun::Inconclusive => self.normal,
-            pace::SplitInRun::BehindAndGaining => self.time_behind_gaining,
-            pace::SplitInRun::BehindAndLosing => self.time_behind,
-            pace::SplitInRun::AheadAndGaining => self.time_ahead,
-            pace::SplitInRun::AheadAndLosing => self.time_ahead_losing,
-        }
-    }
-
-    #[must_use]
-    fn by_pace(&self, pace: Pace) -> Colour {
-        match pace {
-            Pace::PersonalBest => self.time_split_ahead,
-            Pace::Behind => self.time_behind,
-            Pace::Ahead => self.time_ahead,
-            Pace::Inconclusive => self.normal,
         }
     }
 
@@ -132,11 +95,69 @@ impl Default for Set {
             normal: Colour::rgb(0xAA, 0xAA, 0xAA),       // EGA white
             cursor: Colour::rgb(0xFF, 0x55, 0xFF),       // EGA bright magenta
             time_none: Colour::rgb(0xAA, 0xAA, 0xAA),    // EGA white
-            time_ahead: Colour::rgb(0x55, 0xFF, 0xFF),   // EGA bright green
-            time_ahead_losing: Colour::rgb(0x00, 0xAA, 0xAA), // EGA green
-            time_behind_gaining: Colour::rgb(0xAA, 0x00, 0x00), // EGA red
-            time_behind: Colour::rgb(0xFF, 0xAA, 0xAA),  // EGA bright red
-            time_split_ahead: Colour::rgb(0xFF, 0xFF, 0x55), // EGA bright yellow
+            pace: Pace::default(),
+        }
+    }
+}
+
+/// Set of foreground colours for pace notes.
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Pace {
+    /// Colour used for inconclusive times.
+    pub inconclusive: Colour,
+    /// Colour used for behind-of-pace times.
+    pub behind: Colour,
+    /// Colour used for behind-and-gaining times.
+    pub behind_gaining: Colour,
+    /// Colour used for ahead-but-losing times.
+    pub ahead_losing: Colour,
+    /// Colour used for ahead-of-pace times.
+    pub ahead: Colour,
+    /// Colour used for personal-best times.
+    pub personal_best: Colour,
+}
+
+/// Provides default pace foreground colours.
+impl Default for Pace {
+    fn default() -> Self {
+        Self {
+            inconclusive: Colour::rgb(0xAA, 0xAA, 0xAA), // EGA white
+            ahead: Colour::rgb(0x55, 0xFF, 0xFF),        // EGA bright green
+            ahead_losing: Colour::rgb(0x00, 0xAA, 0xAA), // EGA green
+            behind_gaining: Colour::rgb(0xAA, 0x00, 0x00), // EGA red
+            behind: Colour::rgb(0xFF, 0xAA, 0xAA),       // EGA bright red
+            personal_best: Colour::rgb(0xFF, 0xFF, 0x55), // EGA bright yellow
+        }
+    }
+}
+
+/// We can index into a pace set by split-in-run pace note, to get a colour.
+impl std::ops::Index<pace::SplitInRun> for Pace {
+    type Output = Colour;
+
+    fn index(&self, index: pace::SplitInRun) -> &Self::Output {
+        match index {
+            pace::SplitInRun::SplitPersonalBest => &self.personal_best,
+            pace::SplitInRun::Inconclusive => &self.inconclusive,
+            pace::SplitInRun::BehindAndGaining => &self.behind_gaining,
+            pace::SplitInRun::BehindAndLosing => &self.behind,
+            pace::SplitInRun::AheadAndGaining => &self.ahead,
+            pace::SplitInRun::AheadAndLosing => &self.ahead_losing,
+        }
+    }
+}
+
+/// We can index into a pace set by pace note, to get a colour.
+impl std::ops::Index<pace::Pace> for Pace {
+    type Output = Colour;
+
+    fn index(&self, index: pace::Pace) -> &Self::Output {
+        match index {
+            pace::Pace::PersonalBest => &self.personal_best,
+            pace::Pace::Behind => &self.behind,
+            pace::Pace::Ahead => &self.ahead,
+            pace::Pace::Inconclusive => &self.inconclusive,
         }
     }
 }

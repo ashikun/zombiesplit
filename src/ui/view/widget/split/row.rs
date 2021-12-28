@@ -109,7 +109,7 @@ impl Row {
     fn draw_num_times(&self, r: &mut dyn Renderer, state: &state::Split) -> gfx::Result<()> {
         let mut w = Writer::new(r)
             .with_pos(self.attempt_count_top_left)
-            .with_font(font::Id::Small.coloured(colour::fg::Id::NoTime)); // for now
+            .with_font(font::Id::Small.coloured(colour::fg::Id::Normal)); // for now
         write!(w, "{}x", state.num_times)?;
         Ok(())
     }
