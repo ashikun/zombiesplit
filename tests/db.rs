@@ -100,22 +100,22 @@ fn test_sample_observe_run() {
     session.observers.add(Rc::downgrade(&obs));
 
     // This shouldn't insert a run.
-    session.perform(Action::NewRun);
+    session.handle(Action::NewRun);
 
     let time = Time::try_from(8675309).expect("time didn't parse");
 
     // This should.
     session.set_timestamper(chrono::Utc::now);
-    session.perform(Action::Push(0, time));
-    session.perform(Action::NewRun);
+    session.handle(Action::Push(0, time));
+    session.handle(Action::NewRun);
 
     // As should this.
     // (We change the timestamp to avoid having the database reject the run as
     // a duplicate.)
     session.set_timestamper(|| chrono::Utc::now().add(chrono::Duration::weeks(1)));
-    session.perform(Action::Push(0, time));
-    session.perform(Action::Push(1, time));
-    session.perform(Action::NewRun);
+    session.handle(Action::Push(0, time));
+    session.handle(Action::Push(1, time));
+    session.handle(Action::NewRun);
 
     let runs = db
         .runs_for(&short_descriptor())

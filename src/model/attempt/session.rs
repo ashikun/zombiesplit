@@ -7,10 +7,11 @@ use super::{
         game::category,
         history, Time,
     },
+    action,
     observer::{self, split::Observer as SO, time::Observer as TO},
     split, Observer, Run,
 };
-use crate::model::attempt::action::Action;
+use std::rc::Weak;
 
 /// Holds all data for an attempt session.
 ///
@@ -33,6 +34,22 @@ pub struct Session<'cmp> {
     timestamper: fn() -> chrono::DateTime<chrono::Utc>,
     /// The comparison provider.
     comparator: Box<dyn comparison::Provider + 'cmp>,
+}
+
+impl<'cmp> action::Handler for Session<'cmp> {
+    fn handle(&mut self, action: action::Action) {
+        match action {
+            action::Action::Dump => self.dump_to_observers(),
+            action::Action::Clear(s) => self.clear_at(s),
+            action::Action::NewRun => self.reset(),
+            action::Action::Pop(s) => self.pop_from(s),
+            action::Action::Push(s, t) => self.push_to(s, t),
+        }
+    }
+
+    fn add_observer(&mut self, observer: Weak<dyn Observer>) {
+        self.observers.add(observer);
+    }
 }
 
 impl<'a> Session<'a> {
@@ -104,7 +121,8 @@ impl<'a> Session<'a> {
     /// Dumps initial session information to the observers.
     ///
     /// This should only be called once, as it might not be idempotent.
-    pub fn dump_to_observers(&self) {
+    fn dump_to_observers(&self) {
+        // TODO(@MattWindsor91): make this idempotent.
         self.observe_game_category();
         self.observe_splits();
         self.observe_attempt();
@@ -113,7 +131,6 @@ impl<'a> Session<'a> {
 
     /// Sends information about each split to the observers.
     fn observe_splits(&self) {
-        // TODO(@MattWindsor91): see if I can lifetime this better.
         for split in self.run.splits.iter() {
             self.observers.observe(observer::Event::AddSplit(
                 split.info.short,
@@ -194,16 +211,6 @@ impl<'a> Session<'a> {
                 self.observers
                     .observe_aggregate_set(short, *s, aggregate::Source::Comparison);
             }
-        }
-    }
-
-    /// Performs the action `action` on this session's current run.
-    pub fn perform(&mut self, action: Action) {
-        match action {
-            Action::Clear(s) => self.clear_at(s),
-            Action::NewRun => self.reset(),
-            Action::Pop(s) => self.pop_from(s),
-            Action::Push(s, t) => self.push_to(s, t),
         }
     }
 

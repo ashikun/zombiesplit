@@ -14,7 +14,7 @@ pub mod mode;
 pub mod state;
 
 use crate::model::{
-    attempt::{self, observer, Action, Session},
+    attempt::{self, action::Handler, observer, Action},
     short, Time,
 };
 pub use cursor::Cursor;
@@ -23,24 +23,26 @@ pub use state::State;
 use std::{rc::Rc, sync::mpsc};
 
 /// A zombiesplit UI presenter, containing all state and modality.
-pub struct Presenter<'s, 'cmp> {
+pub struct Presenter<'h, H> {
     /// The current mode.
     pub mode: Box<dyn mode::Mode>,
-    /// The zombiesplit session being controlled by the presenter.
-    pub session: &'s mut Session<'cmp>,
+    /// The handler used to perform actions on the splitter session.
+    pub action_handler: &'h mut H,
     /// The visual state being updated by the presenter.
     pub state: state::State,
 }
 
-impl<'s, 'cmp> Presenter<'s, 'cmp> {
-    /// Constructs a new initial state for a given session.
+impl<'h, H: Handler> Presenter<'h, H> {
+    /// Constructs a new presenter over a given action handler.
+    ///
+    /// The presenter can be used as an observer by feeding it events through, for instance, an
+    /// [EventForwarder].
     #[must_use]
-    pub fn new(session: &'s mut Session<'cmp>) -> Self {
-        // TODO(@MattWindsor91): remove session use here
+    pub fn new(action_handler: &'h mut H) -> Self {
         Self {
             mode: Box::new(mode::Inactive),
             state: state::State::default(),
-            session,
+            action_handler,
         }
     }
 
@@ -61,7 +63,7 @@ impl<'s, 'cmp> Presenter<'s, 'cmp> {
     /// Any other events are handled directly.
     pub fn handle_event(&mut self, e: &event::Event) {
         if let Some(a) = self.handle_local_event(e) {
-            self.session.perform(a);
+            self.action_handler.handle(a);
         }
     }
 
@@ -195,9 +197,11 @@ impl EventForwarder {
         // the entire session in as a mutable borrow.
         Rc::downgrade(&self.obs_sender)
     }
+}
 
+impl<H: Handler> event::Pump<H> for EventForwarder {
     /// Pumps this event forwarder's event queue, pushing each event to `to`.
-    pub fn pump(&mut self, to: &mut Presenter) {
+    fn pump(&mut self, to: &mut Presenter<H>) {
         self.obs_receiver.try_iter().for_each(|x| to.observe(x));
     }
 }

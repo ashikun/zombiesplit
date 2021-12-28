@@ -1,5 +1,5 @@
 /*!
-An event interface for manipulating a current attempt through a [Session].
+An event interface for manipulating a current attempt.
 */
 
 use crate::model::Time;
@@ -8,6 +8,8 @@ use crate::model::Time;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum Action {
+    /// Dump state to all observers.
+    Dump,
     /// Start a new run.
     NewRun,
     /// Pushes a time to the split at the given position.
@@ -16,4 +18,17 @@ pub enum Action {
     Pop(usize),
     /// Erases the split at the given position.
     Clear(usize),
+}
+
+/// Trait of things that perform actions.
+///
+/// These can be sessions, mocks, inter-process communications, or something else.
+pub trait Handler {
+    // TODO(@MattWindsor91): errors?
+
+    /// Performs the action `a`.
+    fn handle(&mut self, a: Action);
+
+    /// Adds an observer, so that the effect of an action can be seen.
+    fn add_observer(&mut self, observer: std::rc::Weak<dyn super::Observer>);
 }

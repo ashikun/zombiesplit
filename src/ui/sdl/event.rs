@@ -1,18 +1,18 @@
 //! Mapping between SDL events and presenter events.
 
 use crate::model::{attempt, time};
-use crate::ui::presenter::Presenter;
 
 use super::super::presenter::{
     cursor,
     event::{self, Edit, Event, Modal},
+    Presenter,
 };
 
 /// Wrapper over SDL event pumps to promote them into `event::Pump` instances.
 pub struct Pump(pub sdl2::EventPump);
 
-impl event::Pump for Pump {
-    fn pump<'a>(&'a mut self, send_to: &'a mut Presenter) {
+impl<H: attempt::action::Handler> event::Pump<H> for Pump {
+    fn pump<'a>(&'a mut self, send_to: &'a mut Presenter<H>) {
         for e in self.0.poll_iter().filter_map(|x| from_sdl(&x)) {
             send_to.handle_event(&e);
         }

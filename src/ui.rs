@@ -13,27 +13,29 @@ mod sdl;
 pub mod view;
 
 pub use error::{Error, Result};
-pub use presenter::EventForwarder;
+pub use presenter::event::Pump;
 pub use view::View;
 
+use crate::model::attempt::action::{Action, Handler};
+
 /// Top-level user interface instance.
-pub struct Instance<'s, 'p, E, R> {
+pub struct Instance<'h, E, H, R> {
     events: E,
     view: view::View<R>,
-    presenter: presenter::Presenter<'s, 'p>,
+    presenter: presenter::Presenter<'h, H>,
     forwarder: presenter::EventForwarder,
     // TODO(@MattWindsor91): decouple the SDL use here
     limiter: sdl::Limiter,
 }
 
-impl<'s, 'p, E: presenter::event::Pump, R: view::gfx::Renderer> Instance<'s, 'p, E, R> {
+impl<'h, E: presenter::event::Pump<H>, H: Handler, R: view::gfx::Renderer> Instance<'h, E, H, R> {
     /// Runs the UI loop.
     ///
     /// # Errors
     ///
     /// Returns an error if SDL fails to perform an action.
     pub fn run(&mut self) -> Result<()> {
-        self.presenter.session.dump_to_observers();
+        self.presenter.action_handler.handle(Action::Dump);
 
         // Initial draw
         self.view.redraw(&self.presenter.state)?;
@@ -55,18 +57,19 @@ impl<'s, 'p, E: presenter::event::Pump, R: view::gfx::Renderer> Instance<'s, 'p,
     }
 }
 
-/// Runs the user interface, configured by `cfg`, over `session`.
+/// Runs the user interface, configured by `cfg`, over `action_handler`.
 ///
 /// # Errors
 ///
 /// Propagates any errors from creating, spawning, or running the view.
-pub fn run(cfg: view::Config, session: &mut crate::model::attempt::Session) -> Result<()> {
+pub fn run(cfg: view::Config, action_handler: &mut impl Handler) -> Result<()> {
     let layout = cfg.layout.clone();
     let sdl = sdl::Manager::new(cfg)?;
-    let presenter = presenter::Presenter::new(session);
-    let forwarder = EventForwarder::new();
-    presenter.session.observers.add(forwarder.observer());
 
+    let forwarder = presenter::EventForwarder::new();
+    action_handler.add_observer(forwarder.observer());
+
+    let presenter = presenter::Presenter::new(action_handler);
     let mut inst = Instance {
         events: sdl.event_pump()?,
         view: View::new(sdl.renderer()?, &layout),
