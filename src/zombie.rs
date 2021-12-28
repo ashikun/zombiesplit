@@ -1,14 +1,14 @@
-//! High-level interface to zombiesplit.
+/*! High-level interface to the zombiesplit database.
+
+The contents of this file will likely eventually be broken up into smaller portions. */
 
 use std::{
     io::Write,
     path::{Path, PathBuf},
-    rc::Rc,
 };
 
 use super::{
-    config,
-    db::{self, category::Locator},
+    db::{self, category::Locator, Db},
     model::{
         self,
         comparison::{self, Provider},
@@ -21,141 +21,112 @@ use super::{
 use tabwriter::TabWriter;
 use thiserror::Error;
 
-/// High-level interface to zombiesplit.
+/// Adds the game with the given path to the zombiesplit database.
 ///
-/// This struct wraps most of zombiesplit's functionality in a way that is
-/// easy for the command-line app to handle.
-pub struct Zombie {
-    db: Rc<db::Db>,
+/// # Errors
+///
+/// Returns any errors from the database, or if the given path is
+/// ill-formed.
+pub fn add_game<P: AsRef<Path>>(db: &mut Db, path: P) -> Result<()> {
+    let pbuf = ensure_toml(path);
+    let short = deduce_short(&pbuf)?;
+    let game = model::game::Config::from_toml_file(pbuf)?;
+    db.add_game(&short, &game)?;
+    Ok(())
 }
 
-impl Zombie {
-    /// Constructs a new instance of zombiesplit, opening a database connection.
-    ///
-    /// # Errors
-    ///
-    /// Returns any errors from trying to open the database.
-    pub fn new(cfg: &config::System) -> Result<Self> {
-        let db = Rc::new(db::Db::new(&cfg.db_path)?);
-        Ok(Zombie { db })
+/// Adds the run with the given path to the zombiesplit database.
+///
+/// # Errors
+///
+/// Returns any errors from the database, or if the given path is
+/// ill-formed.
+pub fn add_run<P: AsRef<Path>>(db: &mut Db, path: P) -> Result<()> {
+    let pbuf = ensure_toml(path);
+    let run = history::run::FullyTimed::<ShortDescriptor>::from_toml_file(pbuf)?;
+    db.add_run(&run)?;
+    Ok(())
+}
+
+/// Lists all game-category pairs zombiesplit knows.
+///
+/// # Errors
+///
+/// Returns any database errors occurring during the listing.
+pub fn list_game_categories(db: &Db) -> Result<()> {
+    for game in db.game_categories()? {
+        println!("{} - {}: {}", game.short, game.game, game.category);
     }
 
-    /// Initialises the zombiesplit database.
-    ///
-    /// # Errors
-    ///
-    /// Returns any errors from trying to initialise the database.
-    pub fn init_db(&self) -> Result<()> {
-        Ok(self.db.init()?)
+    Ok(())
+}
+
+/// Lists all runs for the given game/category locator.
+///
+/// # Errors
+///
+/// Returns any database errors occurring during the listing.
+pub fn list_runs<L: Locator>(db: &Db, loc: &L) -> Result<()> {
+    // TODO(@MattWindsor91): decouple this from Zombie?
+    use colored::Colorize;
+
+    for run in db.runs_for(loc)? {
+        let rank = match run.timing.rank {
+            None => "n/a".red(),
+            Some(1) => "1".yellow(),
+            Some(k) => format!("{}", k).green(),
+        };
+
+        println!("{}. {} on {}", rank, run.timing.total, run.date);
     }
 
-    /// Adds the game with the given path to the zombiesplit database.
-    ///
-    /// # Errors
-    ///
-    /// Returns any errors from the database, or if the given path is
-    /// ill-formed.
-    pub fn add_game<P: AsRef<Path>>(&mut self, path: P) -> Result<()> {
-        let pbuf = ensure_toml(path);
-        let short = deduce_short(&pbuf)?;
-        let game = model::game::Config::from_toml_file(pbuf)?;
-        self.db.add_game(&short, &game)?;
-        Ok(())
-    }
+    Ok(())
+}
 
-    /// Adds the run with the given path to the zombiesplit database.
-    ///
-    /// # Errors
-    ///
-    /// Returns any errors from the database, or if the given path is
-    /// ill-formed.
-    pub fn add_run<P: AsRef<Path>>(&mut self, path: P) -> Result<()> {
-        let pbuf = ensure_toml(path);
-        let run = history::run::FullyTimed::<ShortDescriptor>::from_toml_file(pbuf)?;
-        self.db.add_run(&run)?;
-        Ok(())
-    }
+/// Lists all PBs for splits in the given game/category locator.
+///
+/// # Errors
+///
+/// Returns any database errors occurring during the listing.
+pub fn split_pbs(db: &Db, loc: &impl Locator) -> Result<()> {
+    // TODO(@MattWindsor91): decouple this from Zombie?
+    let handle = db.reader()?;
+    let mut insp = handle.inspect(loc)?;
 
-    /// Lists all game-category pairs zombiesplit knows.
-    ///
-    /// # Errors
-    ///
-    /// Returns any database errors occurring during the listing.
-    pub fn list_game_categories(&self) -> Result<()> {
-        for game in self.db.game_categories()? {
-            println!("{} - {}: {}", game.short, game.game, game.category);
+    // TODO(@MattWindsor91): decouple this from Zombie?
+    let mut tw = TabWriter::new(std::io::stdout());
+    writeln!(tw, "SPLIT\tSPLIT PB\tIN-RUN PB")?;
+    if let Some(c) = insp.comparison() {
+        for (short, split) in c {
+            output_split_pb(&mut tw, short, split)?;
         }
-
-        Ok(())
     }
+    tw.flush()?;
 
-    /// Lists all runs for the given game/category locator.
-    ///
-    /// # Errors
-    ///
-    /// Returns any database errors occurring during the listing.
-    pub fn list_runs<L: Locator>(&self, loc: &L) -> Result<()> {
-        // TODO(@MattWindsor91): decouple this from Zombie?
-        use colored::Colorize;
+    Ok(())
+}
 
-        for run in self.db.runs_for(loc)? {
-            let rank = match run.timing.rank {
-                None => "n/a".red(),
-                Some(1) => "1".yellow(),
-                Some(k) => format!("{}", k).green(),
-            };
+/// Gets the run for the given game/category locator.
+///
+/// # Errors
+///
+/// Returns any database errors occurring during the listing.
+pub fn run_pb<L: Locator>(db: &Db, loc: &L, level: history::timing::Level) -> Result<()> {
+    let handle = db.reader()?;
+    let mut insp = handle.inspect(loc)?;
+    if let Some(pb) = insp.run_pb(level)? {
+        // TODO(@MattWindsor91): decouple
+        println!("PB is {} on {}", pb.timing.total(), pb.date);
 
-            println!("{}. {} on {}", rank, run.timing.total, run.date);
-        }
-
-        Ok(())
-    }
-
-    /// Lists all PBs for splits in the given game/category locator.
-    ///
-    /// # Errors
-    ///
-    /// Returns any database errors occurring during the listing.
-    pub fn split_pbs(&self, loc: &impl Locator) -> Result<()> {
-        // TODO(@MattWindsor91): decouple this from Zombie?
-        let handle = self.db.reader()?;
-        let mut insp = handle.inspect(loc)?;
-
-        // TODO(@MattWindsor91): decouple this from Zombie?
-        let mut tw = TabWriter::new(std::io::stdout());
-        writeln!(tw, "SPLIT\tSPLIT PB\tIN-RUN PB")?;
-        if let Some(c) = insp.comparison() {
-            for (short, split) in c {
-                output_split_pb(&mut tw, short, split)?;
+        if let history::timing::ForLevel::Totals(totals) = pb.timing {
+            // TODO(@MattWindsor91): order by position
+            for (split, total) in totals.totals {
+                println!("{}: {}", split, total);
             }
         }
-        tw.flush()?;
-
-        Ok(())
     }
 
-    /// Gets the run for the given game/category locator.
-    ///
-    /// # Errors
-    ///
-    /// Returns any database errors occurring during the listing.
-    pub fn run_pb<L: Locator>(&self, loc: &L, level: history::timing::Level) -> Result<()> {
-        let handle = self.db.reader()?;
-        let mut insp = handle.inspect(loc)?;
-        if let Some(pb) = insp.run_pb(level)? {
-            // TODO(@MattWindsor91): decouple
-            println!("PB is {} on {}", pb.timing.total(), pb.date);
-
-            if let history::timing::ForLevel::Totals(totals) = pb.timing {
-                // TODO(@MattWindsor91): order by position
-                for (split, total) in totals.totals {
-                    println!("{}: {}", split, total);
-                }
-            }
-        }
-
-        Ok(())
-    }
+    Ok(())
 }
 
 fn ensure_toml<P: AsRef<Path>>(path: P) -> PathBuf {

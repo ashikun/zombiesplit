@@ -11,4 +11,3 @@ pub mod zombie;
 
 pub use db::Db;
 pub use server::Server;
-pub use zombie::Zombie;

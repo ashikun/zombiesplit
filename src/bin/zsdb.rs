@@ -1,5 +1,5 @@
 use clap::{crate_authors, crate_version, App, Arg, ArgMatches, SubCommand};
-use zombiesplit::{cli, config, model::history::timing::Level, Zombie};
+use zombiesplit::{cli, config, model::history::timing::Level, zombie, Db};
 
 fn main() {
     cli::handle_error(run());
@@ -11,54 +11,53 @@ fn run() -> anyhow::Result<()> {
     let matches = app().get_matches();
     let cfg_raw = std::fs::read_to_string(matches.value_of("config").unwrap())?;
     let cfg = config::System::load(&cfg_raw)?;
-    let zombie = Zombie::new(&cfg)?;
+    let mut db = Db::new(cfg.db_path)?;
 
     match matches.subcommand() {
-        ("init", Some(sub_m)) => run_init(zombie, sub_m),
-        ("add-game", Some(sub_m)) => run_add_game(zombie, sub_m),
-        ("add-run", Some(sub_m)) => run_add_run(zombie, sub_m),
-        ("list-categories", Some(sub_m)) => run_list_categories(zombie, sub_m),
-        ("list-runs", Some(sub_m)) => run_list_runs(zombie, sub_m),
-        ("split-pbs", Some(sub_m)) => run_split_pbs(zombie, sub_m),
-        ("pb", Some(sub_m)) => run_pb(zombie, sub_m),
+        ("init", Some(_)) => Ok(db.init()?),
+        ("add-game", Some(sub_m)) => run_add_game(&mut db, sub_m),
+        ("add-run", Some(sub_m)) => run_add_run(&mut db, sub_m),
+        ("list-categories", Some(sub_m)) => run_list_categories(&db, sub_m),
+        ("list-runs", Some(sub_m)) => run_list_runs(&db, sub_m),
+        ("split-pbs", Some(sub_m)) => run_split_pbs(&db, sub_m),
+        ("pb", Some(sub_m)) => run_pb(&db, sub_m),
         _ => Ok(()),
     }
 }
 
-fn run_init(zombie: Zombie, _matches: &ArgMatches) -> anyhow::Result<()> {
-    zombie.init_db()?;
-    Ok(())
-}
-
-fn run_add_game(mut zombie: Zombie, matches: &ArgMatches) -> anyhow::Result<()> {
+fn run_add_game(db: &mut Db, matches: &ArgMatches) -> anyhow::Result<()> {
     let path = matches.value_of("game").ok_or(cli::Error::Game)?;
-    zombie.add_game(path)?;
+    zombie::add_game(db, path)?;
     Ok(())
 }
 
-fn run_list_categories(zombie: Zombie, _matches: &ArgMatches) -> anyhow::Result<()> {
-    zombie.list_game_categories()?;
+fn run_list_categories(db: &Db, _matches: &ArgMatches) -> anyhow::Result<()> {
+    zombie::list_game_categories(db)?;
     Ok(())
 }
 
-fn run_list_runs(zombie: Zombie, matches: &ArgMatches) -> anyhow::Result<()> {
-    zombie.list_runs(&cli::get_short_descriptor(matches)?)?;
+fn run_list_runs(db: &Db, matches: &ArgMatches) -> anyhow::Result<()> {
+    zombie::list_runs(db, &cli::get_short_descriptor(matches)?)?;
     Ok(())
 }
 
-fn run_split_pbs(zombie: Zombie, matches: &ArgMatches) -> anyhow::Result<()> {
-    zombie.split_pbs(&cli::get_short_descriptor(matches)?)?;
+fn run_split_pbs(db: &Db, matches: &ArgMatches) -> anyhow::Result<()> {
+    zombie::split_pbs(db, &cli::get_short_descriptor(matches)?)?;
     Ok(())
 }
 
-fn run_pb(zombie: Zombie, matches: &ArgMatches) -> anyhow::Result<()> {
-    zombie.run_pb(&cli::get_short_descriptor(matches)?, timing_level(matches))?;
+fn run_pb(db: &Db, matches: &ArgMatches) -> anyhow::Result<()> {
+    zombie::run_pb(
+        db,
+        &cli::get_short_descriptor(matches)?,
+        timing_level(matches),
+    )?;
     Ok(())
 }
 
-fn run_add_run(mut zombie: Zombie, matches: &ArgMatches) -> anyhow::Result<()> {
+fn run_add_run(db: &mut Db, matches: &ArgMatches) -> anyhow::Result<()> {
     let path = matches.value_of("run").ok_or(cli::Error::Run)?;
-    zombie.add_run(path)?;
+    zombie::add_run(db, path)?;
     Ok(())
 }
 
