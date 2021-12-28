@@ -34,35 +34,6 @@ impl Set {
         self.contents.len()
     }
 
-    /// Gets the position of the split with short name `short`.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use zombiesplit::model::{game::Split, attempt::split::Set};
-    ///
-    /// let splits = [
-    ///     Split::new(0, "s1", "Split 1"),
-    ///     Split::new(1, "s2", "Split 2"),
-    /// ];
-    /// let set: Set = splits.into_iter().collect();
-    ///
-    /// assert_eq!(Some(0), set.position_of("s1"));
-    /// assert_eq!(Some(1), set.position_of("s2"));
-    /// assert_eq!(None, set.position_of("s3"));
-    /// ```
-    #[must_use]
-    pub fn position_of(&self, short: impl Into<short::Name>) -> Option<usize> {
-        let short: short::Name = short.into();
-        self.contents.iter().enumerate().find_map(|(i, s)| {
-            if s.info.short == short {
-                Some(i)
-            } else {
-                None
-            }
-        })
-    }
-
     /// Gets whether the split set is empty.
     #[must_use]
     pub fn is_empty(&self) -> bool {

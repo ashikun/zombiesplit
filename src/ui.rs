@@ -20,7 +20,8 @@ pub use view::View;
 pub struct Instance<'s, 'p, E, R> {
     events: E,
     view: view::View<R>,
-    presenter: presenter::EventForwarder<'s, 'p>,
+    presenter: presenter::Presenter<'s, 'p>,
+    forwarder: presenter::EventForwarder,
     // TODO(@MattWindsor91): decouple the SDL use here
     limiter: sdl::Limiter,
 }
@@ -32,10 +33,12 @@ impl<'s, 'p, E: presenter::event::Pump, R: view::gfx::Renderer> Instance<'s, 'p,
     ///
     /// Returns an error if SDL fails to perform an action.
     pub fn run(&mut self) -> Result<()> {
-        // Initial draw
-        self.view.redraw(&self.presenter.core.state)?;
+        self.presenter.session.dump_to_observers();
 
-        while self.presenter.core.is_running() {
+        // Initial draw
+        self.view.redraw(&self.presenter.state)?;
+
+        while self.presenter.is_running() {
             self.cycle()?;
         }
 
@@ -43,9 +46,9 @@ impl<'s, 'p, E: presenter::event::Pump, R: view::gfx::Renderer> Instance<'s, 'p,
     }
 
     fn cycle(&mut self) -> Result<()> {
-        self.presenter.pump();
-        self.events.pump(&mut self.presenter.core);
-        self.view.redraw(&self.presenter.core.state)?;
+        self.forwarder.pump(&mut self.presenter);
+        self.events.pump(&mut self.presenter);
+        self.view.redraw(&self.presenter.state)?;
         self.limiter.delay();
 
         Ok(())
@@ -61,11 +64,16 @@ pub fn run(cfg: view::Config, session: &mut crate::model::attempt::Session) -> R
     let layout = cfg.layout.clone();
     let sdl = sdl::Manager::new(cfg)?;
     let presenter = presenter::Presenter::new(session);
+    let forwarder = EventForwarder::new();
+    presenter.session.observers.add(forwarder.observer());
+
     let mut inst = Instance {
         events: sdl.event_pump()?,
         view: View::new(sdl.renderer()?, &layout),
-        presenter: EventForwarder::new(presenter),
+        presenter,
+        forwarder,
         limiter: sdl::Limiter::new(60)?,
     };
+
     inst.run()
 }

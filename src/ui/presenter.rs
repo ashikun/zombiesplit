@@ -139,10 +139,11 @@ impl<'s, 'cmp> Presenter<'s, 'cmp> {
     }
 
     fn make_cursor_at(&self, short: short::Name) -> Option<Cursor> {
-        let max = self.session.num_splits() - 1;
-        self.session
-            .position_of(short)
-            .and_then(|pos| Cursor::new_at(pos, max))
+        let max = self.state.num_splits() - 1;
+        self.state
+            .short_map
+            .get(&short)
+            .and_then(|pos| Cursor::new_at(*pos, max))
     }
 
     /// Performs a full clean transition between two modes.
@@ -161,34 +162,30 @@ impl<'s, 'cmp> Presenter<'s, 'cmp> {
     }
 }
 
-/// A functional presenter, with the ability to listen to observations from the
-/// underlying session.
-pub struct EventForwarder<'s, 'cmp> {
-    /// The underlying core.
-    pub core: Presenter<'s, 'cmp>,
+/// Uses a channel pair to adapt a presenter into being a session observer.
+pub struct EventForwarder {
+    /// The receive half of the channel, pumped to feed observed events into the presenter.
     obs_receiver: mpsc::Receiver<attempt::observer::Event>,
-    /// Keeps the observer feeding `obs_receiver` alive.
+    /// The send half of the channel, used as an observer.
     obs_sender: Rc<dyn attempt::Observer>,
 }
 
-impl<'s, 'cmp> EventForwarder<'s, 'cmp> {
-    /// Lifts a presenter into an observable presenter.
-    ///
-    /// This installs an observer into the [Session] that allows
-    /// events to be fed asynchronously into the [Core].
+impl Default for EventForwarder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl EventForwarder {
+    /// Creates an event forwarder.
     #[must_use]
-    pub fn new(core: Presenter<'s, 'cmp>) -> Self {
+    pub fn new() -> Self {
         let (obs_sender, obs_receiver) = mpsc::channel();
-        let obs_sender: Rc<dyn attempt::Observer> = Rc::new(Observer { sender: obs_sender });
-        let o = Self {
-            core,
+        let obs_sender: Rc<dyn attempt::Observer> = Rc::new(Observer(obs_sender));
+        Self {
             obs_receiver,
             obs_sender,
-        };
-        // TODO(@MattWindsor91): split this bit out, make it part of the UI bootup.
-        o.core.session.observers.add(o.observer());
-        o.core.session.dump_to_observers();
-        o
+        }
     }
 
     /// Gets this presenter as an observer.
@@ -199,23 +196,19 @@ impl<'s, 'cmp> EventForwarder<'s, 'cmp> {
         Rc::downgrade(&self.obs_sender)
     }
 
-    pub fn pump(&mut self) {
-        let events = self.obs_receiver.try_iter();
-        for l in events {
-            self.core.observe(l);
-        }
+    /// Pumps this event forwarder's event queue, pushing each event to `to`.
+    pub fn pump(&mut self, to: &mut Presenter) {
+        self.obs_receiver.try_iter().for_each(|x| to.observe(x));
     }
 }
 
 /// An observer that feeds into a [Presenter].
-struct Observer {
-    sender: mpsc::Sender<attempt::observer::Event>,
-}
+struct Observer(mpsc::Sender<attempt::observer::Event>);
 
 impl attempt::Observer for Observer {
     fn observe(&self, evt: attempt::observer::Event) {
         // TODO(@MattWindsor91): handle errors properly?
-        if let Err(e) = self.sender.send(evt) {
+        if let Err(e) = self.0.send(evt) {
             log::warn!("error sending event to presenter: {}", e);
         }
     }

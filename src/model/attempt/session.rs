@@ -5,7 +5,7 @@ use super::{
         aggregate,
         comparison::{self, pace, Comparison},
         game::category,
-        history, short, Time,
+        history, Time,
     },
     observer::{self, split::Observer as SO, time::Observer as TO},
     split, Observer, Run,
@@ -212,20 +212,6 @@ impl<'a> Session<'a> {
         self.run.reset();
         self.observe_attempt();
         self.refresh_comparison();
-    }
-
-    /// Gets the number of splits in the run.
-    #[must_use]
-    pub fn num_splits(&self) -> usize {
-        // TODO(@MattWindsor91): this delegation is tedious and suggests there
-        // are issues in my abstraction here.
-        self.run.num_splits()
-    }
-
-    /// Gets the position of the split with short name `short`.
-    #[must_use]
-    pub fn position_of(&self, short: impl Into<short::Name>) -> Option<usize> {
-        self.run.position_of(short)
     }
 
     fn clear_at(&mut self, split: impl split::Locator) {

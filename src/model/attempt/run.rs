@@ -1,7 +1,7 @@
 //! Models relating to runs.
 
 use super::split::Set;
-use crate::model::{game::category::AttemptInfo, history, short};
+use crate::model::{game::category::AttemptInfo, history};
 
 /// An in-progress run.
 pub struct Run {
@@ -57,12 +57,6 @@ impl Run {
     #[must_use]
     pub fn num_splits(&self) -> usize {
         self.splits.len()
-    }
-
-    /// Gets the position of the split with short name `short`.
-    #[must_use]
-    pub fn position_of(&self, short: impl Into<short::Name>) -> Option<usize> {
-        self.splits.position_of(short)
     }
 }
 
