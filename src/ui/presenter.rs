@@ -25,7 +25,7 @@ use std::{rc::Rc, sync::mpsc};
 /// A zombiesplit UI presenter, containing all state and modality.
 pub struct Presenter<'s, 'cmp> {
     /// The current mode.
-    pub mode: Box<dyn mode::Mode + 's>,
+    pub mode: Box<dyn mode::Mode>,
     /// The zombiesplit session being controlled by the presenter.
     pub session: &'s mut Session<'cmp>,
     /// The visual state being updated by the presenter.
