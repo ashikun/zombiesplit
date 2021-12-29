@@ -1,8 +1,9 @@
 //! Split events in attempt observations.
 use crate::model;
+use serde::{Deserialize, Serialize};
 
 /// Enumeration of split-level events.
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub enum Event {
     /// Got a new time for the split.

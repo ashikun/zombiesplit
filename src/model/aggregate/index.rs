@@ -4,8 +4,10 @@ These are useful for parametrically varying the specific [Source] or [Scope]
 in an aggregate structure.
 */
 
+use serde::{Deserialize, Serialize};
+
 /// The kind ([Source] and [Scope]) of an aggregate time.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Kind {
     /// The source of this aggregate time.
     pub source: Source,
@@ -28,7 +30,7 @@ impl Kind {
 }
 
 /// Enumeration of sources for aggregate times.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum Source {
     /// This time comes from the run attempt.
     Attempt,
@@ -61,7 +63,7 @@ impl Source {
 }
 
 /// Enumeration of scopes for aggregate times.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum Scope {
     /// Total of all times logged on the split.
     Split,

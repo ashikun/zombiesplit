@@ -39,13 +39,18 @@ impl<'c> Manager<'c> {
             cfg,
         })
     }
+}
+
+impl<'r, 'c> super::super::Manager<'r> for Manager<'c> {
+    type Pump = event::Pump;
+    type Renderer = Renderer<'r>;
 
     /// Spawns an event pump using the SDL event pump.
     ///
     /// # Errors
     ///
     /// Fails if we can't get access to the event pump.
-    pub fn event_pump(&self) -> Result<event::Pump> {
+    fn event_pump(&self) -> Result<event::Pump> {
         self.sdl.event_pump().map(event::Pump).map_err(Error::Init)
     }
 
@@ -54,7 +59,7 @@ impl<'c> Manager<'c> {
     /// # Errors
     ///
     /// Returns an error if the font metrics are nonsensical.
-    pub fn renderer(&self) -> Result<Renderer> {
+    fn renderer(&'r self) -> Result<Renderer<'r>> {
         let font_manager = font::Manager::new(
             &self.textures,
             self.cfg.fonts,

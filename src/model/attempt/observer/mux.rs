@@ -1,7 +1,7 @@
 //! Observation multiplexing.
 use std::rc::Weak;
 
-use super::Observer;
+use super::{Observable, Observer};
 
 /// An observation multiplexer.
 ///
@@ -13,10 +13,10 @@ pub struct Mux {
     observers: Vec<Weak<dyn Observer>>,
 }
 
-impl Mux {
+impl Observable for Mux {
     /// Adds an observer to the mux.
-    pub fn add(&mut self, obs: Weak<dyn Observer>) {
-        self.observers.push(obs);
+    fn add_observer(&mut self, observer: Weak<dyn Observer>) {
+        self.observers.push(observer);
     }
 }
 

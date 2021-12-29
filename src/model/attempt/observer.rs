@@ -6,6 +6,7 @@ pub mod split;
 pub mod time;
 
 use super::super::{game::category, history, short};
+use serde::{Deserialize, Serialize};
 
 pub use debug::Debug;
 pub use mux::Mux;
@@ -20,7 +21,7 @@ pub trait Observer {
 }
 
 /// Enumeration of events that can be sent through an observer.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub enum Event {
     /// Observes a full-run total (either from the comparison, or from the attempt).
@@ -45,4 +46,12 @@ impl<T: Observer> split::Observer for T {
     fn observe_split(&self, split: crate::model::short::Name, event: split::Event) {
         self.observe(Event::Split(split, event));
     }
+}
+
+/// Trait for things that can be observed.
+///
+/// These are usually multiplexers, sessions, or some sort of proxy for one of those two.
+pub trait Observable {
+    /// Adds an observer, so that the effect of an action can be seen.
+    fn add_observer(&mut self, observer: std::rc::Weak<dyn Observer>);
 }

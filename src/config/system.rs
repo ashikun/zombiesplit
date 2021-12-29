@@ -8,6 +8,8 @@ use thiserror::Error;
 /// System configuration for zombiesplit.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct System<'p> {
+    /// Address to which the server should be bound.
+    pub server_addr: std::net::SocketAddr,
     /// Database location.
     pub db_path: &'p Path,
     /// UI configuration.

@@ -42,20 +42,6 @@ impl<'conn> Getter<'conn> {
         })
     }
 
-    /// Initialises an attempt session for the game/category referred to by
-    /// `info`.
-    ///
-    /// # Errors
-    ///
-    /// Propagates any errors from the database.
-    pub fn init_session<'b>(&mut self, info: InfoWithID) -> Result<attempt::Session<'b>> {
-        let run = attempt::Run {
-            attempt: self.attempt_info(&info)?,
-            splits: self.splits(&info)?,
-        };
-        Ok(attempt::Session::new(info.info, run))
-    }
-
     /// Gets information records for all game-category pairs on the database.
     ///
     /// # Errors
@@ -117,6 +103,18 @@ impl<'conn> Getter<'conn> {
                     },
                 })
             })?)
+    }
+
+    /// Gets run information for the given locator.
+    ///
+    /// # Errors
+    ///
+    /// Propagates any errors from the database.
+    pub fn run<L: Locator>(&mut self, locator: &L) -> Result<attempt::Run> {
+        Ok(attempt::Run {
+            attempt: self.attempt_info(locator)?,
+            splits: self.splits(locator)?,
+        })
     }
 
     /// Gets attempt information for a game/category located by `locator`.

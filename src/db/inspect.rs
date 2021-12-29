@@ -44,13 +44,20 @@ impl<'db> comparison::Provider for Inspector<'db> {
 
 impl<'db> Inspector<'db> {
     /// Initialises an attempt session for the game/category referred to by
-    /// `desc`.
+    /// `desc`, and with the given observer.
     ///
     /// # Errors
     ///
     /// Propagates any errors from the database.
-    pub fn init_session(&mut self) -> Result<attempt::Session<'db>> {
-        self.cat.init_session(self.info.clone())
+    pub fn init_session<'obs, O: attempt::Observer>(
+        &mut self,
+        obs: &'obs O,
+    ) -> Result<attempt::Session<'db, 'obs, O>> {
+        Ok(attempt::Session::new(
+            self.info.info.clone(),
+            self.cat.run(&self.info)?,
+            obs,
+        ))
     }
 
     /// Gets the run for this game-category pair.

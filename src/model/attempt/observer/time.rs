@@ -1,8 +1,9 @@
 //! Observations for split times.
 use crate::model::{self, aggregate, short};
+use serde::{Deserialize, Serialize};
 
 /// Enumeration of split time event types.
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub enum Event {
     /// This time was just added to the split.

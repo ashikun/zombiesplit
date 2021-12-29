@@ -13,6 +13,7 @@ clap = "2.33.0"
 colored = "2"
 css-color-parser = "0.1.2"
 env_logger = "0.9.0"
+futures = "0.3.19"
 itertools = "0.10.3"
 log = { version = "0.4", features = ["serde", "std"] }
 num-integer = "0.1.44"
@@ -21,9 +22,13 @@ r2d2 = "0.8.9"
 r2d2_sqlite = "0.19.0"
 sdl2 = { version = "0.35.1", features = ["gfx", "image"] }
 serde = { version = "1.0.125", features = ["derive"] }
+serde_cbor = "0.11.2"
 serde_with = "1.11.0"
 symbol = "0.1.9" # used for short names
 tabwriter = { version = "1", features = [ "ansi_formatting" ] }
+tokio = { version = "1", features = [ "full" ] }
+tokio-util = { version = "0.6.9", features = [ "codec" ] }
+tokio-serde = { version = "0.8.0", features = [ "cbor" ] }
 tempfile = "3"
 thiserror = "1.0.30"
 toml = "0.5.8"

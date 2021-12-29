@@ -3,9 +3,10 @@ An event interface for manipulating a current attempt.
 */
 
 use crate::model::Time;
+use serde::{Deserialize, Serialize};
 
 /// An event that manipulates the current attempt.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[non_exhaustive]
 pub enum Action {
     /// Dump state to all observers.
@@ -28,7 +29,4 @@ pub trait Handler {
 
     /// Performs the action `a`.
     fn handle(&mut self, a: Action);
-
-    /// Adds an observer, so that the effect of an action can be seen.
-    fn add_observer(&mut self, observer: std::rc::Weak<dyn super::Observer>);
 }

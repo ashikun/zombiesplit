@@ -1,9 +1,10 @@
 //! Structs and functions for pace computation.
 
 use crate::model::Time;
+use serde::{Deserialize, Serialize};
 
 /// Possible paces for a split or run.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum Pace {
     /// There is comparison for this time.
     Inconclusive,
@@ -37,7 +38,7 @@ impl Pace {
 }
 
 /// A pair of a time and its pace against comparison.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct PacedTime {
     /// The pace.
     pub pace: Pace,
@@ -78,7 +79,7 @@ impl PacedTime {
 ///
 /// These note the pace of a run, as well as how the current split has affected
 /// it.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum SplitInRun {
     /// There is no pacing time.
     Inconclusive,

@@ -11,7 +11,6 @@ use super::{
     observer::{self, split::Observer as SO, time::Observer as TO},
     split, Observer, Run,
 };
-use std::rc::Weak;
 
 /// Holds all data for an attempt session.
 ///
@@ -21,22 +20,22 @@ use std::rc::Weak;
 /// It also has zero or more observers attached that can be sent information
 /// about the run's progress, and a comparison provider.  The latter feeds into
 /// the session's lifetime.
-pub struct Session<'cmp> {
+pub struct Session<'cmp, 'obs, O> {
     /// Metadata for the game/category currently being run.
     pub metadata: category::Info,
     /// The current run.
     run: Run,
     /// Comparison data for the game/category currently being run.
     comparison: Comparison,
-    /// Any observers attached to the session.
-    pub observers: observer::Mux,
+    /// The observer attached to the session (which, itself, may be observable).
+    observer: &'obs O,
     /// The function for timestamping outgoing runs.
     timestamper: fn() -> chrono::DateTime<chrono::Utc>,
     /// The comparison provider.
     comparator: Box<dyn comparison::Provider + 'cmp>,
 }
 
-impl<'cmp> action::Handler for Session<'cmp> {
+impl<'cmp, 'obs, O: Observer> action::Handler for Session<'cmp, 'obs, O> {
     fn handle(&mut self, action: action::Action) {
         match action {
             action::Action::Dump => self.dump_to_observers(),
@@ -46,21 +45,17 @@ impl<'cmp> action::Handler for Session<'cmp> {
             action::Action::Push(s, t) => self.push_to(s, t),
         }
     }
-
-    fn add_observer(&mut self, observer: Weak<dyn Observer>) {
-        self.observers.add(observer);
-    }
 }
 
-impl<'a> Session<'a> {
+impl<'cmp, 'obs, O: Observer> Session<'cmp, 'obs, O> {
     /// Starts a new session with a given set of metadata and starting run.
     #[must_use]
-    pub fn new(metadata: category::Info, run: Run) -> Self {
+    pub fn new(metadata: category::Info, run: Run, observer: &'obs O) -> Self {
         Self {
             metadata,
             run,
             comparison: Comparison::default(),
-            observers: observer::Mux::default(),
+            observer,
             timestamper: chrono::Utc::now,
             comparator: Box::new(comparison::NullProvider),
         }
@@ -79,7 +74,7 @@ impl<'a> Session<'a> {
     /// need to be done to get comparisons working.
     ///
     /// Triggers an immediate comparison reset.
-    pub fn set_comparison_provider(&mut self, p: Box<dyn comparison::Provider + 'a>) {
+    pub fn set_comparison_provider(&mut self, p: Box<dyn comparison::Provider + 'cmp>) {
         self.comparator = p;
         self.refresh_comparison();
     }
@@ -132,7 +127,7 @@ impl<'a> Session<'a> {
     /// Sends information about each split to the observers.
     fn observe_splits(&self) {
         for split in self.run.splits.iter() {
-            self.observers.observe(observer::Event::AddSplit(
+            self.observer.observe(observer::Event::AddSplit(
                 split.info.short,
                 split.info.name.clone(),
             ));
@@ -140,17 +135,17 @@ impl<'a> Session<'a> {
     }
 
     fn observe_reset(&self) {
-        self.observers
+        self.observer
             .observe(observer::Event::Reset(self.run_as_historic()));
     }
 
     fn observe_attempt(&self) {
-        self.observers
+        self.observer
             .observe(observer::Event::Attempt(self.run.attempt));
     }
 
     fn observe_game_category(&self) {
-        self.observers
+        self.observer
             .observe(observer::Event::GameCategory(self.metadata.clone()));
     }
 
@@ -165,9 +160,9 @@ impl<'a> Session<'a> {
         for (split, agg) in self.run.splits.aggregates() {
             let pace = self.split_pace(split, agg);
             let short = split.info.short;
-            self.observers
+            self.observer
                 .observe_split(short, observer::split::Event::Pace(pace));
-            self.observers
+            self.observer
                 .observe_aggregate_set(short, agg, aggregate::Source::Attempt);
 
             if total.time < agg.cumulative {
@@ -178,7 +173,7 @@ impl<'a> Session<'a> {
             }
         }
 
-        self.observers
+        self.observer
             .observe(observer::Event::Total(total, aggregate::Source::Attempt));
     }
 
@@ -196,7 +191,7 @@ impl<'a> Session<'a> {
     /// running against.
     fn observe_comparison(&self) {
         // TODO(@MattWindsor91): wrapping this in a PacedTime is a bit silly.
-        self.observers.observe(observer::Event::Total(
+        self.observer.observe(observer::Event::Total(
             pace::PacedTime::inconclusive(self.comparison.total()),
             aggregate::Source::Comparison,
         ));
@@ -208,7 +203,7 @@ impl<'a> Session<'a> {
         for split in self.run.splits.iter() {
             let short = split.info.short;
             if let Some(s) = self.comparison.aggregate_for(short) {
-                self.observers
+                self.observer
                     .observe_aggregate_set(short, *s, aggregate::Source::Comparison);
             }
         }
@@ -232,7 +227,7 @@ impl<'a> Session<'a> {
         if let Some(s) = self.run.splits.get_mut(split) {
             s.push(time);
             let short = s.info.short;
-            self.observers
+            self.observer
                 .observe_time(short, time, observer::time::Event::Pushed);
             self.observe_paces_and_aggregates();
         }
@@ -243,7 +238,7 @@ impl<'a> Session<'a> {
             let short = s.info.short;
             s.pop().map(|time| (short, time))
         }) {
-            self.observers
+            self.observer
                 .observe_time(short, time, observer::time::Event::Popped);
             self.observe_paces_and_aggregates();
         }

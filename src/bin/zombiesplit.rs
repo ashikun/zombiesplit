@@ -1,20 +1,30 @@
 use clap::{crate_authors, crate_version, App, Arg};
+use zombiesplit::model::attempt::observer::Observable;
 use zombiesplit::{cli, config, ui, Manager};
 
-fn main() {
-    cli::handle_error(run());
+#[tokio::main]
+async fn main() {
+    cli::handle_error(run().await);
 }
 
-fn run() -> anyhow::Result<()> {
+async fn run() -> anyhow::Result<()> {
     env_logger::try_init()?;
 
     let matches = app().get_matches();
     let cfg_raw = std::fs::read_to_string(matches.value_of("config").unwrap())?;
     let cfg = config::System::load(&cfg_raw)?;
     let ui_cfg = cfg.ui.clone();
-    let manager = Manager::new(cfg)?;
-    let mut server = manager.run(&cli::get_short_descriptor(&matches)?)?;
-    ui::run(ui_cfg, &mut server.session)?;
+
+    let mut manager = Manager::new(cfg)?;
+
+    let forwarder = ui::presenter::EventForwarder::new();
+    manager.add_observer(forwarder.observer());
+
+    let mut server = manager.server(&cli::get_short_descriptor(&matches)?)?;
+    let sdl = ui::sdl::Manager::new(ui_cfg.clone())?;
+    let mut ui = ui::Instance::new(&ui_cfg, &sdl, &mut server.session, forwarder)?;
+
+    ui.run()?;
     Ok(())
 }
 

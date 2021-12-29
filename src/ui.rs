@@ -9,7 +9,7 @@ attempt session forming the model).
 
 pub mod error;
 pub mod presenter;
-mod sdl;
+pub mod sdl;
 pub mod view;
 
 pub use error::{Error, Result};
@@ -17,6 +17,26 @@ pub use presenter::event::Pump;
 pub use view::View;
 
 use crate::model::attempt::action::{Action, Handler};
+
+/// Trait for things that provide UI components such as event pumps and renderers.
+pub trait Manager<'r> {
+    type Pump;
+    type Renderer: 'r;
+
+    /// Constructs an event pump.
+    ///
+    /// # Errors
+    ///
+    /// Fails if the underlying UI backend can't construct an event pump.
+    fn event_pump(&self) -> Result<Self::Pump>;
+
+    /// Constructs a renderer.
+    ///
+    /// # Errors
+    ///
+    /// Fails if the underlying UI backend can't construct a renderer.
+    fn renderer(&'r self) -> Result<Self::Renderer>;
+}
 
 /// Top-level user interface instance.
 pub struct Instance<'h, E, H, R> {
@@ -29,6 +49,26 @@ pub struct Instance<'h, E, H, R> {
 }
 
 impl<'h, E: presenter::event::Pump<H>, H: Handler, R: view::gfx::Renderer> Instance<'h, E, H, R> {
+    /// Constructs a new UI instance using the configuration in `config`,
+    ///
+    /// # Errors
+    ///
+    /// Fails if the manager can't construct certain components of the UI.
+    pub fn new(
+        cfg: &view::Config,
+        manager: &'h impl Manager<'h, Pump = E, Renderer = R>,
+        action_handler: &'h mut H,
+        forwarder: presenter::EventForwarder,
+    ) -> Result<Self> {
+        Ok(Self {
+            events: manager.event_pump()?,
+            view: View::new(manager.renderer()?, &cfg.layout),
+            presenter: presenter::Presenter::new(action_handler),
+            forwarder,
+            limiter: sdl::Limiter::new(60)?,
+        })
+    }
+
     /// Runs the UI loop.
     ///
     /// # Errors
@@ -55,28 +95,4 @@ impl<'h, E: presenter::event::Pump<H>, H: Handler, R: view::gfx::Renderer> Insta
 
         Ok(())
     }
-}
-
-/// Runs the user interface, configured by `cfg`, over `action_handler`.
-///
-/// # Errors
-///
-/// Propagates any errors from creating, spawning, or running the view.
-pub fn run(cfg: view::Config, action_handler: &mut impl Handler) -> Result<()> {
-    let layout = cfg.layout.clone();
-    let sdl = sdl::Manager::new(cfg)?;
-
-    let forwarder = presenter::EventForwarder::new();
-    action_handler.add_observer(forwarder.observer());
-
-    let presenter = presenter::Presenter::new(action_handler);
-    let mut inst = Instance {
-        events: sdl.event_pump()?,
-        view: View::new(sdl.renderer()?, &layout),
-        presenter,
-        forwarder,
-        limiter: sdl::Limiter::new(60)?,
-    };
-
-    inst.run()
 }
