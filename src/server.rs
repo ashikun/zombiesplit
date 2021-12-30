@@ -163,6 +163,8 @@ impl<'cmp> Server<'cmp> {
 
                         let (send, mut recv) = deserialized.split();
 
+
+
                         // Spawn a task that prints all received messages to STDOUT
                         tokio::spawn(async move {
                             while let Some(msg) = recv.try_next().await.unwrap() {
@@ -176,12 +178,6 @@ impl<'cmp> Server<'cmp> {
                 } => {res?}
             }
         }
-    }
-
-    /// Creates an action handler that can be used to send actions to a running server.
-    #[must_use]
-    pub fn handler(&self) -> ActionForwarder {
-        ActionForwarder(self.action_in.clone())
     }
 }
 

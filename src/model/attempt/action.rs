@@ -28,5 +28,5 @@ pub trait Handler {
     // TODO(@MattWindsor91): errors?
 
     /// Performs the action `a`.
-    async fn handle(&mut self, a: Action);
+    fn handle(&mut self, a: Action);
 }
