@@ -43,7 +43,7 @@ pub struct Instance<'h, E, H, R> {
     events: E,
     view: view::View<R>,
     presenter: presenter::Presenter<'h, H>,
-    forwarder: presenter::EventForwarder,
+    forwarder: presenter::ModelEventPump,
     // TODO(@MattWindsor91): decouple the SDL use here
     limiter: sdl::Limiter,
 }
@@ -58,7 +58,7 @@ impl<'h, E: presenter::event::Pump<H>, H: Handler, R: view::gfx::Renderer> Insta
         cfg: &view::Config,
         manager: &'h impl Manager<'h, Pump = E, Renderer = R>,
         action_handler: &'h mut H,
-        forwarder: presenter::EventForwarder,
+        forwarder: presenter::ModelEventPump,
     ) -> Result<Self> {
         Ok(Self {
             events: manager.event_pump()?,

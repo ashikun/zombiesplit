@@ -7,23 +7,26 @@ and emits observations that reflect changes to the attempt.
 mod router;
 
 use futures::prelude::*;
-use std::rc::{Rc, Weak};
+use std::sync::{Arc, Weak};
 
 use super::{
     config,
     db::{self, inspect::Inspector},
     model::{
         self,
-        attempt::{self, observer::Debug},
+        attempt::{
+            self,
+            action::Handler,
+            observer::{Debug, Observable, Observer},
+            Action,
+        },
         comparison,
         game::category::ShortDescriptor,
     },
     ui,
 };
-use crate::model::attempt::observer::Observable;
-use crate::model::attempt::Observer;
 use thiserror::Error;
-use tokio::net::TcpListener;
+use tokio::{net::TcpListener, sync::mpsc};
 use tokio_serde::formats::Cbor;
 use tokio_util::codec::{Framed, LengthDelimitedCodec};
 
@@ -34,8 +37,8 @@ pub struct Manager<'c> {
     cfg: config::System<'c>,
     reader: db::Reader,
 
-    db_obs: Rc<dyn attempt::Observer>,
-    debug_obs: Rc<dyn attempt::Observer>,
+    db_obs: Arc<dyn attempt::Observer>,
+    debug_obs: Arc<dyn attempt::Observer>,
     obs_mux: attempt::observer::Mux,
 }
 
@@ -46,11 +49,11 @@ impl<'c> Manager<'c> {
     ///
     /// Returns any errors from trying to open the database.
     pub fn new(cfg: config::System<'c>) -> Result<Self> {
-        let db = Rc::new(db::Db::new(&cfg.db_path)?);
+        let db = std::rc::Rc::new(db::Db::new(&cfg.db_path)?);
         let reader = db.reader()?;
 
-        let db_obs: Rc<dyn attempt::Observer> = Rc::new(db::Observer::new(db));
-        let debug_obs: Rc<dyn attempt::Observer> = Rc::new(Debug);
+        let db_obs: Arc<dyn attempt::Observer> = Arc::new(db::Observer::new(db));
+        let debug_obs: Arc<dyn attempt::Observer> = Arc::new(Debug);
 
         let mut m = Self {
             cfg,
@@ -59,8 +62,8 @@ impl<'c> Manager<'c> {
             debug_obs,
             obs_mux: attempt::observer::Mux::default(),
         };
-        m.obs_mux.add_observer(Rc::downgrade(&m.db_obs));
-        m.obs_mux.add_observer(Rc::downgrade(&m.debug_obs));
+        m.obs_mux.add_observer(Arc::downgrade(&m.db_obs));
+        m.obs_mux.add_observer(Arc::downgrade(&m.debug_obs));
 
         Ok(m)
     }
@@ -72,9 +75,12 @@ impl<'c> Manager<'c> {
     /// Returns any database or UI errors caught during the session.
     pub fn server(&self, desc: &ShortDescriptor) -> Result<Server> {
         let insp = self.reader.inspect(desc)?;
+        let (action_in, action_out) = tokio::sync::mpsc::channel(32);
         Ok(Server {
             session: self.session(insp)?,
             addr: self.cfg.server_addr,
+            action_in,
+            action_out,
         })
     }
 
@@ -113,9 +119,12 @@ impl<'c> Observable for Manager<'c> {
 pub struct Server<'m> {
     // TODO(@MattWindsor91): de-public all of these
     /// The session being wrapped by this server.
-    pub session: attempt::Session<'m, 'm, attempt::observer::Mux>,
+    session: attempt::Session<'m, 'm, attempt::observer::Mux>,
 
-    pub addr: std::net::SocketAddr,
+    addr: std::net::SocketAddr,
+
+    action_in: mpsc::Sender<attempt::Action>,
+    action_out: mpsc::Receiver<attempt::Action>,
 }
 
 impl<'cmp> Server<'cmp> {
@@ -131,27 +140,59 @@ impl<'cmp> Server<'cmp> {
     pub async fn run(&mut self) -> Result<()> {
         let listener = TcpListener::bind(self.addr).await?;
         loop {
-            let (socket, _) = listener.accept().await.unwrap();
+            tokio::select! {
+                Some(act) = self.action_out.recv() => {
+                    self.session.handle(act)
+                },
+                res = async {
+                    loop {
+                        let (socket, _) = listener.accept().await?;
 
-            // Delimit frames using a length header
-            let length_delimited = Framed::new(socket, LengthDelimitedCodec::new());
+                        // Delimit frames using a length header
+                        let length_delimited = Framed::new(socket, LengthDelimitedCodec::new());
 
-            let codec: Cbor<attempt::Action, attempt::observer::Event> = Cbor::default();
+                        let codec: Cbor<attempt::Action, attempt::observer::Event> = Cbor::default();
 
-            // Deserialize frames
-            let mut deserialized: tokio_serde::Framed<
-                _,
-                attempt::Action,
-                attempt::observer::Event,
-                _,
-            > = tokio_serde::Framed::new(length_delimited, codec);
+                        // Deserialize frames
+                        let deserialized: tokio_serde::Framed<
+                            _,
+                            attempt::Action,
+                            attempt::observer::Event,
+                            _,
+                        > = tokio_serde::Framed::new(length_delimited, codec);
 
-            // Spawn a task that prints all received messages to STDOUT
-            tokio::spawn(async move {
-                while let Some(msg) = deserialized.try_next().await.unwrap() {
-                    println!("GOT: {:?}", msg);
-                }
-            });
+                        let (send, mut recv) = deserialized.split();
+
+                        // Spawn a task that prints all received messages to STDOUT
+                        tokio::spawn(async move {
+                            while let Some(msg) = recv.try_next().await.unwrap() {
+                                println!("GOT: {:?}", msg);
+                            }
+                        });
+                    }
+
+                    // Help the rust type inferencer out
+                    Ok::<_, std::io::Error>(())
+                } => {res?}
+            }
+        }
+    }
+
+    /// Creates an action handler that can be used to send actions to a running server.
+    #[must_use]
+    pub fn handler(&self) -> ActionForwarder {
+        ActionForwarder(self.action_in.clone())
+    }
+}
+
+/// An action handler that forwards actions directly to the session.
+pub struct ActionForwarder(mpsc::Sender<attempt::Action>);
+
+impl attempt::action::Handler for ActionForwarder {
+    fn handle(&mut self, a: Action) {
+        // TODO(@MattWindsor91): errors
+        if let Err(err) = self.0.blocking_send(a) {
+            log::error!("can't forward action: {}", err)
         }
     }
 }

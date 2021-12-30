@@ -53,5 +53,7 @@ impl<T: Observer> split::Observer for T {
 /// These are usually multiplexers, sessions, or some sort of proxy for one of those two.
 pub trait Observable {
     /// Adds an observer, so that the effect of an action can be seen.
-    fn add_observer(&mut self, observer: std::rc::Weak<dyn Observer>);
+    ///
+    /// Observers are atomic weak references; this is because
+    fn add_observer(&mut self, observer: std::sync::Weak<dyn Observer>);
 }

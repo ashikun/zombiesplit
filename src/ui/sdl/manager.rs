@@ -16,7 +16,7 @@ pub struct Manager<'c> {
     screen: RefCell<sdl2::render::Canvas<sdl2::video::Window>>,
     textures: sdl2::render::TextureCreator<sdl2::video::WindowContext>,
     /// The system view configuration, which is borrowing parts of a config file.
-    cfg: view::Config<'c>,
+    cfg: &'c view::Config<'c>,
 }
 
 impl<'c> Manager<'c> {
@@ -26,7 +26,7 @@ impl<'c> Manager<'c> {
     ///
     /// Returns an error if any of the SDL subsystems the UI manager requires
     /// fail to initialise.
-    pub fn new(cfg: view::Config<'c>) -> Result<Self> {
+    pub fn new(cfg: &'c view::Config<'c>) -> Result<Self> {
         let sdl = sdl2::init().map_err(Error::Init)?;
         let video = sdl.video().map_err(Error::Init)?;
         let window = make_window(&video, cfg.layout.window)?;

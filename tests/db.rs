@@ -96,7 +96,7 @@ fn test_sample_observe_run() {
 
     let mut session = init_session(&handle);
 
-    let obs: Rc<dyn attempt::Observer> = Rc::new(Observer::new(db.clone()));
+    let obs: Arc<dyn attempt::Observer> = Rc::new(Observer::new(db.clone()));
     session.observers.add(Rc::downgrade(&obs));
 
     // This shouldn't insert a run.

@@ -20,7 +20,7 @@ use crate::model::{
 pub use cursor::Cursor;
 pub use mode::Editor;
 pub use state::State;
-use std::{rc::Rc, sync::mpsc};
+use std::{sync::mpsc, sync::Arc};
 
 /// A zombiesplit UI presenter, containing all state and modality.
 pub struct Presenter<'h, H> {
@@ -164,50 +164,23 @@ impl<'h, H: Handler> Presenter<'h, H> {
     }
 }
 
-/// Uses a channel pair to adapt a presenter into being a session observer.
-pub struct EventForwarder {
-    /// The receive half of the channel, pumped to feed observed events into the presenter.
-    obs_receiver: mpsc::Receiver<attempt::observer::Event>,
-    /// The send half of the channel, used as an observer.
-    obs_sender: Rc<dyn attempt::Observer>,
+/// Used to feed events from an `Observer` into a `Presenter`.
+pub struct ModelEventPump(mpsc::Receiver<attempt::observer::Event>);
+
+pub fn observer() -> (Observer, ModelEventPump) {
+    let (send, recv) = mpsc::channel();
+    (Observer(send), ModelEventPump(recv))
 }
 
-impl Default for EventForwarder {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl EventForwarder {
-    /// Creates an event forwarder.
-    #[must_use]
-    pub fn new() -> Self {
-        let (obs_sender, obs_receiver) = mpsc::channel();
-        let obs_sender: Rc<dyn attempt::Observer> = Rc::new(Observer(obs_sender));
-        Self {
-            obs_receiver,
-            obs_sender,
-        }
-    }
-
-    /// Gets this presenter as an observer.
-    #[must_use]
-    pub fn observer(&self) -> std::rc::Weak<dyn attempt::Observer> {
-        // TODO(@MattWindsor91): this will be exposed as public once the presenter no longer takes
-        // the entire session in as a mutable borrow.
-        Rc::downgrade(&self.obs_sender)
-    }
-}
-
-impl<H: Handler> event::Pump<H> for EventForwarder {
+impl<H: Handler> event::Pump<H> for ModelEventPump {
     /// Pumps this event forwarder's event queue, pushing each event to `to`.
     fn pump(&mut self, to: &mut Presenter<H>) {
-        self.obs_receiver.try_iter().for_each(|x| to.observe(x));
+        self.0.try_iter().for_each(|x| to.observe(x));
     }
 }
 
 /// An observer that feeds into a [Presenter].
-struct Observer(mpsc::Sender<attempt::observer::Event>);
+pub struct Observer(mpsc::Sender<attempt::observer::Event>);
 
 impl attempt::Observer for Observer {
     fn observe(&self, evt: attempt::observer::Event) {
