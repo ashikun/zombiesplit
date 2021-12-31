@@ -4,9 +4,9 @@ This is a TCP server that hosts a run attempt session, accepts actions to perfor
 and emits observations that reflect changes to the attempt.
 */
 
-mod router;
+mod error;
+mod listener;
 
-use futures::prelude::*;
 use std::sync::{Arc, Weak};
 
 use super::{
@@ -23,12 +23,11 @@ use super::{
         comparison,
         game::category::ShortDescriptor,
     },
-    ui,
 };
-use thiserror::Error;
-use tokio::{net::TcpListener, sync::mpsc};
-use tokio_serde::formats::Cbor;
-use tokio_util::codec::{Framed, LengthDelimitedCodec};
+use crate::model::attempt::observer::Event;
+use tokio::sync::{broadcast, mpsc};
+
+pub use error::{Error, Result};
 
 /// A manager of a zombiesplit server.
 ///
@@ -37,9 +36,24 @@ pub struct Manager<'c> {
     cfg: config::System<'c>,
     reader: db::Reader,
 
-    db_obs: Arc<dyn attempt::Observer>,
-    debug_obs: Arc<dyn attempt::Observer>,
+    /// Send/receive pair for broadcasting events from the session to clients.
+    /// We hold the receiver here to keep it alive.
+    bcast: (
+        broadcast::Sender<attempt::observer::Event>,
+        broadcast::Receiver<attempt::observer::Event>,
+    ),
+
+    observers: Vec<Arc<dyn attempt::Observer>>,
     obs_mux: attempt::observer::Mux,
+}
+
+struct Broadcast(tokio::sync::broadcast::Sender<attempt::observer::Event>);
+impl attempt::Observer for Broadcast {
+    fn observe(&self, evt: Event) {
+        if let Err(e) = self.0.send(evt) {
+            log::error!("couldn't send observation to clients: {}", e);
+        }
+    }
 }
 
 impl<'c> Manager<'c> {
@@ -55,15 +69,20 @@ impl<'c> Manager<'c> {
         let db_obs: Arc<dyn attempt::Observer> = Arc::new(db::Observer::new(db));
         let debug_obs: Arc<dyn attempt::Observer> = Arc::new(Debug);
 
+        let bcast = tokio::sync::broadcast::channel(32);
+        let bcast_obs: Arc<dyn attempt::Observer> = Arc::new(Broadcast(bcast.0.clone()));
+
         let mut m = Self {
             cfg,
             reader,
-            db_obs,
-            debug_obs,
+            bcast,
+            observers: vec![db_obs, debug_obs, bcast_obs],
             obs_mux: attempt::observer::Mux::default(),
         };
-        m.obs_mux.add_observer(Arc::downgrade(&m.db_obs));
-        m.obs_mux.add_observer(Arc::downgrade(&m.debug_obs));
+
+        for obs in &m.observers {
+            m.obs_mux.add_observer(Arc::downgrade(obs));
+        }
 
         Ok(m)
     }
@@ -77,10 +96,15 @@ impl<'c> Manager<'c> {
         let insp = self.reader.inspect(desc)?;
         let (action_in, action_out) = tokio::sync::mpsc::channel(32);
         Ok(Server {
-            session: self.session(insp)?,
-            addr: self.cfg.server_addr,
-            action_in,
-            action_out,
+            listener: listener::Listener::new(
+                self.cfg.server_addr,
+                action_in,
+                self.bcast.0.clone(),
+            ),
+            state: State {
+                session: self.session(insp)?,
+                action_out,
+            },
         })
     }
 
@@ -117,65 +141,37 @@ impl<'c> Observable for Manager<'c> {
 ///
 /// The lifetime `m` generally reflects that of its underlying `Manager`.
 pub struct Server<'m> {
-    // TODO(@MattWindsor91): de-public all of these
-    /// The session being wrapped by this server.
-    session: attempt::Session<'m, 'm, attempt::observer::Mux>,
-
-    addr: std::net::SocketAddr,
-
-    action_in: mpsc::Sender<attempt::Action>,
-    action_out: mpsc::Receiver<attempt::Action>,
+    listener: listener::Listener,
+    state: State<'m>,
 }
 
 impl<'cmp> Server<'cmp> {
-    /// Runs the server.
+    /// Runs the server, consuming it.
     ///
     /// # Errors
     ///
     /// Propagates various I/O errors from tokio.
-    ///
-    /// # Panics
-    ///
-    /// Temporary panicking, to be fixed later.
-    pub async fn run(&mut self) -> Result<()> {
-        let listener = TcpListener::bind(self.addr).await?;
+    pub async fn run(self) -> Result<()> {
+        let mut listener = self.listener;
+        let mut state = self.state;
+        tokio::spawn(async move { listener.run().await });
+
+        Ok(state.run().await?)
+    }
+}
+
+/// The state part of the server.
+struct State<'m> {
+    /// The session being wrapped by this server.
+    session: attempt::Session<'m, 'm, attempt::observer::Mux>,
+    action_out: mpsc::Receiver<attempt::Action>,
+}
+
+impl<'m> State<'m> {
+    async fn run(&mut self) -> Result<()> {
         loop {
             tokio::select! {
-                Some(act) = self.action_out.recv() => {
-                    self.session.handle(act)
-                },
-                res = async {
-                    loop {
-                        let (socket, _) = listener.accept().await?;
-
-                        // Delimit frames using a length header
-                        let length_delimited = Framed::new(socket, LengthDelimitedCodec::new());
-
-                        let codec: Cbor<attempt::Action, attempt::observer::Event> = Cbor::default();
-
-                        // Deserialize frames
-                        let deserialized: tokio_serde::Framed<
-                            _,
-                            attempt::Action,
-                            attempt::observer::Event,
-                            _,
-                        > = tokio_serde::Framed::new(length_delimited, codec);
-
-                        let (send, mut recv) = deserialized.split();
-
-
-
-                        // Spawn a task that prints all received messages to STDOUT
-                        tokio::spawn(async move {
-                            while let Some(msg) = recv.try_next().await.unwrap() {
-                                println!("GOT: {:?}", msg);
-                            }
-                        });
-                    }
-
-                    // Help the rust type inferencer out
-                    Ok::<_, std::io::Error>(())
-                } => {res?}
+                Some(act) = self.action_out.recv() => self.session.handle(act),
             }
         }
     }
@@ -188,21 +184,7 @@ impl attempt::action::Handler for ActionForwarder {
     fn handle(&mut self, a: Action) {
         // TODO(@MattWindsor91): errors
         if let Err(err) = self.0.blocking_send(a) {
-            log::error!("can't forward action: {}", err)
+            log::error!("can't forward action: {}", err);
         }
     }
 }
-
-/// The top-level server error type.
-#[derive(Debug, Error)]
-pub enum Error {
-    #[error("database error")]
-    Db(#[from] db::Error),
-    #[error("UI error")]
-    View(#[from] ui::Error),
-    #[error("IO error")]
-    IO(#[from] std::io::Error),
-}
-
-/// The top-level server result type.
-pub type Result<T> = std::result::Result<T, Error>;

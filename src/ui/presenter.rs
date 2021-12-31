@@ -20,7 +20,7 @@ use crate::model::{
 pub use cursor::Cursor;
 pub use mode::Editor;
 pub use state::State;
-use std::{sync::mpsc, sync::Arc};
+use std::sync::mpsc;
 
 /// A zombiesplit UI presenter, containing all state and modality.
 pub struct Presenter<'h, H> {
@@ -167,6 +167,8 @@ impl<'h, H: Handler> Presenter<'h, H> {
 /// Used to feed events from an `Observer` into a `Presenter`.
 pub struct ModelEventPump(mpsc::Receiver<attempt::observer::Event>);
 
+/// Creates an observer as well as a pump that feeds events from the observer into a presenter.
+#[must_use]
 pub fn observer() -> (Observer, ModelEventPump) {
     let (send, recv) = mpsc::channel();
     (Observer(send), ModelEventPump(recv))

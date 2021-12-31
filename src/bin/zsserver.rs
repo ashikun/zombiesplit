@@ -18,7 +18,7 @@ async fn run() -> anyhow::Result<()> {
     let cfg = config::System::load(&cfg_raw)?;
 
     let manager = server::Manager::new(cfg)?;
-    let mut server = manager.server(&cli::get_short_descriptor(&matches)?)?;
+    let server = manager.server(&cli::get_short_descriptor(&matches)?)?;
 
     server.run().await?;
     Ok(())
