@@ -5,7 +5,7 @@ pub mod cli;
 pub mod config;
 pub mod db;
 pub mod model;
-pub mod server;
+pub mod net;
 pub mod ui;
 pub mod zombie;
 

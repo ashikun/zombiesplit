@@ -6,8 +6,6 @@ use tokio::{
     net::TcpListener,
     sync::{broadcast, mpsc},
 };
-use tokio_serde::formats::Cbor;
-use tokio_util::codec::{Framed, LengthDelimitedCodec};
 
 /// A TCP listener, spawning tasks to handle connections to clients.
 pub struct Listener {
@@ -38,15 +36,10 @@ impl Listener {
             let (socket, addr) = listener.accept().await?;
             log::info!("new connection: {}", addr);
 
-            // Delimit frames using a length header
-            let length_delimited = Framed::new(socket, LengthDelimitedCodec::new());
-
-            let codec: Cbor<attempt::Action, attempt::observer::Event> = Cbor::default();
-
             // Deserialize frames
             let mut handle = Handle {
                 addr,
-                io: tokio_serde::Framed::new(length_delimited, codec),
+                io: super::super::io::build(socket),
                 action_send: self.action_send.clone(),
                 event_recv: self.event_broadcast.subscribe(),
                 is_running: true,
@@ -65,12 +58,7 @@ struct Handle {
     addr: std::net::SocketAddr,
 
     /// The I/O stack connecting to the client.
-    io: tokio_serde::Framed<
-        tokio_util::codec::Framed<tokio::net::TcpStream, tokio_util::codec::LengthDelimitedCodec>,
-        attempt::Action,
-        attempt::observer::Event,
-        tokio_serde::formats::Cbor<attempt::Action, attempt::observer::Event>,
-    >,
+    io: super::super::io::Stack<attempt::Action, attempt::observer::Event>,
 
     /// Sends actions to the session.
     action_send: mpsc::Sender<attempt::Action>,
@@ -85,45 +73,42 @@ struct Handle {
 impl Handle {
     async fn run(&mut self) {
         if let Err(e) = self.main_loop().await {
-            log::warn!("connection closed with error: {} ({:?})", self.addr, e)
+            log::warn!("connection closed with error: {} ({:?})", self.addr, e);
         }
     }
 
     async fn main_loop(&mut self) -> Result<()> {
         while self.is_running {
             tokio::select! {
-                msg = self.event_recv.recv() => self.handle_incoming(msg).await?,
-                from_client = self.io.try_next() => {
-                    if let Some(action) = from_client? {
-                        self.action_send.send(action).await?;
-                    } else {
-                        break
-                    }
-                }
+                msg = self.event_recv.recv() => self.handle_event(msg).await?,
+                msg = self.io.try_next() => self.handle_action(msg?).await?
             }
         }
         Ok(())
     }
 
-    /// Handles a potential incoming message from the client.
-    /// Returns whether the client has closed.
-    async fn handle_incoming(
+    /// Handles a potential action from the client to the session.
+    async fn handle_action(&mut self, maybe_action: Option<attempt::Action>) -> Result<()> {
+        if let Some(action) = maybe_action {
+            self.action_send.send(action).await?;
+        } else {
+            log::info!("connection closed: {}", self.addr);
+            self.is_running = false;
+        }
+
+        Ok(())
+    }
+
+    /// Handles a potential event from the session to the client.
+    async fn handle_event(
         &mut self,
         maybe_event: std::result::Result<attempt::observer::Event, broadcast::error::RecvError>,
     ) -> Result<()> {
-        match maybe_event {
-            // TODO(@MattWindsor91): handle errors properly?
-            Ok(event) => {
-                self.io.send(event).await?;
-            }
-            Err(broadcast::error::RecvError::Closed) => {
-                log::info!("connection closed: {}", self.addr);
-                self.is_running = false;
-            }
-            Err(broadcast::error::RecvError::Lagged(n)) => {
-                log::info!("connection lagging: {} ({} behind)", self.addr, n);
-                // TODO(@MattWindsor91): deal with this properly
-            }
+        if let Err(broadcast::error::RecvError::Lagged(n)) = maybe_event {
+            log::info!("connection lagging: {} ({} behind)", self.addr, n);
+            // TODO(@MattWindsor91): deal with this properly
+        } else {
+            self.io.send(maybe_event?).await?;
         }
         Ok(())
     }

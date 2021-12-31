@@ -1,7 +1,7 @@
 //! The zombiesplit server binary.
 
 use clap::{crate_authors, crate_version, App, Arg};
-use zombiesplit::{cli, config, server};
+use zombiesplit::{cli, config, net};
 
 #[tokio::main]
 async fn main() {
@@ -17,7 +17,7 @@ async fn run() -> anyhow::Result<()> {
     let cfg_raw = std::fs::read_to_string(&cfg_path)?;
     let cfg = config::System::load(&cfg_raw)?;
 
-    let manager = server::Manager::new(cfg)?;
+    let manager = net::server::Manager::new(cfg)?;
     let server = manager.server(&cli::get_short_descriptor(&matches)?)?;
 
     server.run().await?;

@@ -13,6 +13,8 @@ pub enum Error {
     Join(#[from] tokio::task::JoinError),
     #[error("couldn't send action to session")]
     CannotSendAction(#[from] tokio::sync::mpsc::error::SendError<crate::model::attempt::Action>),
+    #[error("couldn't receive event from session")]
+    CannotReceiveEvent(#[from] tokio::sync::broadcast::error::RecvError),
 }
 
 /// The top-level server result type.

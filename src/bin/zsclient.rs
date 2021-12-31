@@ -1,7 +1,7 @@
 //! The zombiesplit client.
 
 use clap::{crate_authors, crate_version, App, Arg};
-use zombiesplit::{cli, ui};
+use zombiesplit::{cli, config, net, ui};
 
 fn main() {
     cli::handle_error(run())
@@ -17,8 +17,31 @@ fn run() -> anyhow::Result<()> {
     let cfg_raw = std::fs::read_to_string(cfg_path)?;
     let cfg = config::System::load(&cfg_raw)?;
 
+    let (mut asend, arecv) = net::client::action::channel();
+    let (pobs, ppump) = ui::presenter::observer();
+
+    let _handle = std::thread::spawn(move || {
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(async move {
+                let mut client = net::client::Client::new(cfg.server_addr, pobs, arecv).await?;
+                client.run().await
+            })
+    });
+
     let sdl = ui::sdl::Manager::new(&cfg.ui)?;
-    let mut ui = ui::Instance::new(&cfg.ui, &sdl, &mut afwd, ppump)?;
+    let mut ui = ui::Instance::new(&cfg.ui, &sdl, &mut asend, ppump)?;
+    ui.run()?;
+
+    // TODO(@MattWindsor91): make this work
+
+    /*
+    handle
+        .join()
+        .map_err(|e| anyhow::anyhow!("couldn't join client thread"))??;
+     */
 
     Ok(())
 }

@@ -9,7 +9,7 @@ mod listener;
 
 use std::sync::{Arc, Weak};
 
-use super::{
+use super::super::{
     config,
     db::{self, inspect::Inspector},
     model::{
