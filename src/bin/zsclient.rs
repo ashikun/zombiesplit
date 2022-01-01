@@ -20,15 +20,9 @@ fn run() -> anyhow::Result<()> {
     let (mut asend, arecv) = net::client::action::channel();
     let (pobs, ppump) = ui::presenter::observer();
 
-    let _handle = std::thread::spawn(move || {
-        tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .unwrap()
-            .block_on(async move {
-                let mut client = net::client::Client::new(cfg.server_addr, pobs, arecv).await?;
-                client.run().await
-            })
+    let _handle = std::thread::spawn(move || -> anyhow::Result<()> {
+        net::client::Sync::new(cfg.server_addr, pobs, arecv)?.run()?;
+        Ok(())
     });
 
     let sdl = ui::sdl::Manager::new(&cfg.ui)?;

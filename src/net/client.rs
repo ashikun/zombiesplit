@@ -9,6 +9,49 @@ mod error;
 use crate::model::attempt;
 use error::Result;
 use futures::prelude::*;
+use tokio::runtime;
+
+/// Lifts a zombiesplit client into a synchronous context.
+pub struct Sync<O> {
+    /// The asynchronous client.
+    inner: Client<O>,
+    /// The asynchronous runtime.
+    rt: runtime::Runtime,
+}
+
+impl<O: attempt::Observer> Sync<O> {
+    /// Creates a new client listening to the server at `addr` and observing events with `observer`.
+    ///
+    /// # Errors
+    ///
+    /// Fails if we can't create a TCP connection to `addr`.
+    pub fn new(
+        addr: std::net::SocketAddr,
+        observer: O,
+        receiver: action::Receiver,
+    ) -> Result<Self> {
+        let rt = runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()?;
+        let inner = rt.block_on(Client::new(addr, observer, receiver))?;
+        Ok(Self { inner, rt })
+    }
+
+    /// Runs the main loop for the client.
+    ///
+    /// # Errors
+    ///
+    /// Fails if the client fails to process an action or an event, or there is an underlying I/O
+    /// error.
+    ///
+    /// # Panics
+    ///
+    /// Can panic if the underlying asynchronous client code panics.
+    pub fn run(&mut self) -> Result<()> {
+        self.rt.block_on(self.inner.run())?;
+        Ok(())
+    }
+}
 
 /// A zombiesplit network client.
 pub struct Client<O> {
@@ -18,7 +61,7 @@ pub struct Client<O> {
     io: super::io::Stack<attempt::observer::Event, attempt::Action>,
     /// The observer we use to send events from the server.
     observer: O,
-    /// The receiver we use to pick up actions from the synchronous UI code.
+    /// The receiver we use to pick up actions from the UI code.
     receiver: action::Receiver,
 }
 
