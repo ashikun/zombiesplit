@@ -18,7 +18,6 @@ use super::super::{
             self,
             action::Handler,
             observer::{Debug, Observable, Observer},
-            Action,
         },
         comparison,
         game::category::ShortDescriptor,
@@ -147,16 +146,12 @@ pub struct Server<'m> {
 
 impl<'cmp> Server<'cmp> {
     /// Runs the server, consuming it.
-    ///
-    /// # Errors
-    ///
-    /// Propagates various I/O errors from tokio.
-    pub async fn run(self) -> Result<()> {
+    pub async fn run(self) {
         let mut listener = self.listener;
         let mut state = self.state;
         tokio::spawn(async move { listener.run().await });
 
-        Ok(state.run().await?)
+        state.run().await;
     }
 }
 
@@ -168,23 +163,13 @@ struct State<'m> {
 }
 
 impl<'m> State<'m> {
-    async fn run(&mut self) -> Result<()> {
-        loop {
-            tokio::select! {
-                Some(act) = self.action_out.recv() => self.session.handle(act),
-            }
-        }
-    }
-}
-
-/// An action handler that forwards actions directly to the session.
-pub struct ActionForwarder(mpsc::Sender<attempt::Action>);
-
-impl attempt::action::Handler for ActionForwarder {
-    fn handle(&mut self, a: Action) {
-        // TODO(@MattWindsor91): errors
-        if let Err(err) = self.0.blocking_send(a) {
-            log::error!("can't forward action: {}", err);
+    /// Runs the state main loop, which constantly drains actions from clients and applies them.
+    ///
+    /// These actions, in turn, give rise to observations that will bubble up through the broadcast
+    /// channel and into clients.
+    async fn run(&mut self) {
+        while let Some(act) = self.action_out.recv().await {
+            self.session.handle(act);
         }
     }
 }

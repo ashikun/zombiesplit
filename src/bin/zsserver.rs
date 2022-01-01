@@ -20,7 +20,7 @@ async fn run() -> anyhow::Result<()> {
     let manager = net::server::Manager::new(cfg)?;
     let server = manager.server(&cli::get_short_descriptor(&matches)?)?;
 
-    server.run().await?;
+    server.run().await;
     Ok(())
 }
 
