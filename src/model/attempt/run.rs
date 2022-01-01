@@ -32,7 +32,7 @@ impl Run {
     pub fn status(&self) -> Status {
         match self.num_filled_splits() {
             0 => Status::NotStarted,
-            x if x == self.num_splits() => Status::Complete,
+            x if x == self.splits.len() => Status::Complete,
             _ => Status::Incomplete,
         }
     }
@@ -51,12 +51,6 @@ impl Run {
                 .map(|s| (s.info.short, s.all_times()))
                 .collect(),
         }
-    }
-
-    /// Gets the number of splits in this run.
-    #[must_use]
-    pub fn num_splits(&self) -> usize {
-        self.splits.len()
     }
 }
 

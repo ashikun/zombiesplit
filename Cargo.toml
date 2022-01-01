@@ -32,3 +32,6 @@ tokio-serde = { version = "0.8.0", features = [ "cbor" ] }
 tempfile = "3"
 thiserror = "1.0.30"
 toml = "0.5.8"
+
+[dev-dependencies]
+pretty_assertions = "1.0.0"

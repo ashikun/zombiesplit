@@ -29,8 +29,10 @@ pub enum Event {
         crate::model::comparison::PacedTime,
         crate::model::aggregate::Source,
     ),
-    /// Observes initial information about a split.
-    AddSplit(short::Name, String),
+    /// Observes the number of splits, which can be used to prepare for incoming split information.
+    ///
+    /// This SHOULD be sent before `Split` events give `Init` information about the splits.
+    NumSplits(usize),
     /// Observes a run reset, with any outgoing run attached as historic.
     Reset(Option<history::run::FullyTimed<category::ShortDescriptor>>),
     /// Observes information about the attempt number of a run.

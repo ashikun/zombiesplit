@@ -96,7 +96,7 @@ impl<'h, H: Handler> Presenter<'h, H> {
     }
 
     fn reset(&mut self) {
-        let cur = cursor::Cursor::new(self.state.num_splits() - 1);
+        let cur = cursor::Cursor::new(self.state.splits.len() - 1);
         // Don't call exit the previous mode's exit hook; it may modify the run
         // in ways we don't want to happen.
         self.transition(Box::new(mode::Nav::new(cur)));
@@ -108,10 +108,12 @@ impl<'h, H: Handler> Presenter<'h, H> {
         // TODO(@MattWindsor91): eventually make it possible for this to be
         // called directly as an observe?  the mutability makes it a bit
         // difficult though.
+
+        // TODO(@MattWindsor91): push most of this logic down into the state
         use attempt::observer::Event;
         match evt {
             Event::Total(time, source) => self.state.set_total(time, source),
-            Event::AddSplit(short, name) => self.state.add_split(short, name),
+            Event::NumSplits(count) => self.state.splits.set_split_count(count),
             Event::Reset(_) => self.reset(),
             Event::Attempt(a) => self.state.attempt = a,
             Event::GameCategory(gc) => self.state.game_category = gc,
@@ -123,11 +125,10 @@ impl<'h, H: Handler> Presenter<'h, H> {
 
     /// Handles the split event `ev` relating to the split `short`.
     fn observe_split(&mut self, short: short::Name, ev: observer::split::Event) {
-        self.state.handle_split_event(short, ev);
-
         if let observer::split::Event::Time(t, observer::time::Event::Popped) = ev {
             self.open_editor(short, t);
         }
+        self.state.handle_split_event(short, ev);
     }
 
     /// Opens a new split editor at the short named `short`, and preloads it
@@ -141,11 +142,12 @@ impl<'h, H: Handler> Presenter<'h, H> {
     }
 
     fn make_cursor_at(&self, short: short::Name) -> Option<Cursor> {
-        let max = self.state.num_splits() - 1;
+        // TODO(@MattWindsor91): update cursor size if the number of splits changes mid-flight
+        let max = self.state.splits.len() - 1;
         self.state
-            .short_map
-            .get(&short)
-            .and_then(|pos| Cursor::new_at(*pos, max))
+            .splits
+            .index_of(short)
+            .and_then(|pos| Cursor::new_at(pos, max))
     }
 
     /// Performs a full clean transition between two modes.

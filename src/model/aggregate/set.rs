@@ -10,7 +10,7 @@ use super::{
 };
 
 /// A full set of aggregate times for one split, organised by source.
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, Eq, PartialEq)]
 pub struct Full {
     /// Times for the current attempt.
     pub attempt: Set,
@@ -42,7 +42,7 @@ impl IndexMut<Source> for Full {
 }
 
 /// A set of aggregate times at various scopes.
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, Eq, PartialEq)]
 pub struct Set {
     /// Single time for this split only.
     pub split: Time,

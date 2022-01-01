@@ -5,7 +5,7 @@ use std::borrow::Cow;
 use std::fmt::{Display, Formatter};
 
 /// Presenter state used in the footer widget.
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Default, Debug, Eq, PartialEq)]
 pub struct Footer {
     /// The total time of the run up to the cursor, and its pace.
     pub at_cursor: pace::PacedTime,

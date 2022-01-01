@@ -1,22 +1,31 @@
 //! Model integration tests.
+//!
+//! This also includes UI integration tests that depend on the model, for now.
+
+use pretty_assertions::{assert_eq, assert_ne};
 
 use std::{cell::RefCell, rc::Rc};
 
-use zombiesplit::model::{
-    aggregate,
-    attempt::{
-        observer::{self, Event},
-        Observer, Run, Session,
+use zombiesplit::ui::Pump;
+use zombiesplit::{
+    model::{
+        aggregate,
+        attempt::{
+            action::{Action, Handler},
+            observer::{self, Event},
+            Observer, Run, Session,
+        },
+        comparison::PacedTime,
+        game::{category, Split},
     },
-    comparison::PacedTime,
-    game::{category, Split},
+    ui::presenter,
 };
 
 /// Tests that a session doesn't send any observations until prompted.
 #[test]
 fn test_session_initial() {
-    let obs = Rc::new(Obs::default());
-    let _ = make_session_with_obs(obs.clone());
+    let obs = Obs::default();
+    let _ = make_session(&obs);
     obs.assert_empty()
 }
 
@@ -24,14 +33,24 @@ fn test_session_initial() {
 /// to dump.
 #[test]
 fn test_session_dump() {
-    let obs = Rc::new(Obs::default());
-    let s = make_session_with_obs(obs.clone());
+    let obs = Obs::default();
+    let mut s = make_session(&obs);
 
-    s.dump_to_observers();
+    s.handle(Action::Dump);
 
     obs.assert_received(Event::GameCategory(game_category()));
-    for split in splits() {
-        obs.assert_received(Event::AddSplit(split.short, split.name));
+
+    let splits = splits();
+
+    obs.assert_received(Event::NumSplits(splits.len()));
+    for (index, split) in splits.iter().enumerate() {
+        obs.assert_received(Event::Split(
+            split.short,
+            observer::split::Event::Init {
+                index,
+                name: split.name.clone(),
+            },
+        ));
     }
     obs.assert_received(Event::Attempt(attempt_info()));
     obs.assert_received(Event::Total(
@@ -39,13 +58,6 @@ fn test_session_dump() {
         aggregate::Source::Comparison,
     ));
     obs.assert_empty()
-}
-
-/// Makes a dummy session and an observer for it.
-fn make_session_with_obs(obs: Rc<dyn Observer>) -> Session<'static> {
-    let mut s = make_session();
-    s.observers.add(Rc::downgrade(&obs));
-    s
 }
 
 fn attempt_info() -> category::AttemptInfo {
@@ -71,13 +83,14 @@ fn splits() -> [Split; 3] {
     ]
 }
 
-fn make_session() -> Session<'static> {
+/// Makes a dummy session with the given observer.
+pub(crate) fn make_session<'o, O: Observer>(observer: &'o O) -> Session<'static, 'o, O> {
     let splits = splits().into_iter().collect();
     let run = Run {
         attempt: attempt_info(),
         splits,
     };
-    Session::new(game_category(), run)
+    Session::new(game_category(), run, observer)
 }
 
 // TODO(@MattWindsor91): possibly unify with the presenter version.
@@ -105,7 +118,34 @@ impl Obs {
 }
 
 impl Observer for Obs {
-    fn observe(&self, evt: observer::Event) {
+    fn observe(&self, evt: Event) {
         self.0.borrow_mut().push(evt);
     }
+}
+
+/// Tests that receiving a dump multiple times, with no intervening actions, does not change the state.
+#[test]
+fn presenter_dump_idempotent() {
+    let (obs, mut pump) = presenter::observer();
+    let mut session = make_session(&obs);
+
+    let mut p = presenter::Presenter::new(&mut session);
+
+    let init_state = p.state.clone();
+    p.action_handler.handle(Action::Dump);
+
+    pump.pump(&mut p);
+    let old_state = p.state.clone();
+    assert_ne!(
+        old_state, init_state,
+        "dump should have altered initial state"
+    );
+
+    p.action_handler.handle(Action::Dump);
+
+    pump.pump(&mut p);
+    assert_eq!(
+        old_state, p.state,
+        "second dump should not have altered state any further"
+    );
 }

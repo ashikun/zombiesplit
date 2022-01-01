@@ -6,7 +6,7 @@ use zombiesplit::model::attempt::Action;
 use zombiesplit::{
     db::{Db, Observer, Reader},
     model::{
-        attempt,
+        attempt::{self, action::Handler},
         game::{self, category::ShortDescriptor},
         history, short, Loadable, Time,
     },
@@ -38,11 +38,11 @@ fn short_descriptor() -> ShortDescriptor {
     ShortDescriptor::new(SAMPLE_GAME_NAME, SAMPLE_CATEGORY_NAME)
 }
 
-fn init_session(handle: &Reader) -> attempt::Session {
+fn init_session<'d>(handle: &'d Reader, obs: &'d Observer) -> attempt::Session<'d, 'd, Observer> {
     let mut insp = handle
         .inspect(&short_descriptor())
         .expect("couldn't open category db");
-    insp.init_session().expect("couldn't init session")
+    insp.init_session(obs).expect("couldn't init session")
 }
 
 /// Tests initialising the database and getting a session out of it.
@@ -51,10 +51,11 @@ fn test_sample_session() {
     let tdir = tempdir().expect("can't open dir");
 
     let game = load_game();
-    let db = setup_db(&game, &tdir);
+    let db = Rc::new(setup_db(&game, &tdir));
     let handle = db.reader().expect("couldn't open reader");
 
-    let session = init_session(&handle);
+    let obs = Observer::new(db.clone());
+    let session = init_session(&handle, &obs);
     assert_eq!(game.name, session.metadata.game);
     assert_eq!(
         game.categories
@@ -94,10 +95,8 @@ fn test_sample_observe_run() {
     let db = Rc::new(setup_db(&game, &tdir));
     let handle = db.reader().expect("couldn't open reader");
 
-    let mut session = init_session(&handle);
-
-    let obs: Arc<dyn attempt::Observer> = Rc::new(Observer::new(db.clone()));
-    session.observers.add(Rc::downgrade(&obs));
+    let obs = Observer::new(db.clone());
+    let mut session = init_session(&handle, &obs);
 
     // This shouldn't insert a run.
     session.handle(Action::NewRun);

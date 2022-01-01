@@ -126,11 +126,16 @@ impl<'cmp, 'obs, O: Observer> Session<'cmp, 'obs, O> {
 
     /// Sends information about each split to the observers.
     fn observe_splits(&self) {
-        for split in self.run.splits.iter() {
-            self.observer.observe(observer::Event::AddSplit(
+        self.observer
+            .observe(observer::Event::NumSplits(self.run.splits.len()));
+        for (index, split) in self.run.splits.iter().enumerate() {
+            self.observer.observe_split(
                 split.info.short,
-                split.info.name.clone(),
-            ));
+                observer::split::Event::Init {
+                    index,
+                    name: split.info.name.clone(),
+                },
+            );
         }
     }
 

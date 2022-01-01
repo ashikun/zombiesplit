@@ -3,9 +3,11 @@ use crate::model;
 use serde::{Deserialize, Serialize};
 
 /// Enumeration of split-level events.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub enum Event {
+    /// Initial dump of information about the event.
+    Init { index: usize, name: String },
     /// Got a new time for the split.
     Time(model::Time, super::time::Event),
     /// Got a new pace note for the split.

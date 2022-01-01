@@ -85,6 +85,7 @@ impl Mode for Quitting {
     }
 }
 
+/// Context passed to `on_event` in a presenter mode.
 #[derive(Debug)]
 pub struct EventContext<'p> {
     /// The event being handled.
