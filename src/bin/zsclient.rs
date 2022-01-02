@@ -1,20 +1,28 @@
 //! The zombiesplit client.
 
-use clap::{crate_authors, crate_version, App, Arg};
+use clap::Parser;
 use zombiesplit::{cli, config, net, ui};
 
 fn main() {
     cli::handle_error(run())
 }
 
+/// Graphical client for zombiesplit.
+#[derive(Parser, Debug)]
+#[clap(name = "zsclient", about, version, author)]
+struct Args {
+    /// Use this system config file
+    #[clap(short, long, default_value = "sys.toml")]
+    config: String,
+}
+
 fn run() -> anyhow::Result<()> {
     env_logger::try_init()?;
 
-    let matches = app().get_matches();
-    let cfg_path = matches.value_of("config").unwrap().to_string();
+    let args = Args::parse();
 
     // TODO(@MattWindsor91): separate client and server config?
-    let cfg_raw = std::fs::read_to_string(cfg_path)?;
+    let cfg_raw = std::fs::read_to_string(args.config)?;
     let cfg = config::System::load(&cfg_raw)?;
 
     let (mut asend, arecv) = net::client::action::channel();
@@ -40,18 +48,6 @@ fn run() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn app<'a>() -> App<'a> {
-    App::new("zsclient")
-        .author(crate_authors!())
-        .version(crate_version!())
-        .arg(
-            Arg::new("config")
-                .help("use this system config file")
-                .long("config")
-                .default_value("sys.toml"),
-        )
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
@@ -59,6 +55,7 @@ mod test {
     /// Checks that the clap app works properly.
     #[test]
     fn verify_app() {
-        app().debug_assert();
+        use clap::IntoApp;
+        Args::into_app().debug_assert();
     }
 }

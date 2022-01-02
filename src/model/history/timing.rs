@@ -7,6 +7,7 @@ different historic time models used.
 */
 use super::super::{short, time::Time};
 use serde::{Deserialize, Serialize};
+use std::fmt::Formatter;
 
 pub trait Timing {
     /// Gets the total across all splits.
@@ -65,6 +66,43 @@ pub enum Level {
     Totals,
     /// Represents [Full].
     Full,
+}
+
+impl std::str::FromStr for Level {
+    type Err = LevelError;
+
+    fn from_str(s: &str) -> Result<Level, LevelError> {
+        match s {
+            "totals" => Ok(Level::Totals),
+            "full" => Ok(Level::Full),
+            "summary" => Ok(Level::Summary),
+            _ => Err(LevelError::BadParse(s.to_string())),
+        }
+    }
+}
+
+impl Default for Level {
+    fn default() -> Self {
+        Self::Summary
+    }
+}
+
+impl std::fmt::Display for Level {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::Totals => "totals",
+            Self::Full => "full",
+            Self::Summary => "summary",
+        })
+    }
+}
+
+/// Errors that can occur when handling timing levels.
+#[derive(Clone, thiserror::Error, Debug, PartialEq, Eq)]
+pub enum LevelError {
+    /// Tried to parse the given string as a level.
+    #[error("bad timing level")]
+    BadParse(String),
 }
 
 /// Dynamic choice of timing.

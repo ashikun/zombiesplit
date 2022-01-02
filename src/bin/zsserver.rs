@@ -1,41 +1,41 @@
 //! The zombiesplit server binary.
 
-use clap::{crate_authors, crate_version, App, Arg};
-use zombiesplit::{cli, config, net};
+use clap::Parser;
+use zombiesplit::model::game::category::ShortDescriptor;
+use zombiesplit::{cli, config, model::short, net};
 
 #[tokio::main]
 async fn main() {
     cli::handle_error(run().await)
 }
 
+/// Server for zombiesplit.
+#[derive(Parser, Debug)]
+#[clap(name = "zsserver", about, version, author)]
+struct Args {
+    /// The game to run (for example, "scd11")
+    game: short::Name,
+    /// The category to run (for example, "btg-sonic")
+    category: short::Name,
+
+    /// Use this system config file
+    #[clap(short, long, default_value = "sys.toml")]
+    config: String,
+}
+
 async fn run() -> anyhow::Result<()> {
     env_logger::try_init()?;
 
-    let matches = app().get_matches();
+    let args = Args::parse();
 
-    let cfg_path = matches.value_of("config").unwrap().to_string();
-    let cfg_raw = std::fs::read_to_string(&cfg_path)?;
+    let cfg_raw = std::fs::read_to_string(args.config)?;
     let cfg = config::System::load(&cfg_raw)?;
 
     let manager = net::server::Manager::new(cfg)?;
-    let server = manager.server(&cli::get_short_descriptor(&matches)?)?;
+    let server = manager.server(&ShortDescriptor::new(args.game, args.category))?;
 
     server.run().await;
     Ok(())
-}
-
-fn app() -> App<'static> {
-    App::new("zsserver")
-        .author(crate_authors!())
-        .version(crate_version!())
-        .arg(
-            Arg::new("config")
-                .help("use this system config file")
-                .long("config")
-                .default_value("sys.toml"),
-        )
-        .arg(Arg::new("game").help("The game to run").index(1))
-        .arg(Arg::new("category").help("The category to run").index(2))
 }
 
 #[cfg(test)]
@@ -45,6 +45,7 @@ mod test {
     /// Checks that the clap app works properly.
     #[test]
     fn verify_app() {
-        app().debug_assert();
+        use clap::IntoApp;
+        Args::into_app().debug_assert();
     }
 }
