@@ -54,7 +54,7 @@ the database as the filename less its extension (so `scd11`.)
 Supposing we've added a game `scd11` with a category `btg-sonic`, run:
 
 ```
-$ zsserver scd11 btg-sonic
+$ zsserver scd11/btg-sonic
 ```
 
 This launches the zombiesplit server on the host/port configured in the main

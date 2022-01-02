@@ -2,7 +2,7 @@
 
 use clap::Parser;
 use zombiesplit::model::game::category::ShortDescriptor;
-use zombiesplit::{cli, config, model::short, net};
+use zombiesplit::{cli, config, net};
 
 #[tokio::main]
 async fn main() {
@@ -13,10 +13,8 @@ async fn main() {
 #[derive(Parser, Debug)]
 #[clap(name = "zsserver", about, version, author)]
 struct Args {
-    /// The game to run (for example, "scd11")
-    game: short::Name,
-    /// The category to run (for example, "btg-sonic")
-    category: short::Name,
+    /// The game/category to run (for example, "scd11/btg-sonic")
+    target: ShortDescriptor,
 
     /// Use this system config file
     #[clap(short, long, default_value = "sys.toml")]
@@ -32,7 +30,7 @@ async fn run() -> anyhow::Result<()> {
     let cfg = config::System::load(&cfg_raw)?;
 
     let manager = net::server::Manager::new(cfg)?;
-    let server = manager.server(&ShortDescriptor::new(args.game, args.category))?;
+    let server = manager.server(&args.target)?;
 
     server.run().await;
     Ok(())

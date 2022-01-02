@@ -1,10 +1,6 @@
 use clap::{Parser, Subcommand};
 use zombiesplit::model::game::category::ShortDescriptor;
-use zombiesplit::{
-    cli, config,
-    model::{history::timing::Level, short},
-    zombie, Db,
-};
+use zombiesplit::{cli, config, model::history::timing::Level, zombie, Db};
 
 fn main() {
     cli::handle_error(run());
@@ -29,24 +25,18 @@ enum Command {
     Categories,
     // Lists all runs stored for a category
     Runs {
-        /// The game to query
-        game: short::Name,
-        /// The category to query
-        category: short::Name,
+        /// The game/category to query
+        target: ShortDescriptor,
     },
     /// Lists all split PBs for a category
-    SplitPBs {
-        /// The game to query
-        game: short::Name,
-        /// The category to query
-        category: short::Name,
+    SplitPbs {
+        /// The game/category to query
+        target: ShortDescriptor,
     },
     /// Gets the PB for a category
-    PB {
-        /// The game to query
-        game: short::Name,
-        /// The category to query
-        category: short::Name,
+    Pb {
+        /// The game/category to query
+        target: ShortDescriptor,
         /// The level of timing information to get
         #[clap(short, long, default_value_t)]
         level: Level,
@@ -76,17 +66,9 @@ fn run() -> anyhow::Result<()> {
         Command::AddGame { path } => zombie::add_game(&mut db, path)?,
         Command::AddRun { path } => zombie::add_run(&mut db, path)?,
         Command::Categories => zombie::list_game_categories(&db)?,
-        Command::Runs { game, category } => {
-            zombie::list_runs(&db, &ShortDescriptor::new(game, category))?
-        }
-        Command::SplitPBs { game, category } => {
-            zombie::split_pbs(&db, &ShortDescriptor::new(game, category))?
-        }
-        Command::PB {
-            game,
-            category,
-            level,
-        } => zombie::run_pb(&db, &ShortDescriptor::new(game, category), level)?,
+        Command::Runs { target } => zombie::list_runs(&db, &target)?,
+        Command::SplitPbs { target } => zombie::split_pbs(&db, &target)?,
+        Command::Pb { target, level } => zombie::run_pb(&db, &target, level)?,
     }
 
     Ok(())

@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 /// A reference to the category of a game using a pair of short names.
-#[derive(Clone, Debug, Default, PartialEq, Eq, Hash, Deserialize, Serialize)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct ShortDescriptor {
     /// The shortname of the game.
     pub game: short::Name,
@@ -18,6 +18,7 @@ impl ShortDescriptor {
     /// Constructs a new short descriptor with the given game and category.
     #[must_use]
     pub fn new(game: impl Into<short::Name>, category: impl Into<short::Name>) -> Self {
+        // TODO(@MattWindsor91): deal with slashes; parsing/displaying assumes there aren't any.
         Self {
             game: game.into(),
             category: category.into(),
@@ -26,6 +27,13 @@ impl ShortDescriptor {
 }
 
 impl Display for ShortDescriptor {
+    /// Formats a short descriptor using slashes.
+    ///
+    /// ```
+    /// use zombiesplit::model::game::category::ShortDescriptor;
+    ///
+    /// assert_eq!("scd11/btg-sonic", format!("{}", ShortDescriptor::new("scd11", "btg-sonic")));
+    /// ```
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}/{}", self.game, self.category)
     }
@@ -34,6 +42,17 @@ impl Display for ShortDescriptor {
 impl FromStr for ShortDescriptor {
     type Err = ShortDescriptorError;
 
+    /// Parses a short descriptor from a slash delimited string.
+    ///
+    /// ```
+    /// use zombiesplit::model::game::category::ShortDescriptor;
+    ///
+    /// let got: ShortDescriptor = "scd11/btg-sonic".parse().expect("unexpected parse error");
+    /// assert_eq!(ShortDescriptor::new("scd11", "btg-sonic"), got);
+    ///
+    /// "scd11".parse::<ShortDescriptor>().expect_err("can't parse without one slash");
+    /// "scd11/btg/sonic".parse::<ShortDescriptor>().expect_err("can't parse with three slashes");
+    /// ```
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let splits: Vec<&str> = s.split('/').collect();
         if splits.len() == 2 {

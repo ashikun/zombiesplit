@@ -95,7 +95,7 @@ impl<'cmp, 'obs, O: Observer> Session<'cmp, 'obs, O> {
         was_completed: bool,
     ) -> history::run::FullyTimed<category::ShortDescriptor> {
         history::run::FullyTimed {
-            category_locator: self.metadata.short.clone(),
+            category_locator: self.metadata.short,
             was_completed,
             date: (self.timestamper)(),
             timing: self.run.timing_as_historic(),

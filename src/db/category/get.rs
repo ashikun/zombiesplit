@@ -75,7 +75,7 @@ impl<'conn> Getter<'conn> {
                     info: Info {
                         game: row.get("gname")?,
                         category: row.get("cname")?,
-                        short: short.clone(),
+                        short: *short,
                     },
                 })
             },
