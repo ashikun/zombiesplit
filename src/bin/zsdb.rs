@@ -1,4 +1,4 @@
-use clap::{crate_authors, crate_version, App, Arg, ArgMatches, SubCommand};
+use clap::{crate_authors, crate_version, App, Arg, ArgMatches};
 use zombiesplit::{cli, config, model::history::timing::Level, zombie, Db};
 
 fn main() {
@@ -14,13 +14,13 @@ fn run() -> anyhow::Result<()> {
     let mut db = Db::new(cfg.db_path)?;
 
     match matches.subcommand() {
-        ("init", Some(_)) => Ok(db.init()?),
-        ("add-game", Some(sub_m)) => run_add_game(&mut db, sub_m),
-        ("add-run", Some(sub_m)) => run_add_run(&mut db, sub_m),
-        ("list-categories", Some(sub_m)) => run_list_categories(&db, sub_m),
-        ("list-runs", Some(sub_m)) => run_list_runs(&db, sub_m),
-        ("split-pbs", Some(sub_m)) => run_split_pbs(&db, sub_m),
-        ("pb", Some(sub_m)) => run_pb(&db, sub_m),
+        Some(("init", _)) => Ok(db.init()?),
+        Some(("add-game", sub_m)) => run_add_game(&mut db, sub_m),
+        Some(("add-run", sub_m)) => run_add_run(&mut db, sub_m),
+        Some(("list-categories", sub_m)) => run_list_categories(&db, sub_m),
+        Some(("list-runs", sub_m)) => run_list_runs(&db, sub_m),
+        Some(("split-pbs", sub_m)) => run_split_pbs(&db, sub_m),
+        Some(("pb", sub_m)) => run_pb(&db, sub_m),
         _ => Ok(()),
     }
 }
@@ -70,12 +70,12 @@ fn timing_level(matches: &ArgMatches) -> Level {
     }
 }
 
-fn app<'a, 'b>() -> App<'a, 'b> {
+fn app<'a>() -> App<'a> {
     App::new("zsdb")
         .author(crate_authors!())
         .version(crate_version!())
         .arg(
-            Arg::with_name("config")
+            Arg::new("config")
                 .help("use this system config file")
                 .long("config")
                 .default_value("sys.toml"),
@@ -90,81 +90,68 @@ fn app<'a, 'b>() -> App<'a, 'b> {
         .subcommand(pb_subcommand())
 }
 
-fn init_subcommand<'a, 'b>() -> App<'a, 'b> {
-    SubCommand::with_name("init").about("Initialises zombiesplit's database")
+fn init_subcommand<'a>() -> App<'a> {
+    App::new("init").about("Initialises zombiesplit's database")
 }
 
-fn list_categories_subcommand<'a, 'b>() -> App<'a, 'b> {
-    SubCommand::with_name("list-categories").about("lists all game/category pairs")
+fn list_categories_subcommand<'a>() -> App<'a> {
+    App::new("list-categories").about("lists all game/category pairs")
 }
 
-fn list_runs_subcommand<'a, 'b>() -> App<'a, 'b> {
-    SubCommand::with_name("list-runs")
+fn list_runs_subcommand<'a>() -> App<'a> {
+    App::new("list-runs")
         .about("lists all runs stored for a category")
-        .arg(Arg::with_name("game").help("The game to query").index(1))
-        .arg(
-            Arg::with_name("category")
-                .help("The category to query")
-                .index(2),
-        )
+        .arg(Arg::new("game").help("The game to query").index(1))
+        .arg(Arg::new("category").help("The category to query").index(2))
 }
 
-fn split_pbs_subcommand<'a, 'b>() -> App<'a, 'b> {
-    SubCommand::with_name("split-pbs")
+fn split_pbs_subcommand<'a>() -> App<'a> {
+    App::new("split-pbs")
         .about("lists all split PBs for a category")
-        .arg(Arg::with_name("game").help("The game to query").index(1))
-        .arg(
-            Arg::with_name("category")
-                .help("The category to query")
-                .index(2),
-        )
+        .arg(Arg::new("game").help("The game to query").index(1))
+        .arg(Arg::new("category").help("The category to query").index(2))
 }
 
-fn pb_subcommand<'a, 'b>() -> App<'a, 'b> {
-    SubCommand::with_name("pb")
+fn pb_subcommand<'a>() -> App<'a> {
+    App::new("pb")
         .about("gets the PB for a category")
         .arg(
-            Arg::with_name("level")
+            Arg::new("level")
                 .help("The level of timing information to get.")
                 .long("level")
                 .takes_value(true)
                 .possible_values(&["summary", "totals", "full"]),
         )
-        .arg(Arg::with_name("game").help("The game to query").index(1))
-        .arg(
-            Arg::with_name("category")
-                .help("The category to query")
-                .index(2),
-        )
+        .arg(Arg::new("game").help("The game to query").index(1))
+        .arg(Arg::new("category").help("The category to query").index(2))
 }
 
-fn run_subcommand<'a, 'b>() -> App<'a, 'b> {
-    SubCommand::with_name("run")
+fn run_subcommand<'a>() -> App<'a> {
+    App::new("run")
         .about("starts a zombiesplit session")
-        .arg(Arg::with_name("game").help("The game to run").index(1))
-        .arg(
-            Arg::with_name("category")
-                .help("The category to run")
-                .index(2),
-        )
+        .arg(Arg::new("game").help("The game to run").index(1))
+        .arg(Arg::new("category").help("The category to run").index(2))
 }
 
-fn add_game_subcommand<'a, 'b>() -> App<'a, 'b> {
-    SubCommand::with_name("add-game")
+fn add_game_subcommand<'a>() -> App<'a> {
+    App::new("add-game")
         .about("adds a game from its TOML description")
-        .arg(
-            Arg::with_name("game")
-                .help("Path to game file to load")
-                .index(1),
-        )
+        .arg(Arg::new("game").help("Path to game file to load").index(1))
 }
 
-fn add_run_subcommand<'a, 'b>() -> App<'a, 'b> {
-    SubCommand::with_name("add-run")
+fn add_run_subcommand<'a>() -> App<'a> {
+    App::new("add-run")
         .about("adds a run from its TOML description")
-        .arg(
-            Arg::with_name("run")
-                .help("Path to run file to load")
-                .index(1),
-        )
+        .arg(Arg::new("run").help("Path to run file to load").index(1))
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    /// Checks that the clap app works properly.
+    #[test]
+    fn verify_app() {
+        app().debug_assert();
+    }
 }

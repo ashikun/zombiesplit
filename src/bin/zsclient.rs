@@ -40,14 +40,25 @@ fn run() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn app<'a, 'b>() -> App<'a, 'b> {
+fn app<'a>() -> App<'a> {
     App::new("zsclient")
         .author(crate_authors!())
         .version(crate_version!())
         .arg(
-            Arg::with_name("config")
+            Arg::new("config")
                 .help("use this system config file")
                 .long("config")
                 .default_value("sys.toml"),
         )
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    /// Checks that the clap app works properly.
+    #[test]
+    fn verify_app() {
+        app().debug_assert();
+    }
 }

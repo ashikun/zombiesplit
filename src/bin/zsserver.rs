@@ -24,20 +24,27 @@ async fn run() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn app<'a, 'b>() -> App<'a, 'b> {
+fn app() -> App<'static> {
     App::new("zsserver")
         .author(crate_authors!())
         .version(crate_version!())
         .arg(
-            Arg::with_name("config")
+            Arg::new("config")
                 .help("use this system config file")
                 .long("config")
                 .default_value("sys.toml"),
         )
-        .arg(Arg::with_name("game").help("The game to run").index(1))
-        .arg(
-            Arg::with_name("category")
-                .help("The category to run")
-                .index(2),
-        )
+        .arg(Arg::new("game").help("The game to run").index(1))
+        .arg(Arg::new("category").help("The category to run").index(2))
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    /// Checks that the clap app works properly.
+    #[test]
+    fn verify_app() {
+        app().debug_assert();
+    }
 }
