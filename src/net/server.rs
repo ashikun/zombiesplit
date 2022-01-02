@@ -68,7 +68,7 @@ impl<'c> Manager<'c> {
         let db_obs: Arc<dyn attempt::Observer> = Arc::new(db::Observer::new(db));
         let debug_obs: Arc<dyn attempt::Observer> = Arc::new(Debug);
 
-        let bcast = tokio::sync::broadcast::channel(32);
+        let bcast = tokio::sync::broadcast::channel(BCAST_CAPACITY);
         let bcast_obs: Arc<dyn attempt::Observer> = Arc::new(Broadcast(bcast.0.clone()));
 
         let mut m = Self {
@@ -93,7 +93,7 @@ impl<'c> Manager<'c> {
     /// Returns any database or UI errors caught during the session.
     pub fn server(&self, desc: &ShortDescriptor) -> Result<Server> {
         let insp = self.reader.inspect(desc)?;
-        let (action_in, action_out) = tokio::sync::mpsc::channel(32);
+        let (action_in, action_out) = tokio::sync::mpsc::channel(MPSC_CAPACITY);
         Ok(Server {
             listener: listener::Listener::new(
                 self.cfg.server_addr,
@@ -173,3 +173,11 @@ impl<'m> State<'m> {
         }
     }
 }
+
+// TODO(@MattWindsor91): https://github.com/MattWindsor91/zombiesplit/issues/23
+
+/// Number of events for which we reserve space in the broadcast channel.
+const BCAST_CAPACITY: usize = 100;
+
+/// Number of actions for which we reserve space in the MPSC channel.
+const MPSC_CAPACITY: usize = 16;
