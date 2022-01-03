@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 /// Generally, the configuration type will be [Path] for paths to font assets,
 /// and `super::Metrics` for metrics maps.
 #[derive(Copy, Clone, Serialize, Deserialize, Debug)]
+#[serde(default)]
 pub struct Map<T> {
     /// Small text font, used for sigils and side-information.
     pub small: T,
@@ -17,6 +18,17 @@ pub struct Map<T> {
     pub medium: T,
     /// Large text font, used for headings and standout information.
     pub large: T,
+}
+
+/// The default path map assumes the fonts are in 'assets/fonts'.
+impl Default for Map<Path> {
+    fn default() -> Self {
+        Self {
+            small: Path::new("assets/fonts/small"),
+            medium: Path::new("assets/fonts/medium"),
+            large: Path::new("assets/fonts/large"),
+        }
+    }
 }
 
 /// [Map]s can be indexed by [Id].
@@ -33,10 +45,20 @@ impl<T> std::ops::Index<Id> for Map<T> {
 }
 
 /// A font directory path.
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
-pub struct Path<'p>(#[serde(borrow)] &'p std::path::Path);
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Path(
+    // We can't use Path here because we use confy to load/store config, and that doesn't support
+    // serde borrowing.
+    std::path::PathBuf,
+);
 
-impl<'p> Path<'p> {
+impl Path {
+    /// Constructs a path from the given string.
+    pub fn new(raw: &str) -> Path {
+        use std::str::FromStr;
+        Path(std::path::PathBuf::from_str(raw).unwrap())
+    }
+
     /// Constructs the path to the font's texture.
     #[must_use]
     pub fn texture_path(&self) -> PathBuf {
@@ -55,7 +77,7 @@ impl<'p> Path<'p> {
     }
 }
 
-impl<'p> Map<Path<'p>> {
+impl Map<Path> {
     /// Resolves metrics for all of the paths in this map.
     ///
     /// # Errors

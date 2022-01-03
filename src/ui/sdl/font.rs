@@ -19,7 +19,7 @@ pub struct Manager<'a> {
     /// The map of current font textures.
     textures: HashMap<Spec, Rc<Texture<'a>>>,
     /// The font path set.
-    font_set: font::Map<font::map::Path<'a>>,
+    font_set: &'a font::Map<font::map::Path>,
     /// The font metrics set.
     pub metrics_set: font::Map<font::Metrics>,
     /// The foreground colour set, used for setting up font colours.
@@ -31,7 +31,7 @@ impl<'a> Manager<'a> {
     #[must_use]
     pub fn new(
         creator: &'a TextureCreator<WindowContext>,
-        font_set: font::Map<font::map::Path<'a>>,
+        font_set: &'a font::Map<font::map::Path>,
         metrics_set: font::Map<font::Metrics>,
         colour_set: &'a colour::fg::Set,
     ) -> Self {

@@ -2,7 +2,7 @@
 
 use clap::Parser;
 use zombiesplit::model::game::category::ShortDescriptor;
-use zombiesplit::{cli, config, net};
+use zombiesplit::{cli, config::Server as Config, net};
 
 #[tokio::main]
 async fn main() {
@@ -17,17 +17,15 @@ struct Args {
     target: ShortDescriptor,
 
     /// Use this system config file
-    #[clap(short, long, default_value = "sys.toml")]
-    config: String,
+    #[clap(short, long)]
+    config: Option<std::path::PathBuf>,
 }
 
 async fn run() -> anyhow::Result<()> {
     env_logger::try_init()?;
 
     let args = Args::parse();
-
-    let cfg_raw = std::fs::read_to_string(args.config)?;
-    let cfg = config::System::load(&cfg_raw)?;
+    let cfg = Config::load(args.config)?;
 
     let manager = net::server::Manager::new(cfg)?;
     let server = manager.server(&args.target)?;

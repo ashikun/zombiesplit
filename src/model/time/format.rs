@@ -20,6 +20,28 @@ use thiserror::Error;
 #[derive(DeserializeFromStr, SerializeDisplay, Clone, Debug)]
 pub struct Format(Vec<Component>);
 
+/// The default format is mm'ss"uuu.
+impl Default for Format {
+    fn default() -> Self {
+        Format(vec![
+            Component::Position {
+                position: Position::Minutes,
+                width: 2,
+            },
+            Component::Delimiter('\''),
+            Component::Position {
+                position: Position::Seconds,
+                width: 2,
+            },
+            Component::Delimiter('"'),
+            Component::Position {
+                position: Position::Milliseconds,
+                width: 2,
+            },
+        ])
+    }
+}
+
 impl Format {
     /// Iterates over the position layout details in this time layout.
     pub fn components(&self) -> impl Iterator<Item = &Component> {
@@ -179,6 +201,11 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pretty_assertions::{assert_eq, assert_ne};
+
+    fn test_default_mmssuu() {
+        assert_eq!("mm'ss\"uuu", Format::default().to_string());
+    }
 
     /// Tests parsing a 2-minute/2-second/3-millisecond layout.
     #[test]

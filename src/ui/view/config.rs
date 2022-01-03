@@ -7,20 +7,20 @@ use crate::model::time;
 use super::gfx::{colour, font, metrics};
 
 /// Top-level UI configuration.
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct Config<'p> {
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[serde(default)]
+pub struct Config {
     /// Colour set.
-    #[serde(default)]
     pub colours: colour::Set,
     /// Font configuration.
-    #[serde(borrow)]
-    pub fonts: font::Map<font::map::Path<'p>>,
+    pub fonts: font::Map<font::map::Path>,
     /// Layout configuration.
     pub layout: Layout,
 }
 
 /// Layout configuration.
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[serde(default)]
 pub struct Layout {
     /// Window metrics.
     pub window: metrics::Window,

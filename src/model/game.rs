@@ -4,5 +4,5 @@ pub mod category;
 pub mod config;
 pub mod split;
 
-pub use config::Config;
+pub use self::config::Config;
 pub use split::Split;

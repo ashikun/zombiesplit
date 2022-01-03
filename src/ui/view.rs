@@ -10,7 +10,7 @@ use widget::Widget;
 
 use super::{presenter, Result};
 
-pub use config::Config;
+pub use self::config::Config;
 
 /// The top-level view structure.
 pub struct View<R> {

@@ -31,8 +31,8 @@ pub use error::{Error, Result};
 /// A manager of a zombiesplit server.
 ///
 /// This holds the configuration and database handles that will be used by the server proper.
-pub struct Manager<'c> {
-    cfg: config::System<'c>,
+pub struct Manager {
+    cfg: config::Server,
     reader: db::Reader,
 
     /// Send/receive pair for broadcasting events from the session to clients.
@@ -55,13 +55,13 @@ impl attempt::Observer for Broadcast {
     }
 }
 
-impl<'c> Manager<'c> {
+impl Manager {
     /// Constructs a new server, opening a database connection.
     ///
     /// # Errors
     ///
     /// Returns any errors from trying to open the database.
-    pub fn new(cfg: config::System<'c>) -> Result<Self> {
+    pub fn new(cfg: config::Server) -> Result<Self> {
         let db = std::rc::Rc::new(db::Db::new(&cfg.db_path)?);
         let reader = db.reader()?;
 
@@ -118,14 +118,14 @@ impl<'c> Manager<'c> {
 
     fn comparison_provider<'a>(&self, insp: Inspector<'a>) -> Box<dyn comparison::Provider + 'a> {
         match self.cfg.comparison_provider {
-            config::system::ComparisonProvider::Database => Box::new(insp),
+            config::server::ComparisonProvider::Database => Box::new(insp),
             _ => Box::new(comparison::NullProvider),
         }
     }
 }
 
 /// Observers can be attached to the manager, for use in the session later.
-impl<'c> Observable for Manager<'c> {
+impl Observable for Manager {
     fn add_observer(&mut self, observer: Weak<dyn Observer>) {
         self.obs_mux.add_observer(observer);
     }

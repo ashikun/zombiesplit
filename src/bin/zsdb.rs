@@ -58,7 +58,7 @@ fn run() -> anyhow::Result<()> {
 
     let args = Args::parse();
     let cfg_raw = std::fs::read_to_string(args.config)?;
-    let cfg = config::System::load(&cfg_raw)?;
+    let cfg = config::Server::load(&cfg_raw)?;
     let mut db = Db::new(cfg.db_path)?;
 
     match args.command {

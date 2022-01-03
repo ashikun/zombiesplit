@@ -13,6 +13,7 @@ pub use size::{Length, Size};
 
 /// Window metrics.
 #[derive(Copy, Clone, Debug, Deserialize, Serialize)]
+#[serde(default)]
 pub struct Window {
     /// The window width.
     pub win_w: Length,
@@ -26,6 +27,20 @@ pub struct Window {
     pub footer_h: Length,
     /// The height of one split.
     pub split_h: Length,
+}
+
+/// Default window metrics.
+impl Default for Window {
+    fn default() -> Self {
+        Self {
+            win_w: 320,
+            win_h: 640,
+            padding: 1,
+            header_h: 40,
+            footer_h: 64,
+            split_h: 16,
+        }
+    }
 }
 
 impl Window {

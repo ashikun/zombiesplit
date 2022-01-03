@@ -1,7 +1,7 @@
 //! The zombiesplit client.
 
 use clap::Parser;
-use zombiesplit::{cli, config, net, ui};
+use zombiesplit::{cli, config::Client as Config, net, ui};
 
 fn main() {
     cli::handle_error(run())
@@ -12,18 +12,15 @@ fn main() {
 #[clap(name = "zsclient", about, version, author)]
 struct Args {
     /// Use this system config file
-    #[clap(short, long, default_value = "sys.toml")]
-    config: String,
+    #[clap(short, long)]
+    config: Option<std::path::PathBuf>,
 }
 
 fn run() -> anyhow::Result<()> {
     env_logger::try_init()?;
 
     let args = Args::parse();
-
-    // TODO(@MattWindsor91): separate client and server config?
-    let cfg_raw = std::fs::read_to_string(args.config)?;
-    let cfg = config::System::load(&cfg_raw)?;
+    let cfg = Config::load(args.config)?;
 
     let (mut asend, arecv) = net::client::action::channel();
     let (pobs, ppump) = ui::presenter::observer();

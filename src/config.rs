@@ -1,5 +1,8 @@
 //! Configuring zombiesplit.
 
-pub mod system;
+pub mod client;
+pub mod server;
+mod util;
 
-pub use system::System;
+pub use client::Client;
+pub use server::Server;
