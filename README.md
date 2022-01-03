@@ -29,8 +29,24 @@ database, game files.  This might be fixed later, but for now the easiest way to
 try zombiesplit is `cargo run`ning it out of a working copy.  For that,
 substitute eg `cargo run --bin zsdb -- XYZ` for `zsdb XYZ` below.
 
+### Configuration
 
-## Initialising the database
+The main way to configure zombiesplit is through two TOML files, `client.toml`
+and `server.rs`, typically located in:
+
+- Linux: `~/.config/zombiesplit`
+- macOS: `~/Library/Application Support/xyz.ashikun.zombiesplit`
+- Windows: `C:\Users\NAME\AppData\Roaming\Ashikun\Zombiesplit`
+
+See [the `directories` documentation](https://docs.rs/directories/latest/directories/struct.ProjectDirs.html#method.config_dir)
+for details.
+
+These configuration files can be overridden by configuration in another
+file by passing `--config PATH` to programs.
+
+For examples of what these files look like, see `examples/config`.
+
+### Initialising the database
 
 zombiesplit uses a SQLite database to store game and (eventually) run data;
 before using zombiesplit you'll need to use `zsdb` to :

@@ -54,9 +54,13 @@ pub struct Path(
 
 impl Path {
     /// Constructs a path from the given string.
+    #[must_use]
     pub fn new(raw: &str) -> Path {
         use std::str::FromStr;
-        Path(std::path::PathBuf::from_str(raw).unwrap())
+        match std::path::PathBuf::from_str(raw) {
+            Ok(x) => Path(x),
+            Err(e) => match e {},
+        }
     }
 
     /// Constructs the path to the font's texture.

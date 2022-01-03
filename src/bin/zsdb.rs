@@ -11,8 +11,8 @@ fn main() {
 #[clap(name = "zsdb", about, version, author)]
 struct Args {
     /// Use this system config file
-    #[clap(short, long, default_value = "sys.toml")]
-    config: String,
+    #[clap(short, long)]
+    config: Option<std::path::PathBuf>,
     #[clap(subcommand)]
     command: Command,
 }
@@ -57,8 +57,7 @@ fn run() -> anyhow::Result<()> {
     env_logger::try_init()?;
 
     let args = Args::parse();
-    let cfg_raw = std::fs::read_to_string(args.config)?;
-    let cfg = config::Server::load(&cfg_raw)?;
+    let cfg = config::Server::load(args.config)?;
     let mut db = Db::new(cfg.db_path)?;
 
     match args.command {

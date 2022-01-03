@@ -32,6 +32,11 @@ impl Server {
     /// loaded first.
     ///
     /// If `custom_path` is given, it will be loaded afterwards.
+    ///
+    /// # Errors
+    ///
+    /// Fails if we can't load any of the files needed for the configuration, or there is a problem
+    /// deserialising the configuration.
     pub fn load(custom_path: Option<std::path::PathBuf>) -> Result<Self, config::ConfigError> {
         super::util::base_config("client", custom_path)?.try_into()
     }
