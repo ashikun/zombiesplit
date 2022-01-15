@@ -1,50 +1,83 @@
 # zombiesplit architecture notes
 
-**NOTE:** `zombiesplit`'s architecture has evolved and mutated over time, and is constantly in flux. Take these notes
-with a bit of salt.
+**NOTE:** `zombiesplit`'s architecture has evolved and mutated over time, and is
+*constantly in flux. Take these notes with a bit of salt.
 
-Effectively, `zombiesplit` is a C# program trapped in a Rust program's body, for which one can blame the programmer's
-love of overengineering.
+Effectively, `zombiesplit` is a C# program trapped in a Rust program's body, for
+which one can blame the programmer's love of overengineering.
 
 The top-level split is as follows:
 
 - the _model_;
 - the _database code_, which sits on top of the model;
+- the _netcode_ (client and server), which sits on top of the model and database;
 - various _user interfaces_, which sit on top of the model and database.
 
 ## Model
 
-The `zombiesplit` model is split into three main parts:
+The `zombiesplit` model is split into four main parts, roughly from low to high
+level:
 
-- the config model, which tracks all games/categories/related data that a `zombiesplit` instance
-  has been taught about; 
+- the timing model, which tracks notions of time, comparisons, and aggregates;
+- the game model, which tracks all games/categories/related data that a
+  `zombiesplit` instance has been taught about; 
 - the historical model, which tracks all saved run data; and
 - the attempt model, which tracks the run currently being processed.
 
-### Config model
+### Timing model
 
-The config model is fairly thin, mapping onto both the database and the 
+### Game model
+
+This is a fairly thin representation of the underlying database relations.
 
 ### Historical model
 
-Like the config model, the historical model is a fairly thin representation of the underlying database relations.
+Like the game model, the historical model is a fairly thin representation of the
+underlying database relations.
 
 ### Attempt model
 
-The attempt model is a 'fat' model (that is, most of the business logic of `zombiesplit` forms methods on the model
-instead of being separated into higher layers).
+The attempt model is a 'fat' model (that is, most of the business logic of
+`zombiesplit` forms methods on the model instead of being separated into higher
+layers).
+
+An in-flight attempt is contained in an attempt _session_, which exposes
+protocols for sending _actions_ and subscribing to _events_ (an observer
+pattern).  These form the backbone of the client/server protocol in the netcode.
 
 ## Database
 
 SQLite.
 
-Any feed-forward from the attempt model to the database is implemented as a special kind of attempt observer.
+Any feed-forward from the attempt model to the database is implemented as a
+special kind of attempt observer.
+
+## Netcode
+
+`zombiesplit` has a client/server architecture, with multiple clients able to
+connect simultaneously to one server.  At time of writing, the protocol is
+an insecure TCP binary protocol that is a length-delimited CBOR encoding of
+the underlying action/event protocol.
+
+We use `tokio` for both ends, and so the netcode is asynchronous Rust.
+
+### Client
+
+Some of the user interfaces below are `zombiesplit` clients, but all use the
+same netcode.
+
+### Server
 
 ## User interfaces
 
 ### Command line porcelain
 
+This is `zsdb`, at the moment.
+
 ### Graphical split editor
 
-Roughly laid out as a model-view-presenter, with the model being that described above. There is an added
-complication that the presenter is tracking the modality of the user interface too (eg, normal mode/edit mode/etc).
+This is `zsclient`.
+
+Roughly laid out as a model-view-presenter, with the model being that described
+above. There is an added complication that the presenter is tracking the
+modality of the user interface too (eg, normal mode/edit mode/etc).
