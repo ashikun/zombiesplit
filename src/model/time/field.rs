@@ -247,7 +247,7 @@ mod tests {
                 position: Position::Milliseconds,
                 val: from,
             };
-            assert_eq!(format!("{}", t), want);
+            assert_eq!(format!("{t}"), want);
         }
 
         /// Tests that the empty string is parsed into the right msec.
@@ -346,7 +346,7 @@ mod tests {
                 val: 123,
                 position: Position::Milliseconds,
             };
-            assert_eq!(format!("{:2}", t), "12");
+            assert_eq!(format!("{t:2}"), "12");
         }
 
         /// Tests that stretching a millisecond field to four digits zero-pads on the left.
@@ -356,7 +356,7 @@ mod tests {
                 position: Position::Milliseconds,
                 val: 123,
             };
-            assert_eq!(format!("{:4}", t), "0123");
+            assert_eq!(format!("{t:4}"), "0123");
         }
     }
 }

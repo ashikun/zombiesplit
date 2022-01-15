@@ -34,7 +34,7 @@ impl Listener {
         let listener = TcpListener::bind(self.addr).await?;
         loop {
             let (socket, addr) = listener.accept().await?;
-            log::info!("new connection: {}", addr);
+            log::info!("new connection: {addr}");
 
             // Deserialize frames
             let mut handle = Handle {
@@ -73,7 +73,7 @@ struct Handle {
 impl Handle {
     async fn run(&mut self) {
         if let Err(e) = self.main_loop().await {
-            log::warn!("connection closed with error: {} ({:?})", self.addr, e);
+            log::warn!("connection closed with error: {} ({e:?})", self.addr);
         }
     }
 
@@ -105,7 +105,7 @@ impl Handle {
         maybe_event: std::result::Result<attempt::observer::Event, broadcast::error::RecvError>,
     ) -> Result<()> {
         if let Err(broadcast::error::RecvError::Lagged(n)) = maybe_event {
-            log::info!("connection lagging: {} ({} behind)", self.addr, n);
+            log::info!("connection lagging: {} ({n} behind)", self.addr);
             // TODO(@MattWindsor91): deal with this properly
         } else {
             self.io.send(maybe_event?).await?;

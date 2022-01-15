@@ -98,13 +98,13 @@ impl<'conn, 'tx> Inserter<'conn, 'tx> {
     }
 
     fn add_main(&mut self, short: &str, game: &game::Config) -> Result<()> {
-        log::info!("adding game {}", short);
+        log::info!("adding game {short}");
 
         self.query(Query::Game)
             .execute(named_params![":short": short, ":name": game.name])?;
         self.game_id = self.tx.last_insert_rowid();
 
-        log::info!("game {} -> ID {}", short, self.game_id);
+        log::info!("game {short} -> ID {}", self.game_id);
         Ok(())
     }
 
@@ -116,13 +116,13 @@ impl<'conn, 'tx> Inserter<'conn, 'tx> {
     }
 
     fn add_split(&mut self, short: short::Name, split: &game::config::Split) -> Result<()> {
-        log::info!("adding split {} ('{}')", short, split.name);
+        log::info!("adding split {short} ('{}')", split.name);
 
         self.query(Query::Split)
             .execute(named_params![":short": short, ":name": split.name])?;
 
         let split_id = self.tx.last_insert_rowid();
-        log::info!("split {} -> ID {}", short, split_id);
+        log::info!("split {short} -> ID {split_id}");
         self.split_ids.insert(short, split_id);
 
         Ok(())
@@ -145,12 +145,12 @@ impl<'conn, 'tx> Inserter<'conn, 'tx> {
         short: short::Name,
         segment: &game::config::Segment,
     ) -> Result<i64> {
-        log::info!("adding segment {} ('{}')", short, segment.name);
+        log::info!("adding segment {short} ('{}')", segment.name);
         self.query(Query::Segment)
             .execute(named_params![":short": short, ":name": segment.name])?;
 
         let segment_id = self.tx.last_insert_rowid();
-        log::info!("segment {} -> ID {}", short, segment_id);
+        log::info!("segment {short} -> ID {segment_id}");
         self.segment_ids.insert(short, segment_id);
 
         Ok(segment_id)
@@ -216,7 +216,7 @@ impl<'conn, 'tx> Inserter<'conn, 'tx> {
             .execute(named_params![":short": short, ":name": category.name])?;
 
         let categoryid = self.tx.last_insert_rowid();
-        log::info!("category {} -> ID {}", short, categoryid);
+        log::info!("category {short} -> ID {categoryid}");
         Ok(categoryid)
     }
 
@@ -236,8 +236,7 @@ impl<'conn, 'tx> Inserter<'conn, 'tx> {
     ) -> Result<()> {
         for (position, segment_id) in self.category_segment_ids(category)?.iter().enumerate() {
             log::info!(
-                "adding segment ID {} for category {}",
-                segment_id,
+                "adding segment ID {segment_id} for category {}",
                 category.name
             );
             self.query(Query::CategorySegment).execute(named_params![

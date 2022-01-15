@@ -5,7 +5,7 @@ pub fn get(name: &str) -> Option<std::path::PathBuf> {
     dir().map(|d| {
         let mut pb = std::path::PathBuf::from(d.config_dir());
 
-        pb.push(format!("{}.toml", name));
+        pb.push(format!("{name}.toml"));
 
         pb
     })
@@ -25,12 +25,12 @@ pub(super) fn base_config(
 
     if let Some(path) = get(name) {
         // The validity of the path doesn't necessarily mean the config file actually exists.
-        log::info!("Using main client config file: {:?}", path);
+        log::info!("Using main client config file: {path:?}");
         s.merge(config::File::from(path).required(false))?;
     }
 
     if let Some(path) = custom_path {
-        log::info!("Using user config file: {:?}", path);
+        log::info!("Using user config file: {path:?}");
         s.merge(config::File::from(path).required(true))?;
     }
 

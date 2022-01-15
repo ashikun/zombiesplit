@@ -44,5 +44,5 @@ impl Observer {
 }
 
 fn log_err(e: Result<()>) {
-    e.unwrap_or_else(|e| warn!("error saving run: {}", e));
+    e.unwrap_or_else(|e| warn!("error saving run: {e}"));
 }

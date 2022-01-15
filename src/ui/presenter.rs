@@ -190,7 +190,7 @@ impl attempt::Observer for Observer {
     fn observe(&self, evt: attempt::observer::Event) {
         // TODO(@MattWindsor91): handle errors properly?
         if let Err(e) = self.0.send(evt) {
-            log::warn!("error sending event to presenter: {}", e);
+            log::warn!("error sending event to presenter: {e}");
         }
     }
 }

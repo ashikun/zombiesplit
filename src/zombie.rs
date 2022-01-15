@@ -74,10 +74,10 @@ pub fn list_runs<L: Locator>(db: &Db, loc: &L) -> Result<()> {
         let rank = match run.timing.rank {
             None => "n/a".red(),
             Some(1) => "1".yellow(),
-            Some(k) => format!("{}", k).green(),
+            Some(k) => format!("{k}").green(),
         };
 
-        println!("{}. {} on {}", rank, run.timing.total, run.date);
+        println!("{rank}. {} on {}", run.timing.total, run.date);
     }
 
     Ok(())
@@ -121,7 +121,7 @@ pub fn run_pb<L: Locator>(db: &Db, loc: &L, level: history::timing::Level) -> Re
         if let history::timing::ForLevel::Totals(totals) = pb.timing {
             // TODO(@MattWindsor91): order by position
             for (split, total) in totals.totals {
-                println!("{}: {}", split, total);
+                println!("{split}: {total}");
             }
         }
     }
@@ -167,7 +167,7 @@ fn output_split_pb(
     short: short::Name,
     split: comparison::Split,
 ) -> Result<()> {
-    write!(tw, "{}\t", short)?;
+    write!(tw, "{short}\t")?;
     output_time(tw, split.split_pb)?;
     write!(tw, "\t")?;
     output_time(tw, split.in_run.map(|x| x.split))?;
@@ -178,7 +178,7 @@ fn output_split_pb(
 
 fn output_time(tw: &mut impl Write, time: Option<Time>) -> Result<()> {
     if let Some(t) = time {
-        write!(tw, "{}", t)?;
+        write!(tw, "{t}")?;
     } else {
         write!(tw, "--")?;
     }

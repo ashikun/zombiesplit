@@ -81,8 +81,9 @@ impl Position {
     /// For milliseconds, this involves left-padding it.
     #[must_use]
     fn preprocess_string(self, s: &str) -> Cow<str> {
-        if matches!(self, Self::Milliseconds) && s.len() < self.default_width() {
-            Cow::Owned(format!("{:0<digits$}", s, digits = self.default_width()))
+        let digits = self.default_width();
+        if matches!(self, Self::Milliseconds) && s.len() < digits {
+            Cow::Owned(format!("{s:0<digits$}"))
         } else {
             Cow::Borrowed(s)
         }

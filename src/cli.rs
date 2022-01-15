@@ -7,7 +7,7 @@ use thiserror::Error;
 
 pub fn handle_error(res: anyhow::Result<()>) {
     if let Err(e) = res {
-        eprintln!("error: {:?}", e);
+        eprintln!("error: {e:?}");
         exit(1)
     }
 }

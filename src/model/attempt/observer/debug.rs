@@ -11,6 +11,6 @@ pub struct Debug;
 
 impl Observer for Debug {
     fn observe(&self, evt: super::Event) {
-        debug!("observed {:?}", evt);
+        debug!("observed {evt:?}");
     }
 }
