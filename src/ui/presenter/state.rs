@@ -4,22 +4,22 @@ This is populated from the model every time the presenter observes some kind
 of change on the model.
 */
 
-pub mod footer;
-pub mod split;
-
 use std::ops::{Index, IndexMut};
-
-use crate::model::{aggregate, attempt, comparison::pace::PacedTime, game::category, short, time};
-
-use super::cursor::SplitPosition;
 
 pub use footer::Footer;
 pub use split::Split;
 
+use crate::model::{aggregate, attempt, comparison::pace::PacedTime, game::category, short, time};
+
+pub mod cursor;
+pub mod footer;
+pub mod split;
+
 /// The presenter's representation of the model.
 #[derive(Debug, Default, Clone, Eq, PartialEq)]
 pub struct State {
-    pub cursor_pos: Option<usize>,
+    /// The cursor (not made public so as to ensure that we update the splits and footer).
+    cursor: cursor::Cursor,
 
     /// The current attempt information.
     pub attempt: category::AttemptInfo,
@@ -27,7 +27,7 @@ pub struct State {
     pub game_category: category::Info,
 
     /// State for the splits being displayed in the UI.
-    pub splits: split::Set,
+    splits: split::Set,
 
     /// State for the footer widget.
     pub footer: Footer,
@@ -40,21 +40,25 @@ impl State {
     /// change the attempt information, as we expect there will be a separate
     /// observation for that.
     pub fn reset(&mut self) {
+        self.cursor.reset();
+        self.splits.refresh_cursors(&self.cursor);
         self.splits.reset();
         self.footer.total = PacedTime::default();
     }
 
-    /// Disables every optional visual element (cursor, editor, etc).
-    pub fn disable_everything(&mut self) {
-        self.set_cursor(None);
-        self.set_editor(None);
+    /// Gets the current position of the cursor.
+    #[must_use]
+    pub fn cursor_position(&self) -> usize {
+        self.cursor.position()
     }
 
-    /// Sets the visible cursor position to `cursor_at`.
-    pub fn set_cursor(&mut self, cursor_at: Option<usize>) {
-        self.cursor_pos = cursor_at;
+    /// Moves the cursor in the direction of `m` `multiplier` times.
+    /// Returns the absolute amount by which the cursor moved.
+    pub fn move_cursor_by(&mut self, m: cursor::Motion, multiplier: usize) -> usize {
+        let amt = self.cursor.move_by(m, multiplier);
         self.footer.at_cursor = self.total_at_cursor();
-        self.splits.refresh_cursors(cursor_at);
+        self.splits.refresh_cursors(&self.cursor);
+        amt
     }
 
     /// Sets the visible total (attempt or comparison, depending on `source`) to `time`.
@@ -67,6 +71,18 @@ impl State {
         }
     }
 
+    /// Tries to get the index of the split with short name `split`.
+    #[must_use]
+    pub fn index_of_split(&self, split: short::Name) -> Option<usize> {
+        self.splits.index_of(split)
+    }
+
+    /// Tries to get the split at index `index` in the split set.
+    #[must_use]
+    pub fn split_at_index(&self, index: usize) -> Option<&self::Split> {
+        self.splits.at_index(index)
+    }
+
     /// Recalculates the state's footer totals.
     ///
     /// This generally needs to be done if the cursor has moved, or the split
@@ -75,35 +91,48 @@ impl State {
         self.footer.at_cursor = self.total_at_cursor();
     }
 
-    /// Sets the editor at the current cursor to `editor`.
-    pub fn set_editor(&mut self, editor: Option<&super::Editor>) {
-        self.splits.set_editor(self.cursor_pos, editor);
+    /// Sets the editor at `index` to `editor`.
+    pub fn set_editor(&mut self, index: usize, editor: Option<&super::Editor>) {
+        self.splits.set_editor(index, editor);
     }
 
     /// Gets the total up to and excluding the current cursor position.
     fn total_at_cursor(&mut self) -> PacedTime {
-        self.cursor_pos
-            .and_then(|x| x.checked_sub(1))
+        self.cursor_position()
+            .checked_sub(1)
             .and_then(|c| self.splits.at_index(c))
             .map(Split::paced_cumulative)
             .unwrap_or_default()
     }
 
+    /// Handles an event observation.
+    pub fn handle_event(&mut self, ev: attempt::observer::Event) {
+        use attempt::observer::Event;
+        match ev {
+            Event::Total(time, source) => self.set_total(time, source),
+            Event::NumSplits(count) => self.set_split_count(count),
+            Event::Reset(_) => self.reset(),
+            Event::Attempt(a) => self.attempt = a,
+            Event::GameCategory(gc) => self.game_category = gc,
+            Event::Split(short, ev) => {
+                self.handle_split_event(short, ev);
+            }
+        }
+    }
+
+    fn set_split_count(&mut self, count: usize) {
+        self.splits.set_split_count(count);
+        self.cursor.resize(count);
+    }
+
     /// Handles an observation for the split with the given shortname.
-    pub fn handle_split_event(&mut self, short: short::Name, evt: attempt::observer::split::Event) {
-        self.splits.handle_event(short, evt);
+    fn handle_split_event(&mut self, short: short::Name, ev: attempt::observer::split::Event) {
+        self.splits.handle_event(short, ev);
         // The changes to this split could have changed the overall and
         // up-to-cursor totals.
         self.refresh_footer_totals();
 
         // TODO(@MattWindsor91): open editor
-    }
-
-    /// Gets the relative position of the split at `usize` relative to the
-    /// cursor last logged in the split state.
-    #[must_use]
-    pub fn split_position(&self, split_pos: usize) -> SplitPosition {
-        SplitPosition::new(split_pos, self.cursor_pos)
     }
 }
 

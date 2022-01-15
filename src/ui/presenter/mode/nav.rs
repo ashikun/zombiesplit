@@ -1,86 +1,53 @@
 //! The [Nav] struct and its implementations.
 
+use crate::model::{attempt::Action, time};
+
 use super::{
-    super::{
-        cursor::{self, Cursor},
-        State,
-    },
+    super::state::{cursor, State},
     editor::Editor,
     event::Modal,
     EventContext, EventResult, Mode,
 };
-use crate::model::{attempt, time};
 
 /// Mode for when we are navigating splits.
-pub struct Nav {
-    /// The cursor.
-    cur: Cursor,
-}
+pub struct Nav;
 
 impl Mode for Nav {
-    fn on_entry(&mut self, state: &mut State) {
-        self.update_cursor(state);
-    }
+    fn on_entry(&mut self, _state: &mut State) {}
 
-    fn on_event(&mut self, ctx: EventContext) -> EventResult {
-        match ctx.event {
-            Modal::Cursor(c) => self.move_cursor(c, ctx.state),
-            Modal::EnterField(f) => self.enter_field(f),
-            Modal::Undo => self.undo(),
-            Modal::Delete => self.delete(),
+    fn on_event(&mut self, EventContext { event, state, .. }: EventContext) -> EventResult {
+        match event {
+            Modal::Cursor(c) => move_cursor(c, state),
+            Modal::EnterField(f) => enter_field(state.cursor_position(), f),
+            Modal::Undo => EventResult::Action(Action::Pop(state.cursor_position())),
+            Modal::Delete => EventResult::Action(Action::Clear(state.cursor_position())),
             _ => EventResult::Handled,
         }
     }
 
-    fn on_exit(&mut self, _state: &mut crate::ui::presenter::State) -> Option<attempt::Action> {
+    fn on_exit(&mut self, _state: &mut crate::ui::presenter::State) -> Option<Action> {
         // Don't clear the cursor, it'll probably be used by the new state.
         None
     }
 }
 
 impl Nav {
-    /// Creates a new nav mode using a given cursor.
+    /// Creates a transition to a navigation.
     #[must_use]
-    pub fn new(cur: Cursor) -> Self {
-        Self { cur }
+    pub fn transition() -> EventResult {
+        EventResult::transition(Self {})
     }
+}
 
-    /// Creates a transition to a navigation from the given cursor.
-    #[must_use]
-    pub fn transition(cur: Cursor) -> EventResult {
-        EventResult::transition(Self::new(cur))
-    }
+/// Moves the state cursor according to `c`, if possible.
+fn move_cursor(motion: cursor::Motion, state: &mut super::super::State) -> EventResult {
+    // TODO(@MattWindsor91): cursor multiplier
+    state.move_cursor_by(motion, 1);
+    EventResult::Handled
+}
 
-    /// Performs an undo on the current split, if any.
-    fn undo(&mut self) -> EventResult {
-        EventResult::Action(attempt::Action::Pop(self.cur.position()))
-    }
-
-    /// Performs a delete on the current split, if any.
-    fn delete(&mut self) -> EventResult {
-        EventResult::Action(attempt::Action::Clear(self.cur.position()))
-    }
-
-    /// Moves the state cursor according to `c`, if possible.
-    fn move_cursor(
-        &mut self,
-        motion: cursor::Motion,
-        state: &mut super::super::State,
-    ) -> EventResult {
-        // TODO(@MattWindsor91): cursor multiplier
-        self.cur.move_by(motion, 1);
-        self.update_cursor(state);
-
-        EventResult::Handled
-    }
-
-    /// Constructs an editor entering the given field.
-    fn enter_field(&self, field: time::Position) -> EventResult {
-        let editor = Editor::new(self.cur, Some(field));
-        EventResult::transition(editor)
-    }
-
-    fn update_cursor(&self, state: &mut super::super::State) {
-        state.set_cursor(Some(self.cur.position()));
-    }
+/// Constructs an editor entering the given index and field.
+fn enter_field(index: usize, field: time::Position) -> EventResult {
+    let editor = Editor::new(index, Some(field));
+    EventResult::transition(editor)
 }

@@ -49,23 +49,6 @@ pub trait Mode {
     }
 }
 
-/// Mode for when there is no run active.
-pub struct Inactive;
-
-impl Mode for Inactive {
-    fn on_entry(&mut self, state: &mut State) {
-        state.disable_everything();
-    }
-
-    fn on_event(&mut self, _ctx: EventContext) -> EventResult {
-        EventResult::Handled
-    }
-
-    fn on_exit(&mut self, _state: &mut State) -> Option<Action> {
-        None
-    }
-}
-
 /// Mode for when we are quitting.
 pub struct Quitting;
 

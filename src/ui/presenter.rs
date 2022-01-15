@@ -8,24 +8,26 @@ system etc.) to operations on the [Session], while translating observations
 of changes made to the [Session] into visual and modal changes to the UI.
 */
 
-pub mod cursor;
-pub mod event;
-pub mod mode;
-pub mod state;
+use std::sync::mpsc;
+
+pub use mode::Editor;
+use state::cursor;
+pub use state::cursor::Cursor;
+pub use state::State;
 
 use crate::model::{
     attempt::{self, action::Handler, observer, Action},
     short, Time,
 };
-pub use cursor::Cursor;
-pub use mode::Editor;
-pub use state::State;
-use std::sync::mpsc;
+
+pub mod event;
+pub mod mode;
+pub mod state;
 
 /// A zombiesplit UI presenter, containing all state and modality.
 pub struct Presenter<'h, H> {
     /// The current mode.
-    pub mode: Box<dyn mode::Mode>,
+    mode: Box<dyn mode::Mode>,
     /// The handler used to perform actions on the splitter session.
     pub action_handler: &'h mut H,
     /// The visual state being updated by the presenter.
@@ -40,7 +42,7 @@ impl<'h, H: Handler> Presenter<'h, H> {
     #[must_use]
     pub fn new(action_handler: &'h mut H) -> Self {
         Self {
-            mode: Box::new(mode::Inactive),
+            mode: Box::new(mode::Nav),
             state: state::State::default(),
             action_handler,
         }
@@ -96,58 +98,45 @@ impl<'h, H: Handler> Presenter<'h, H> {
     }
 
     fn reset(&mut self) {
-        let cur = cursor::Cursor::new(self.state.splits.len() - 1);
         // Don't call exit the previous mode's exit hook; it may modify the run
         // in ways we don't want to happen.
-        self.transition(Box::new(mode::Nav::new(cur)));
         self.state.reset();
     }
 
     /// Observes `evt` on this presenter core.
-    pub fn observe(&mut self, evt: observer::Event) {
+    pub fn observe(&mut self, ev: observer::Event) {
         // TODO(@MattWindsor91): eventually make it possible for this to be
         // called directly as an observe?  the mutability makes it a bit
         // difficult though.
 
-        // TODO(@MattWindsor91): push most of this logic down into the state
-        use attempt::observer::Event;
-        match evt {
-            Event::Total(time, source) => self.state.set_total(time, source),
-            Event::NumSplits(count) => self.state.splits.set_split_count(count),
-            Event::Reset(_) => self.reset(),
-            Event::Attempt(a) => self.state.attempt = a,
-            Event::GameCategory(gc) => self.state.game_category = gc,
-            Event::Split(short, ev) => {
-                self.observe_split(short, ev);
-            }
-        }
+        self.observe_locally(&ev);
+        self.state.handle_event(ev);
+    }
+
+    /// Observes `evt` on the presenter
+    fn observe_locally(&mut self, ev: &observer::Event) {
+        match ev {
+            observer::Event::Split(short, ev) => self.observe_split(*short, ev),
+            observer::Event::Reset(_) => self.reset(),
+            _ => (),
+        };
     }
 
     /// Handles the split event `ev` relating to the split `short`.
-    fn observe_split(&mut self, short: short::Name, ev: observer::split::Event) {
+    fn observe_split(&mut self, short: short::Name, ev: &observer::split::Event) {
         if let observer::split::Event::Time(t, observer::time::Event::Popped) = ev {
-            self.open_editor(short, t);
+            self.open_editor(short, *t);
         }
-        self.state.handle_split_event(short, ev);
     }
 
     /// Opens a new split editor at the short named `short`, and preloads it
     /// with the time `time`.
     fn open_editor(&mut self, short: short::Name, time: Time) {
-        if let Some(cursor) = self.make_cursor_at(short) {
-            let mut editor = Box::new(Editor::new(cursor, None));
+        if let Some(index) = self.state.index_of_split(short) {
+            let mut editor = Box::new(Editor::new(index, None));
             editor.time = time;
             self.transition_with_exit(editor);
         }
-    }
-
-    fn make_cursor_at(&self, short: short::Name) -> Option<Cursor> {
-        // TODO(@MattWindsor91): update cursor size if the number of splits changes mid-flight
-        let max = self.state.splits.len() - 1;
-        self.state
-            .splits
-            .index_of(short)
-            .and_then(|pos| Cursor::new_at(pos, max))
     }
 
     /// Performs a full clean transition between two modes.

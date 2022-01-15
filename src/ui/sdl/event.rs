@@ -1,9 +1,9 @@
 //! Mapping between SDL events and presenter events.
 
 use crate::model::{attempt, time};
+use crate::ui::presenter::state::cursor;
 
 use super::super::presenter::{
-    cursor,
     event::{self, Edit, Event, Modal},
     Presenter,
 };

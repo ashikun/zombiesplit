@@ -1,5 +1,5 @@
 ///! Presenter state for individual splits.
-use super::super::cursor::SplitPosition;
+use crate::ui::presenter::state::cursor::SplitPosition;
 use std::fmt::Display;
 
 use crate::model::{
@@ -35,17 +35,16 @@ impl Set {
     }
 
     /// Refreshes the cursor position information for each split.
-    pub fn refresh_cursors(&mut self, position: Option<usize>) {
+    pub fn refresh_cursors(&mut self, cur: &super::cursor::Cursor) {
         for (i, s) in &mut self.vec.iter_mut().enumerate() {
-            s.position = SplitPosition::new(i, position);
+            s.position = cur.split_position(i);
         }
     }
 
     /// Sets the editor at `position` to `editor`, removing all other open editors.
-    pub fn set_editor(&mut self, position: Option<usize>, editor: Option<&super::super::Editor>) {
-        // TODO(@MattWindsor91): this is a bit of a hack.
-        for (i, s) in &mut self.vec.iter_mut().enumerate() {
-            s.set_editor(editor.filter(|_| Some(i) == position));
+    pub fn set_editor(&mut self, position: usize, editor: Option<&super::super::Editor>) {
+        if let Some(s) = self.vec.get_mut(position) {
+            s.set_editor(editor);
         }
     }
 

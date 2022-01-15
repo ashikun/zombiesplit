@@ -33,7 +33,7 @@ impl<R: Renderer> super::Widget<R> for Widget {
     fn render(&self, r: &mut R, s: &Self::State) -> Result<()> {
         for (i, row) in self.rows.iter().enumerate() {
             // TODO(@MattWindsor91): calculate scroll point
-            if let Some(split) = s.splits.at_index(i) {
+            if let Some(split) = s.split_at_index(i) {
                 row.render(r, split)?;
             }
         }

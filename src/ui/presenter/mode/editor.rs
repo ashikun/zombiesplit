@@ -2,33 +2,30 @@
 
 use std::fmt::{Display, Formatter};
 
+use crate::model::{attempt, time};
+
 use super::{
-    super::{
-        cursor::{self, Cursor},
-        State,
-    },
+    super::state::{cursor, State},
     event::{Edit, Modal},
     nav::Nav,
     EventResult, Mode,
 };
-use crate::model::{attempt, time};
 
 /// A split editor.
 pub struct Editor {
-    /// The cursor, used to track the current position for later navigation.
-    pub cur: Cursor,
-
     /// The time being edited.
     pub time: time::Time,
 
     /// The current field editor.
     pub field: Option<Field>,
+
+    /// The index of the split being edited.
+    pub index: usize,
 }
 
 impl Mode for Editor {
     fn on_entry(&mut self, state: &mut State) {
-        // The cursor _should_ have been set by the preceding [Nav].
-        state.set_editor(Some(self));
+        state.set_editor(self.index, Some(self));
     }
 
     fn on_event(&mut self, ctx: super::EventContext) -> EventResult {
@@ -37,44 +34,33 @@ impl Mode for Editor {
             Modal::Delete => self.delete(),
             Modal::Edit(d) => self.edit(d),
             Modal::EnterField(f) => self.enter_field(f),
-            Modal::Cursor(c) => self.move_cursor(c),
+            Modal::Cursor(c) => move_cursor(c, ctx.state),
             _ => EventResult::Handled,
         };
         // TODO(@MattWindsor91): this is suboptimal; we should only modify the
         // specific parts changed by the event.
-        ctx.state.set_editor(Some(self));
+        ctx.state.set_editor(self.index, Some(self));
         result
     }
 
     fn on_exit(&mut self, state: &mut State) -> Option<attempt::Action> {
         self.commit_field();
-        state.set_editor(None);
+        state.set_editor(self.index, None);
         Some(attempt::Action::Push(
-            self.cur.position(),
+            self.index,
             std::mem::take(&mut self.time),
         ))
     }
 }
 
 impl Editor {
-    /// Constructs a new editor at the given cursor, on the given field if any.
+    /// Constructs a new editor at the given index, on the given field if any.
     #[must_use]
-    pub fn new(cur: Cursor, field: Option<time::Position>) -> Self {
+    pub fn new(index: usize, field: Option<time::Position>) -> Self {
         Self {
-            cur,
             time: time::Time::default(),
             field: field.map(Field::new),
-        }
-    }
-
-    /// Constructs a new editor with the given cursor and time, and with no
-    /// field open.
-    #[must_use]
-    pub fn with_time(cur: Cursor, time: time::Time) -> Self {
-        Self {
-            cur,
-            time,
-            field: None,
+            index,
         }
     }
 
@@ -104,26 +90,22 @@ impl Editor {
     fn delete(&mut self) -> EventResult {
         self.field = None;
         self.time = time::Time::default();
-        Nav::transition(self.cur)
+        Nav::transition()
     }
 
     /// Commits the field currently being edited.
-    pub fn commit_field(&mut self) {
+    fn commit_field(&mut self) {
         if let Some(ref f) = self.field.take() {
             // TODO(@MattWindsor91): handle error properly.
             let _ = f.commit(&mut self.time);
         }
     }
+}
 
-    /// Performs the given cursor motion.
-    #[must_use]
-    pub fn move_cursor(&mut self, motion: cursor::Motion) -> EventResult {
-        // Need to copy the cursor, so that the editor commits to the
-        // right location.
-        let mut cur = self.cur;
-        cur.move_by(motion, 1);
-        Nav::transition(cur)
-    }
+/// Moves a cursor using the given motion, exiting the editor.
+fn move_cursor(motion: cursor::Motion, state: &mut State) -> EventResult {
+    state.move_cursor_by(motion, 1);
+    Nav::transition()
 }
 
 /// A split field editor.
