@@ -36,7 +36,7 @@ impl Default for Format {
             Component::Delimiter('"'),
             Component::Position {
                 position: Position::Milliseconds,
-                width: 2,
+                width: 3,
             },
         ])
     }
@@ -201,9 +201,11 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pretty_assertions::{assert_eq, assert_ne};
+    use pretty_assertions::assert_eq;
 
-    fn test_default_mmssuu() {
+    /// Tests that the default format is mm'ss"uuu.
+    #[test]
+    fn test_default_mmssuuu() {
         assert_eq!("mm'ss\"uuu", Format::default().to_string());
     }
 
