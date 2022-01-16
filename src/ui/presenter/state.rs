@@ -127,7 +127,10 @@ impl State {
 
     fn set_split_count(&mut self, count: usize) {
         self.splits.set_split_count(count);
-        self.cursor.resize(count);
+        self.cursor.resize(count.saturating_sub(1));
+
+        // The resize may have changed the splits' relative positions, so recalculate them.
+        self.splits.refresh_cursors(&self.cursor);
     }
 
     /// Handles an observation for the split with the given shortname.

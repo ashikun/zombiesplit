@@ -12,7 +12,6 @@ use std::sync::mpsc;
 
 pub use mode::Editor;
 use state::cursor;
-pub use state::cursor::Cursor;
 pub use state::State;
 
 use crate::model::{
