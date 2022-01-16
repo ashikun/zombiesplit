@@ -88,7 +88,7 @@ impl Set {
 /// We can index a [Set] by scope, yielding a time.
 ///
 /// ```
-/// use zombiesplit::model::{ Time};
+/// use zombiesplit::model::timing::{aggregate::{Set, Scope}, Time};
 ///
 /// let x = Set {
 ///   split: Time::seconds(20).unwrap(),
@@ -111,7 +111,7 @@ impl Index<Scope> for Set {
 /// We can mutably index a [Set] by scope, yielding access to the time.
 ///
 /// ```
-/// use zombiesplit::model::{aggregate::{Set, Scope}, Time};
+/// use zombiesplit::model::timing::{aggregate::{Set, Scope}, Time};
 ///
 /// let mut x = Set::default();
 /// x[Scope::Split] = Time::seconds(20).unwrap();
