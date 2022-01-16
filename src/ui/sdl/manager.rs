@@ -15,8 +15,8 @@ pub struct Manager<'c> {
     sdl: sdl2::Sdl,
     screen: RefCell<sdl2::render::Canvas<sdl2::video::Window>>,
     textures: sdl2::render::TextureCreator<sdl2::video::WindowContext>,
-    /// The system view configuration, which is borrowing parts of a config file.
-    cfg: &'c view::Config,
+    /// The configured theme (fonts and colours), which is borrowing parts of a config file.
+    cfg: &'c view::config::Theme,
 }
 
 impl<'c> Manager<'c> {
@@ -36,7 +36,7 @@ impl<'c> Manager<'c> {
             sdl,
             screen: RefCell::new(screen),
             textures,
-            cfg,
+            cfg: &cfg.theme,
         })
     }
 }
