@@ -2,7 +2,10 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::{super::super::presenter::state::cursor::SplitPosition, definition::Colour};
+use super::{
+    super::super::presenter::state::cursor::SplitPosition,
+    definition::{Colour, EGA},
+};
 use crate::model::timing::comparison::pace;
 
 /// Foreground colour IDs.
@@ -53,9 +56,6 @@ pub struct Set {
     /// Foreground text for the split currently under the cursor.
     pub cursor: Colour,
 
-    /// Foreground text for a time when there is no time entered.
-    pub time_none: Colour,
-
     /// Foreground text for times with an associated pace.
     pub pace: Pace,
 }
@@ -67,7 +67,7 @@ impl Set {
         match id {
             Id::Header => self.header,
             Id::Name(pos) => self.by_split_position(pos),
-            Id::Normal => self.time_none,
+            Id::Normal => self.normal,
             Id::SplitInRunPace(pace) => self.pace[pace],
             Id::Pace(pace) => self.pace[pace],
             Id::Editor => self.editor,
@@ -89,13 +89,12 @@ impl Set {
 impl Default for Set {
     fn default() -> Self {
         Self {
-            editor: Colour::rgb(0x55, 0xFF, 0xFF),       // EGA bright teal
-            editor_field: Colour::rgb(0xFF, 0xFF, 0xFF), // EGA bright white
-            header: Colour::rgb(0xFF, 0x55, 0x55),       // EGA bright red
-            done: Colour::rgb(0x55, 0x55, 0x55),         // EGA bright black
-            normal: Colour::rgb(0xAA, 0xAA, 0xAA),       // EGA white
-            cursor: Colour::rgb(0xFF, 0x55, 0xFF),       // EGA bright magenta
-            time_none: Colour::rgb(0xAA, 0xAA, 0xAA),    // EGA white
+            editor: EGA.bright.cyan,
+            editor_field: EGA.bright.white,
+            header: EGA.bright.red,
+            done: EGA.bright.black,
+            normal: EGA.dark.white,
+            cursor: EGA.bright.magenta,
             pace: Pace::default(),
         }
     }
@@ -123,12 +122,12 @@ pub struct Pace {
 impl Default for Pace {
     fn default() -> Self {
         Self {
-            inconclusive: Colour::rgb(0xAA, 0xAA, 0xAA), // EGA white
-            ahead: Colour::rgb(0x55, 0xFF, 0xFF),        // EGA bright green
-            ahead_losing: Colour::rgb(0x00, 0xAA, 0xAA), // EGA green
-            behind_gaining: Colour::rgb(0xAA, 0x00, 0x00), // EGA red
-            behind: Colour::rgb(0xFF, 0xAA, 0xAA),       // EGA bright red
-            personal_best: Colour::rgb(0xFF, 0xFF, 0x55), // EGA bright yellow
+            inconclusive: EGA.bright.white,
+            ahead: EGA.bright.green,
+            ahead_losing: EGA.dark.green,
+            behind_gaining: EGA.dark.red,
+            behind: EGA.bright.red,
+            personal_best: EGA.bright.yellow,
         }
     }
 }

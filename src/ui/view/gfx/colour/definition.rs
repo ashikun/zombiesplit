@@ -63,3 +63,45 @@ impl Colour {
         (255.0 * self.0.a).round() as u8
     }
 }
+
+/// EGA base palette without intensity.
+pub struct EgaBase {
+    pub black: Colour,
+    pub blue: Colour,
+    pub green: Colour,
+    pub cyan: Colour,
+    pub red: Colour,
+    pub magenta: Colour,
+    pub yellow: Colour,
+    pub white: Colour,
+}
+
+/// EGA palette with intensity.
+pub struct Ega {
+    pub dark: EgaBase,
+    pub bright: EgaBase,
+}
+
+/// The default EGA palette.
+pub const EGA: Ega = Ega {
+    dark: EgaBase {
+        black: Colour::rgb(0x00, 0x00, 0x00),
+        blue: Colour::rgb(0x00, 0x00, 0xAA),
+        green: Colour::rgb(0x00, 0xAA, 0x00),
+        cyan: Colour::rgb(0x00, 0xAA, 0xAA),
+        red: Colour::rgb(0xAA, 0x00, 0x00),
+        magenta: Colour::rgb(0xAA, 0x00, 0xAA),
+        yellow: Colour::rgb(0xAA, 0x55, 0x00),
+        white: Colour::rgb(0xAA, 0xAA, 0xAA),
+    },
+    bright: EgaBase {
+        black: Colour::rgb(0x55, 0x55, 0x55),
+        blue: Colour::rgb(0x55, 0x55, 0xFF),
+        green: Colour::rgb(0x55, 0xFF, 0x55),
+        cyan: Colour::rgb(0x55, 0xFF, 0xFF),
+        red: Colour::rgb(0xFF, 0x55, 0x55),
+        magenta: Colour::rgb(0xFF, 0x55, 0xFF),
+        yellow: Colour::rgb(0xFF, 0xFF, 0x55),
+        white: Colour::rgb(0xFF, 0xFF, 0xFF),
+    },
+};

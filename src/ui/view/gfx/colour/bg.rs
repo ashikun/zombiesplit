@@ -1,6 +1,6 @@
 //! Background colour sets and IDs.
 
-use super::definition::Colour;
+use super::definition::{Colour, EGA};
 use serde::{Deserialize, Serialize};
 
 /// Background colour IDs.
@@ -30,9 +30,9 @@ pub struct Set {
 impl Default for Set {
     fn default() -> Self {
         Self {
-            window: Colour::rgb(0, 0, 0),             // EGA black
-            editor: Colour::rgb(0, 0, 0xAA),          // EGA blue
-            editor_field: Colour::rgb(0, 0xAA, 0xAA), // EGA teal
+            window: EGA.dark.black,
+            editor: EGA.dark.blue,
+            editor_field: EGA.dark.cyan,
         }
     }
 }
