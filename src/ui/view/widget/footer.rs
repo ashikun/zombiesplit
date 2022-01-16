@@ -7,7 +7,7 @@ use super::{
     super::{
         super::presenter::state::{self, footer},
         gfx::{
-            self, colour, font,
+            self, colour,
             metrics::{self, Anchor, Size},
             Renderer, Writer,
         },
@@ -30,7 +30,7 @@ impl layout::Layoutable for Footer {
         self.rect = ctx.bounds;
 
         if self.rows.is_empty() {
-            self.init_rows();
+            self.init_rows(ctx);
         }
 
         let w = self.rect.size.w;
@@ -56,13 +56,15 @@ impl<R: Renderer> super::Widget<R> for Footer {
 }
 
 impl Footer {
-    fn init_rows(&mut self) {
-        // TODO(@MattWindsor91): make this configurable.
-        self.rows.extend([
-            Row::new(footer::RowType::Total, font::Id::Large),
-            Row::new(footer::RowType::Comparison, font::Id::Large),
-            Row::new(footer::RowType::UpToCursor, font::Id::Medium),
-        ]);
+    fn init_rows(&mut self, ctx: layout::Context) {
+        self.rows = ctx
+            .config
+            .widgets
+            .footer
+            .rows
+            .iter()
+            .map(Row::new)
+            .collect();
     }
 }
 
@@ -78,12 +80,12 @@ struct Row {
 }
 
 impl Row {
-    /// Constructs a row with the given type and time font.
-    fn new(row_type: footer::RowType, time_font: font::Id) -> Self {
+    /// Constructs a row with the given initial layout information and no set positioning.
+    fn new(layout: &super::super::config::layout::Row) -> Self {
         let mut time = super::time::Layout::default();
-        time.font_id = time_font;
+        time.font_id = layout.font;
         Self {
-            row_type,
+            row_type: layout.contents,
             label_top_left: metrics::Point::default(),
             time,
         }

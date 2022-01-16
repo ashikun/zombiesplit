@@ -98,8 +98,9 @@ impl Map<Path> {
 }
 
 /// A key in the font manager's lookup table.
-#[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Debug, Clone, Copy)]
 #[non_exhaustive]
+#[serde(rename_all = "kebab-case")]
 pub enum Id {
     /// Small text font, used for sigils and side-information.
     Small,

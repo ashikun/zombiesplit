@@ -1,16 +1,16 @@
 //! The visual portion of the zombiesplit user interface.
-pub mod config;
-pub mod gfx;
-mod layout;
-mod widget;
-
-use self::gfx::{font, render::Renderer};
 use layout::Layoutable;
 use widget::Widget;
 
 use super::{presenter, Result};
 
 pub use self::config::Config;
+use self::gfx::{font, render::Renderer};
+
+pub mod config;
+pub mod gfx;
+mod layout;
+mod widget;
 
 /// The top-level view structure.
 pub struct View<R> {
@@ -23,7 +23,7 @@ pub struct View<R> {
 impl<R: Renderer> View<R> {
     /// Creates a new graphics core.
     #[must_use]
-    pub fn new(renderer: R, config: &config::Layout) -> Self {
+    pub fn new(renderer: R, config: &config::layout::Layout) -> Self {
         let mut root = widget::Root::default();
         root.layout(root_layout_context(renderer.font_metrics(), config));
         Self { renderer, root }
@@ -46,7 +46,7 @@ impl<R: Renderer> View<R> {
 /// Creates the root layout context.
 fn root_layout_context<'m>(
     font_metrics: &'m font::Map<font::Metrics>,
-    config: &'m config::Layout,
+    config: &'m config::layout::Layout,
 ) -> layout::Context<'m> {
     let bounds = config.window.win_rect();
 

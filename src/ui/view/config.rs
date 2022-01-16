@@ -2,9 +2,10 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::model::timing::time;
+use super::gfx::{colour, font};
 
-use super::gfx::{colour, font, metrics};
+pub mod layout;
+pub use layout::Layout;
 
 /// Top-level UI configuration.
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
@@ -24,14 +25,4 @@ pub struct Theme {
     pub colours: colour::Set,
     /// Font configuration.
     pub fonts: font::Map<font::map::Path>,
-}
-
-/// Layout configuration.
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
-#[serde(default)]
-pub struct Layout {
-    /// Window metrics.
-    pub window: metrics::Window,
-    /// Default format for times.
-    pub time: time::Format,
 }

@@ -1,10 +1,10 @@
 /*! State pertaining to the footer widgets of the split view. */
 
+use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::fmt::{Display, Formatter};
 
-use crate::model::timing::comparison::pace;
-use crate::model::Time;
+use crate::model::timing::{comparison::pace, Time};
 
 /// Presenter state used in the footer widget.
 #[derive(Clone, Default, Debug, Eq, PartialEq)]
@@ -34,7 +34,8 @@ impl Footer {
 }
 
 /// Enumeration of types of row in the totals box.
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, Eq, PartialEq, Hash)]
+#[serde(rename_all = "kebab-case")]
 pub enum RowType {
     /// The comparison time.
     Comparison,
