@@ -2,13 +2,14 @@
 
 use std::iter::repeat;
 
+use crate::model::{attempt, history, short, timing};
+
 use super::{
     category::{self, id::InfoWithID},
     run,
     util::WithID,
     Result,
 };
-use crate::model::{aggregate, attempt, comparison, history, short, Time};
 
 /// Inspects various aspects of the database for a given game-category ID.
 pub struct Inspector<'db> {
@@ -35,8 +36,8 @@ impl<'db> AsMut<category::Getter<'db>> for Inspector<'db> {
     }
 }
 
-impl<'db> comparison::Provider for Inspector<'db> {
-    fn comparison(&mut self) -> Option<comparison::Comparison> {
+impl<'db> timing::comparison::Provider for Inspector<'db> {
+    fn comparison(&mut self) -> Option<timing::comparison::Comparison> {
         // TODO(@MattWindsor91): do something with these errors.
         self.comparison_inner().ok()
     }
@@ -105,7 +106,7 @@ impl<'db> Inspector<'db> {
         Ok(run.map_item(|i| i.with_timing(totals)))
     }
 
-    fn comparison_inner(&mut self) -> Result<comparison::Comparison> {
+    fn comparison_inner(&mut self) -> Result<timing::comparison::Comparison> {
         let split_pbs = self.run.split_pbs_for(self.info.id)?;
         let run_pb = self.run_pb_with_totals()?;
 
@@ -115,7 +116,9 @@ impl<'db> Inspector<'db> {
 
         Ok(split_pbs
             .zip(run_pbs)
-            .map(|((short, split_pb), in_run)| (short, comparison::Split { split_pb, in_run }))
+            .map(|((short, split_pb), in_run)| {
+                (short, timing::comparison::Split { split_pb, in_run })
+            })
             .collect())
     }
 
@@ -128,9 +131,9 @@ impl<'db> Inspector<'db> {
 }
 
 fn all_splits_with_pbs<'a>(
-    pbs: &'a short::Map<Time>,
+    pbs: &'a short::Map<timing::Time>,
     splits: &'a attempt::split::Set,
-) -> impl Iterator<Item = (short::Name, Option<Time>)> + 'a {
+) -> impl Iterator<Item = (short::Name, Option<timing::Time>)> + 'a {
     splits
         .iter()
         .map(move |s| (s.info.short, pbs.get(&s.info.short).copied()))
@@ -140,13 +143,13 @@ fn all_splits_with_pbs<'a>(
 fn in_run_iter<'a>(
     pb: Option<history::run::WithTotals<category::GcID>>,
     splits: &'a attempt::split::Set,
-) -> Box<dyn Iterator<Item = Option<aggregate::Set>> + 'a> {
+) -> Box<dyn Iterator<Item = Option<timing::aggregate::Set>> + 'a> {
     // TODO(@MattWindsor91): decouple this for testing.
     pb.map_or_else(
         || empty_splits(splits),
         |pb| {
             Box::new(
-                aggregate::Set::accumulate_pairs(splits.iter().map(move |s| {
+                timing::aggregate::Set::accumulate_pairs(splits.iter().map(move |s| {
                     (
                         s.info.short,
                         pb.timing
@@ -162,6 +165,8 @@ fn in_run_iter<'a>(
     )
 }
 
-fn empty_splits(splits: &attempt::split::Set) -> Box<dyn Iterator<Item = Option<aggregate::Set>>> {
+fn empty_splits(
+    splits: &attempt::split::Set,
+) -> Box<dyn Iterator<Item = Option<timing::aggregate::Set>>> {
     Box::new(repeat(None).take(splits.len()))
 }

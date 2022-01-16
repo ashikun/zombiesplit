@@ -5,9 +5,13 @@ information about the timing of a historic run, and each implies an
 increasing amount of query complexity, there are several
 different historic time models used.
 */
-use super::super::{short, time::Time};
-use serde::{Deserialize, Serialize};
 use std::fmt::Formatter;
+
+use serde::{Deserialize, Serialize};
+
+use crate::model::timing::time::Time;
+
+use super::super::short;
 
 pub trait Timing {
     /// Gets the total across all splits.

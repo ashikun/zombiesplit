@@ -1,6 +1,6 @@
 //! Sub-widget for rendering a split row.
 
-use crate::model::aggregate::{Scope, Source};
+use crate::model::timing::aggregate::{Scope, Source};
 use std::fmt::Write;
 
 use super::super::{

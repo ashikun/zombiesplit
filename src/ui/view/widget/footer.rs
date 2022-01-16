@@ -14,8 +14,7 @@ use super::{
     },
     layout, Widget,
 };
-use crate::model::comparison::pace;
-use crate::ui::presenter::state::footer::RowType;
+use crate::model::timing::comparison::pace;
 
 /// The footer widget.
 #[derive(Default)]
@@ -60,9 +59,9 @@ impl Footer {
     fn init_rows(&mut self) {
         // TODO(@MattWindsor91): make this configurable.
         self.rows.extend([
-            Row::new(RowType::Total, font::Id::Large),
-            Row::new(RowType::Comparison, font::Id::Large),
-            Row::new(RowType::UpToCursor, font::Id::Medium),
+            Row::new(footer::RowType::Total, font::Id::Large),
+            Row::new(footer::RowType::Comparison, font::Id::Large),
+            Row::new(footer::RowType::UpToCursor, font::Id::Medium),
         ]);
     }
 }

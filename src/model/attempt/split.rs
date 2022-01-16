@@ -1,10 +1,12 @@
 //! Splits and related items.
 
-pub mod set;
-
-use super::super::{game, time::Time};
-
 pub use set::{Locator, Set};
+
+use crate::model::timing::time::Time;
+
+use super::super::game;
+
+pub mod set;
 
 /// A split in a run attempt.
 #[derive(Debug)]

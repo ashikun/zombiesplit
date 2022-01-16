@@ -1,12 +1,11 @@
 //! Mapping between SDL events and presenter events.
 
-use crate::model::{attempt, time};
-use crate::ui::presenter::state::cursor;
-
 use super::super::presenter::{
     event::{self, Edit, Event, Modal},
+    state::cursor,
     Presenter,
 };
+use crate::model::{attempt, timing::time};
 
 /// Wrapper over SDL event pumps to promote them into `event::Pump` instances.
 pub struct Pump(pub sdl2::EventPump);

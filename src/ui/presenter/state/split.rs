@@ -1,12 +1,14 @@
 ///! Presenter state for individual splits.
-use crate::ui::presenter::state::cursor::SplitPosition;
 use std::fmt::Display;
 
+use super::cursor::SplitPosition;
 use crate::model::{
-    aggregate,
     attempt::observer::{split, time},
-    comparison::pace::{self, PacedTime},
     short,
+    timing::{
+        aggregate,
+        comparison::pace::{self, PacedTime},
+    },
 };
 
 /// A set of split state data.
@@ -145,7 +147,7 @@ impl Split {
     /// let s = state::Split::new("Palmtree Panic 1");
     /// assert_eq!("Palmtree Panic 1", s.name);
     /// assert_eq!(0, s.num_times);
-    /// assert_eq!(zombiesplit::model::comparison::pace::SplitInRun::Inconclusive, s.pace_in_run);
+    /// assert_eq!(zombiesplit::model::timing::comparison::pace::SplitInRun::Inconclusive, s.pace_in_run);
     /// ```
     pub fn new<N: Display>(name: N) -> Self {
         let name = name.to_string();

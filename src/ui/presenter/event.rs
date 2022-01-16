@@ -1,6 +1,7 @@
 //! Events understood by the user interface.
 
-use crate::model::{attempt, time};
+use crate::model::attempt;
+use crate::model::timing::time;
 
 /// A high-level event.
 ///

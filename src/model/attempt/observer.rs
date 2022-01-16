@@ -5,7 +5,7 @@ pub mod mux;
 pub mod split;
 pub mod time;
 
-use super::super::{game::category, history, short};
+use super::super::{game::category, history, short, timing};
 use serde::{Deserialize, Serialize};
 
 pub use debug::Debug;
@@ -25,10 +25,7 @@ pub trait Observer {
 #[non_exhaustive]
 pub enum Event {
     /// Observes a full-run total (either from the comparison, or from the attempt).
-    Total(
-        crate::model::comparison::PacedTime,
-        crate::model::aggregate::Source,
-    ),
+    Total(timing::comparison::PacedTime, timing::aggregate::Source),
     /// Observes the number of splits, which can be used to prepare for incoming split information.
     ///
     /// This SHOULD be sent before `Split` events give `Init` information about the splits.

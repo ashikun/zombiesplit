@@ -106,7 +106,7 @@ impl SplitInRun {
     /// Constructs a split-in-run pace note from a `split` and `run_so_far` pace.
     ///
     /// ```
-    /// use zombiesplit::model::comparison::pace;
+    /// use zombiesplit::model::timing::comparison::pace;
     ///
     /// assert_eq!(
     ///     pace::SplitInRun::Inconclusive,
@@ -139,7 +139,7 @@ impl SplitInRun {
     /// Extracts the overall pace note from a split-in-run pace.
     ///
     /// ```
-    /// use zombiesplit::model::comparison::pace;
+    /// use zombiesplit::model::timing::comparison::pace;
     ///
     /// let p = pace::SplitInRun::new(pace::Pace::Ahead, pace::Pace::Behind);
     /// assert_eq!(pace::Pace::Behind, p.overall());

@@ -2,8 +2,8 @@
 
 These structures and related support let users tell zombiesplit how to lay out times on the UI. */
 
-use crate::model::time;
-use crate::model::time::Position;
+use crate::model::timing::time;
+use crate::model::timing::time::Position;
 use itertools::Itertools;
 use num_integer::Integer;
 use serde_with::{DeserializeFromStr, SerializeDisplay};
@@ -306,7 +306,7 @@ mod tests {
     /// Tests that round-tripping the parse/emit for index characters works ok.
     #[test]
     fn test_parse_char_round_trip() {
-        use time::Position;
+        use crate::model::timing::time::Position;
 
         let positions = [
             Position::Hours,

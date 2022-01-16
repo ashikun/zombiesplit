@@ -4,7 +4,7 @@ pub mod pace;
 
 pub use pace::{Pace, PacedTime};
 
-use super::{aggregate, short, Time};
+use super::{super::short, aggregate, Time};
 
 /// A comparison set.
 #[derive(Clone, Debug, Default)]

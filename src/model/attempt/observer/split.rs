@@ -1,6 +1,8 @@
 //! Split events in attempt observations.
-use crate::model;
 use serde::{Deserialize, Serialize};
+
+use crate::model;
+use crate::model::timing;
 
 /// Enumeration of split-level events.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -11,7 +13,7 @@ pub enum Event {
     /// Got a new time for the split.
     Time(model::Time, super::time::Event),
     /// Got a new pace note for the split.
-    Pace(model::comparison::pace::SplitInRun),
+    Pace(timing::comparison::pace::SplitInRun),
 }
 
 /// Trait for things that can observe split events.

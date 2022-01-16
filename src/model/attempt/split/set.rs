@@ -1,9 +1,8 @@
 //! Split sets.
-use crate::model::{aggregate, short};
-
-use super::super::super::game;
-
-use super::Split;
+use super::{
+    super::super::{game, short, timing::aggregate},
+    Split,
+};
 
 /// A set of splits, addressable by [Locator]s.
 ///

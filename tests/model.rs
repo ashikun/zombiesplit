@@ -2,23 +2,21 @@
 //!
 //! This also includes UI integration tests that depend on the model, for now.
 
-use pretty_assertions::{assert_eq, assert_ne};
-
 use std::{cell::RefCell, rc::Rc};
 
-use zombiesplit::ui::Pump;
+use pretty_assertions::{assert_eq, assert_ne};
+
 use zombiesplit::{
     model::{
-        aggregate,
         attempt::{
             action::{Action, Handler},
             observer::{self, Event},
             Observer, Run, Session,
         },
-        comparison::PacedTime,
         game::{category, Split},
+        timing::{aggregate, comparison::PacedTime},
     },
-    ui::presenter,
+    ui::{presenter, Pump},
 };
 
 /// Tests that a session doesn't send any observations until prompted.

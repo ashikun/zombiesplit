@@ -5,14 +5,17 @@ These models represent the way in which zombiesplit is fed new games to track
 (not to be confused with the models that represent in-database game data).
 */
 
-use super::super::{short, time};
-
-use serde::{Deserialize, Serialize};
-use serde_with::{DeserializeFromStr, SerializeDisplay};
 use std::{
     fmt::{self, Display},
     str::FromStr,
 };
+
+use serde::{Deserialize, Serialize};
+use serde_with::{DeserializeFromStr, SerializeDisplay};
+
+use crate::model::timing::time;
+
+use super::super::short;
 
 /// Configuration for a game.
 #[derive(Serialize, Deserialize, Debug)]

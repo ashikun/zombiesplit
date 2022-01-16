@@ -1,6 +1,7 @@
 //! The [Nav] struct and its implementations.
 
-use crate::model::{attempt::Action, time};
+use crate::model::attempt::Action;
+use crate::model::timing::time;
 
 use super::{
     super::state::{cursor, State},

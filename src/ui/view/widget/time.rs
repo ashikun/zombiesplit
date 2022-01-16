@@ -8,7 +8,7 @@ use super::{
     },
     layout,
 };
-use crate::model::time::{self, format::Component};
+use crate::model::timing::time::{self, format::Component};
 use std::{
     fmt::{Display, Write},
     ops::Index,

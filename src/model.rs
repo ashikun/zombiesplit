@@ -1,12 +1,10 @@
 //! Models used in zombiesplit.
-pub mod aggregate;
+pub use load::Loadable;
+pub use timing::time::Time;
+
 pub mod attempt;
-pub mod comparison;
 pub mod game;
 pub mod history;
 pub mod load;
 pub mod short;
-pub mod time;
-
-pub use self::time::Time;
-pub use load::Loadable;
+pub mod timing;

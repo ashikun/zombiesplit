@@ -9,7 +9,12 @@ use std::ops::{Index, IndexMut};
 pub use footer::Footer;
 pub use split::Split;
 
-use crate::model::{aggregate, attempt, comparison::pace::PacedTime, game::category, short, time};
+use crate::model::{
+    attempt,
+    game::category,
+    short,
+    timing::{aggregate, comparison::pace::PacedTime, time},
+};
 
 pub mod cursor;
 pub mod footer;

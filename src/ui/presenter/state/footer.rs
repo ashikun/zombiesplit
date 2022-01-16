@@ -1,8 +1,10 @@
 /*! State pertaining to the footer widgets of the split view. */
 
-use crate::model::{comparison::pace, Time};
 use std::borrow::Cow;
 use std::fmt::{Display, Formatter};
+
+use crate::model::timing::comparison::pace;
+use crate::model::Time;
 
 /// Presenter state used in the footer widget.
 #[derive(Clone, Default, Debug, Eq, PartialEq)]

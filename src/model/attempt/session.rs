@@ -1,11 +1,12 @@
 //! The [Session] type and related code.
 
+use crate::model::timing::comparison::{self, pace, Comparison};
+
 use super::{
     super::{
-        aggregate,
-        comparison::{self, pace, Comparison},
         game::category,
-        history, Time,
+        history,
+        timing::{aggregate, Time},
     },
     action,
     observer::{self, split::Observer as SO, time::Observer as TO},

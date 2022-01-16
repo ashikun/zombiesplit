@@ -2,10 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::model::comparison::pace;
-use crate::ui::presenter::state::cursor::SplitPosition;
-
-use super::definition::Colour;
+use super::{super::super::presenter::state::cursor::SplitPosition, definition::Colour};
+use crate::model::timing::comparison::pace;
 
 /// Foreground colour IDs.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]

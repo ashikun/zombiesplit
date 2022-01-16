@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::model::time;
+use crate::model::timing::time;
 
 use super::gfx::{colour, font, metrics};
 

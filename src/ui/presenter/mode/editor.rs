@@ -2,7 +2,8 @@
 
 use std::fmt::{Display, Formatter};
 
-use crate::model::{attempt, time};
+use crate::model::attempt;
+use crate::model::timing::time;
 
 use super::{
     super::state::{cursor, State},

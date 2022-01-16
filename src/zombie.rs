@@ -7,19 +7,21 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use tabwriter::TabWriter;
+use thiserror::Error;
+
 use super::{
     db::{self, category::Locator, Db},
     model::{
         self,
-        comparison::{self, Provider},
         game::category::ShortDescriptor,
         history::{self, timing::Timing},
         load::Loadable,
-        short, Time,
+        short,
+        timing::comparison::{self, Provider},
+        Time,
     },
 };
-use tabwriter::TabWriter;
-use thiserror::Error;
 
 /// Adds the game with the given path to the zombiesplit database.
 ///

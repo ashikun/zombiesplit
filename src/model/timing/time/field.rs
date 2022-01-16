@@ -67,7 +67,7 @@ impl Field {
     ///
     /// ```
     /// use std::convert::TryFrom;
-    /// use zombiesplit::model::time::{Field, Position};
+    /// use zombiesplit::model::timing::time::{Field, Position};
     ///
     /// let f = Field::zero(Position::Seconds);
     /// assert_eq!(u16::from(f), 0);
@@ -81,7 +81,7 @@ impl Field {
     ///
     /// ```
     /// use std::convert::TryFrom;
-    /// use zombiesplit::model::time::{Field, Position};
+    /// use zombiesplit::model::timing::time::{Field, Position};
     ///
     /// let f1 = Field::new(Position::Seconds, 4);
     /// assert!(f1.is_ok(), "shouldn't have overflowed");
@@ -99,7 +99,7 @@ impl Field {
     /// Tries to construct a field with a given position, parsing it from an undelimited string.
     ///
     /// ```
-    /// use zombiesplit::model::time::{Field, Position};
+    /// use zombiesplit::model::timing::time::{Field, Position};
     ///
     /// let f1 = Field::new(Position::Seconds, 4);
     /// assert!(f1.is_ok(), "shouldn't have overflowed");
@@ -168,7 +168,7 @@ impl Field {
     /// Returns this field's value as milliseconds.
     ///
     /// ```
-    /// use zombiesplit::model::time::{Field, Position};
+    /// use zombiesplit::model::timing::time::{Field, Position};
     /// use std::convert::TryFrom;
     /// let msec = Field::new(Position::Seconds, 20).unwrap().as_msecs();
     /// assert_eq!(msec, 20_000, "20 secs = 20,000 msecs");

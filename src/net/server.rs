@@ -4,10 +4,14 @@ This is a TCP server that hosts a run attempt session, accepts actions to perfor
 and emits observations that reflect changes to the attempt.
 */
 
-mod error;
-mod listener;
-
 use std::sync::{Arc, Weak};
+
+use tokio::sync::{broadcast, mpsc};
+
+pub use error::{Error, Result};
+
+use crate::model::attempt::observer::Event;
+use crate::model::timing::comparison;
 
 use super::super::{
     config,
@@ -19,14 +23,12 @@ use super::super::{
             action::Handler,
             observer::{Debug, Observable, Observer},
         },
-        comparison,
         game::category::ShortDescriptor,
     },
 };
-use crate::model::attempt::observer::Event;
-use tokio::sync::{broadcast, mpsc};
 
-pub use error::{Error, Result};
+mod error;
+mod listener;
 
 /// A manager of a zombiesplit server.
 ///

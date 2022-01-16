@@ -57,7 +57,7 @@ impl Time {
     /// # Examples
     ///
     /// ```
-    /// use zombiesplit::model::time::Time;
+    /// use zombiesplit::model::timing::time::Time;
     ///
     /// let t1 = Time::seconds(0).expect("shouldn't overflow");
     /// assert!(t1.is_zero());
@@ -83,7 +83,7 @@ impl Time {
     /// # Example
     ///
     /// ```
-    /// use zombiesplit::model::time::Time;
+    /// use zombiesplit::model::timing::time::Time;
     /// use std::convert::TryFrom;
     /// assert!(Time::try_from(0).expect("shouldn't overflow").is_zero());
     /// assert!(!Time::try_from(1).expect("shouldn't overflow").is_zero());
@@ -102,7 +102,7 @@ impl TryFrom<u32> for Time {
     /// # Example
     ///
     /// ```
-    /// use zombiesplit::model::time::Time;
+    /// use zombiesplit::model::timing::time::Time;
     /// use std::convert::TryFrom;
     /// let time = Time::try_from(
     ///     789 + (56 * 1000) + (34 * 1000 * 60) + (12 * 1000 * 60 * 60)
@@ -132,7 +132,7 @@ impl From<Time> for u32 {
     /// # Example
     ///
     /// ```
-    /// use zombiesplit::model::time::Time;
+    /// use zombiesplit::model::timing::time::Time;
     /// use std::convert::TryFrom;
     /// let msec = 1234567;
     /// let time = Time::try_from(msec).expect("should not overflow");
