@@ -1,27 +1,20 @@
 //! Main system configuration.
 
+pub mod comparison;
+
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 /// Server configuration for zombiesplit.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+#[serde(default)]
 pub struct Server {
-    /// Address to which the server should be bound.
-    pub server_addr: std::net::SocketAddr,
-    /// Database location.
-    pub db_path: PathBuf,
-    /// The comparison provider.
-    pub comparison_provider: ComparisonProvider,
-}
-
-impl<'p> Default for Server {
-    fn default() -> Self {
-        Self {
-            server_addr: default_addr(),
-            db_path: PathBuf::from("zombiesplit.db"),
-            comparison_provider: ComparisonProvider::default(),
-        }
-    }
+    /// The comparison configuration.
+    pub comparison: comparison::Comparison,
+    /// Database configuration.
+    pub db: Database,
+    /// Network configuration.
+    pub net: Net,
 }
 
 impl Server {
@@ -38,7 +31,39 @@ impl Server {
     /// Fails if we can't load any of the files needed for the configuration, or there is a problem
     /// deserialising the configuration.
     pub fn load(custom_path: Option<std::path::PathBuf>) -> Result<Self, config::ConfigError> {
-        super::util::base_config("client", custom_path)?.try_into()
+        super::util::base_config("server", custom_path)?.try_into()
+    }
+}
+
+/// Server configuration for the database.
+#[derive(Clone, Serialize, Deserialize, Debug, Eq, PartialEq)]
+#[serde(default)]
+pub struct Database {
+    /// The database location.
+    pub path: PathBuf,
+}
+
+impl Default for Database {
+    fn default() -> Self {
+        Self {
+            path: PathBuf::from("zombiesplit.db"),
+        }
+    }
+}
+
+/// Server network configuration.
+#[derive(Copy, Clone, Serialize, Deserialize, Debug, Eq, PartialEq)]
+#[serde(default)]
+pub struct Net {
+    /// Address to which the server should be bound.
+    pub address: std::net::SocketAddr,
+}
+
+impl Default for Net {
+    fn default() -> Self {
+        Self {
+            address: default_addr(),
+        }
     }
 }
 
@@ -50,25 +75,3 @@ pub fn default_addr() -> std::net::SocketAddr {
 
 /// Default port for the server.
 pub const DEFAULT_PORT: u16 = 1337;
-
-/// Enumerates the various up-front ways in which zombiesplit knows to source
-/// a comparison.
-///
-/// New methods may be added to this in future.  In addition, the lower-level
-/// zombiesplit API is open to any provider that implements the appropriate
-/// trait.
-#[derive(Copy, Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
-#[non_exhaustive]
-pub enum ComparisonProvider {
-    /// Don't compare against anything.
-    None,
-    /// Compare against the PB run in the database.
-    Database,
-}
-
-/// By default, there are no comparisons.
-impl Default for ComparisonProvider {
-    fn default() -> Self {
-        Self::None
-    }
-}

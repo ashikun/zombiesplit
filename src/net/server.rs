@@ -64,7 +64,7 @@ impl Manager {
     ///
     /// Returns any errors from trying to open the database.
     pub fn new(cfg: config::Server) -> Result<Self> {
-        let db = std::rc::Rc::new(db::Db::new(&cfg.db_path)?);
+        let db = std::rc::Rc::new(db::Db::new(&cfg.db.path)?);
         let reader = db.reader()?;
 
         let db_obs: Arc<dyn attempt::Observer> = Arc::new(db::Observer::new(db));
@@ -98,7 +98,7 @@ impl Manager {
         let (action_in, action_out) = tokio::sync::mpsc::channel(MPSC_CAPACITY);
         Ok(Server {
             listener: listener::Listener::new(
-                self.cfg.server_addr,
+                self.cfg.net.address,
                 action_in,
                 self.bcast.0.clone(),
             ),
@@ -119,8 +119,8 @@ impl Manager {
     }
 
     fn comparison_provider<'a>(&self, insp: Inspector<'a>) -> Box<dyn comparison::Provider + 'a> {
-        match self.cfg.comparison_provider {
-            config::server::ComparisonProvider::Database => Box::new(insp),
+        match self.cfg.comparison.provider {
+            config::server::comparison::Provider::Database => Box::new(insp),
             _ => Box::new(comparison::NullProvider),
         }
     }
