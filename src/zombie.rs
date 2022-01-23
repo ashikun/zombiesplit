@@ -7,6 +7,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use crate::model::timing::comparison::provider::Provider;
+use crate::model::timing::Comparison;
 use tabwriter::TabWriter;
 use thiserror::Error;
 
@@ -18,7 +20,7 @@ use super::{
         history::{self, timing::Timing},
         load::Loadable,
         short,
-        timing::comparison::{self, Provider},
+        timing::comparison::{self},
         Time,
     },
 };
@@ -91,17 +93,21 @@ pub fn list_runs<L: Locator>(db: &Db, loc: &L) -> Result<()> {
 ///
 /// Returns any database errors occurring during the listing.
 pub fn split_pbs(db: &Db, loc: &impl Locator) -> Result<()> {
-    // TODO(@MattWindsor91): decouple this from Zombie?
     let handle = db.reader()?;
     let mut insp = handle.inspect(loc)?;
+    if let Some(c) = insp.comparison()? {
+        emit_split_pbs(c)?;
+    }
 
+    Ok(())
+}
+
+fn emit_split_pbs(c: Comparison) -> Result<()> {
     // TODO(@MattWindsor91): decouple this from Zombie?
     let mut tw = TabWriter::new(std::io::stdout());
     writeln!(tw, "SPLIT\tSPLIT PB\tIN-RUN PB")?;
-    if let Some(c) = insp.comparison() {
-        for (short, split) in c {
-            output_split_pb(&mut tw, short, split)?;
-        }
+    for (short, split) in c {
+        output_split_pb(&mut tw, short, split)?;
     }
     tw.flush()?;
 
@@ -155,6 +161,8 @@ pub enum Error {
     Db(#[from] db::Error),
     #[error("IO error")]
     Io(#[from] std::io::Error),
+    #[error("error getting comparison info")]
+    Comparison(#[from] model::timing::comparison::provider::Error),
     #[error("error loading data from file")]
     GameLoad(#[from] model::load::Error),
     #[error("couldn't deduce game short-name")]

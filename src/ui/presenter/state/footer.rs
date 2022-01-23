@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::fmt::{Display, Formatter};
 
+use crate::model::timing::comparison::PacedTime;
 use crate::model::timing::{comparison::pace, Time};
 
 /// Presenter state used in the footer widget.
@@ -17,6 +18,9 @@ pub struct Footer {
 
     /// The target time of the run, if any.
     pub target: Option<Time>,
+
+    /// The target time of the run, if any.
+    pub sum_of_best: Option<Time>,
 }
 
 impl Footer {
@@ -24,13 +28,17 @@ impl Footer {
     #[must_use]
     pub fn get(&self, row: RowType) -> Option<Cow<pace::PacedTime>> {
         match row {
-            RowType::Comparison => {
-                (&self.target).map(|x| Cow::Owned(pace::PacedTime::inconclusive(x)))
-            }
+            RowType::Comparison => lift_comparison(&self.target),
+            RowType::SumOfBest => lift_comparison(&self.sum_of_best),
             RowType::UpToCursor => Some(Cow::Borrowed(&self.at_cursor)),
             RowType::Total => Some(Cow::Borrowed(&self.total)),
         }
     }
+}
+
+/// Lifts an optional comparison `time` to a copy-on-write paced time.
+fn lift_comparison(time: &Option<Time>) -> Option<Cow<PacedTime>> {
+    time.map(|x| Cow::Owned(pace::PacedTime::inconclusive(x)))
 }
 
 /// Enumeration of types of row in the totals box.
@@ -43,6 +51,8 @@ pub enum RowType {
     Total,
     /// The attempt total as far as the current cursor.
     UpToCursor,
+    /// The sum of best.
+    SumOfBest,
 }
 
 /// Produces the label names for each row type.
@@ -52,6 +62,7 @@ impl Display for RowType {
             RowType::Total => "Total",
             RowType::Comparison => "Comparison",
             RowType::UpToCursor => "Up to cursor",
+            RowType::SumOfBest => "Sum of best",
         })
     }
 }

@@ -54,7 +54,7 @@ fn test_sample_session() {
     let db = Rc::new(setup_db(&game, &tdir));
     let handle = db.reader().expect("couldn't open reader");
 
-    let obs = Observer::new(db.clone());
+    let obs = Observer::new(db);
     let session = init_session(&handle, &obs);
     assert_eq!(game.name, session.metadata.game);
     assert_eq!(

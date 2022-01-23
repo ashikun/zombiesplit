@@ -53,7 +53,7 @@ impl Default for Footer {
                     font: font::Id::Large,
                 },
                 Row {
-                    contents: footer::RowType::UpToCursor,
+                    contents: footer::RowType::SumOfBest,
                     font: font::Id::Medium,
                 },
             ],

@@ -1,12 +1,14 @@
 //! Top-level module for the model's sqlite database.
 
 pub mod category;
+pub mod comparison;
 pub mod error;
 mod game;
 mod init;
 pub mod inspect;
 pub mod run;
 pub mod util;
+
 use crate::model::{self, game::Config, history};
 use std::path::Path;
 
@@ -111,19 +113,6 @@ impl Db {
         Ok(runs.into_iter().map(|x| x.item).collect())
     }
 
-    /// Gets the PB run for the game-category located by `loc`.
-    ///
-    /// # Errors
-    ///
-    /// Raises an error if any of the SQL queries relating to getting a run
-    /// fail.
-    pub fn run_pb_for<L: Locator>(&self, loc: &L) -> Result<Option<history::run::Summary<GcID>>> {
-        let id = self.resolve_gcid(loc)?;
-        Ok(run::Getter::new(&self.manager.connect()?)?
-            .run_pb_for(id)?
-            .map(|x| x.item))
-    }
-
     fn resolve_gcid<L: Locator>(&self, loc: &L) -> Result<GcID> {
         // TODO(@MattWindsor91): this is horrible.
         if let Some(x) = loc.as_game_category_id() {
@@ -161,6 +150,15 @@ impl Reader {
         run::Getter::new(&self.conn)
     }
 
+    /// Gets a comparison interface for the database.
+    ///
+    /// # Errors
+    ///
+    /// Errors if we can't construct the database queries.
+    pub fn comparison(&self) -> Result<comparison::Getter> {
+        comparison::Getter::new(&self.conn)
+    }
+
     /// Gets an inspector over the database.
     ///
     /// # Errors
@@ -172,6 +170,7 @@ impl Reader {
             info: loc.locate(&mut cat)?,
             run: self.runs()?,
             cat,
+            comparison: self.comparison()?,
         })
     }
 }

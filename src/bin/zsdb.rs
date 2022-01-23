@@ -58,7 +58,7 @@ fn run() -> anyhow::Result<()> {
 
     let args = Args::parse();
     let cfg = config::Server::load(args.config)?;
-    let mut db = Db::new(cfg.db_path)?;
+    let mut db = Db::new(cfg.db.path)?;
 
     match args.command {
         Command::Init => db.init()?,

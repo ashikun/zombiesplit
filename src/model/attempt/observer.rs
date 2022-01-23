@@ -26,6 +26,8 @@ pub trait Observer {
 pub enum Event {
     /// Observes a full-run total (either from the comparison, or from the attempt).
     Total(timing::comparison::PacedTime, timing::aggregate::Source),
+    /// Observes the sum-of-best.
+    SumOfBest(timing::Time),
     /// Observes the number of splits, which can be used to prepare for incoming split information.
     ///
     /// This SHOULD be sent before `Split` events give `Init` information about the splits.

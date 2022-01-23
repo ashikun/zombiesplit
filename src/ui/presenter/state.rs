@@ -115,6 +115,7 @@ impl State {
         use attempt::observer::Event;
         match ev {
             Event::Total(time, source) => self.set_total(time, source),
+            Event::SumOfBest(time) => self.footer.sum_of_best = Some(time),
             Event::NumSplits(count) => self.set_split_count(count),
             Event::Reset(_) => self.reset(),
             Event::Attempt(a) => self.attempt = a,

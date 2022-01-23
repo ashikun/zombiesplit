@@ -96,6 +96,11 @@ CREATE TABLE
         , UNIQUE(run_split_id, position)      -- each split can have multiple times entered for the run, but they must be totally ordered
         );
 
+--
+-- Views
+--
+
+-- Tracks split totals within a run.
 CREATE VIEW run_split_total (run_split_id, total) AS
     SELECT run_split_id
          , SUM(time_ms) AS total
@@ -103,5 +108,20 @@ CREATE VIEW run_split_total (run_split_id, total) AS
            INNER JOIN run_split USING (run_split_id)
      GROUP BY run_split_id;
 
-COMMIT;
-";
+-- Tracks PBs for each (game-category, split) pair.
+--
+-- A split PB is defined as the smallest split total for a particular split across all runs in a
+-- particular game-category.  (The game-category is important because a split can appear in multiple
+-- game-categories.)
+CREATE VIEW split_pb (game_category_id, split_id, total) AS
+    SELECT game_category_id, split_id, MIN(total) AS total
+      FROM run_split_total
+           INNER JOIN run_split USING (run_split_id)
+           INNER JOIN segment_split USING (split_id)
+           INNER JOIN category_segment AS cs USING (segment_id)
+           INNER JOIN game_category AS gc USING (category_id)
+           -- This bit is necessary to make the game-category pulled in above correspond to the run.
+           INNER JOIN run USING (run_id, game_category_id)
+     GROUP BY game_category_id, split_id;
+
+COMMIT;";

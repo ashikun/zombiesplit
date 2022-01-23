@@ -1,0 +1,152 @@
+//! The [Getter] struct.
+
+use super::{
+    super::{category, category::GcID, error::Result, run, util::WithID},
+    sql,
+};
+use crate::model::{
+    attempt, history, short,
+    timing::{aggregate, comparison, Comparison, Time},
+};
+use rusqlite::{named_params, Connection, Statement};
+
+/// Low-level interface for getting comparison data.
+pub struct Getter<'conn> {
+    /// SQL query for getting the personal-best run.
+    run_pb_query: Statement<'conn>,
+    /// SQL query for getting split personal-bests.
+    split_pbs_query: Statement<'conn>,
+    /// SQL query for getting the sum of best.
+    sum_of_best_query: Statement<'conn>,
+}
+
+impl<'conn> Getter<'conn> {
+    /// Constructs a comparison getter.
+    ///
+    /// # Errors
+    ///
+    /// Errors if the database can't prepare a query.
+    pub fn new(conn: &'conn Connection) -> Result<Self> {
+        Ok(Self {
+            run_pb_query: conn.prepare(sql::RUN_PB)?,
+            split_pbs_query: conn.prepare(sql::SPLIT_PBS)?,
+            sum_of_best_query: conn.prepare(sql::SUM_OF_BEST)?,
+        })
+    }
+
+    /// Gets a comparison for a game-category ID.
+    ///
+    /// We need the category getter to pull the split ordering for the game-category (so that we can
+    /// get an ordering on the splits), and the run getter to pull details about the PB run.
+    ///
+    /// # Errors
+    ///
+    /// Errors if the database query fails.
+    pub fn get(
+        &mut self,
+        cat_get: &mut category::Getter<'conn>,
+        run_get: &mut run::Getter<'conn>,
+        gcid: GcID,
+    ) -> Result<Comparison> {
+        let pb_summary = self.run_pb(gcid)?;
+        let total = pb_summary
+            .as_ref()
+            .map(|x| x.item.timing.total)
+            .unwrap_or_default();
+
+        let pb_full = pb_summary
+            .map(|x| run_get.add_split_totals(x))
+            .transpose()?;
+
+        let splits = cat_get.splits(&gcid)?;
+        Ok(Comparison {
+            splits: self.splits(gcid, &splits, pb_full)?,
+            total,
+            sum_of_best: self.sum_of_best(gcid)?,
+        })
+    }
+
+    /// Gets the PB run for a game-category ID, if one exists.
+    ///
+    /// # Errors
+    ///
+    /// Errors if the database query fails.
+    pub fn run_pb(&mut self, id: GcID) -> Result<Option<WithID<history::run::Summary<GcID>>>> {
+        self.run_pb_query
+            .query_and_then(named_params![":game_category": id], |r| {
+                WithID::from_row(id, r)
+            })?
+            .next()
+            .transpose()
+    }
+
+    /// Gets PBs for each split on a given game-category ID.
+    ///
+    /// # Errors
+    ///
+    /// Errors if the database query fails.
+    pub fn split_pbs(&mut self, id: GcID) -> Result<short::Map<Time>> {
+        self.split_pbs_query
+            .query_and_then(named_params![":game_category": id], |row| {
+                Ok((row.get("short")?, row.get("total")?))
+            })?
+            .collect()
+    }
+
+    /// Gets the sum-of-best for a game-category ID, if one exists.
+    ///
+    /// # Errors
+    ///
+    /// Errors if the database query fails.
+    pub fn sum_of_best(&mut self, id: GcID) -> Result<Time> {
+        Ok(self
+            .sum_of_best_query
+            .query_row(named_params![":game_category": id], |r| r.get("total"))
+            .unwrap_or_default())
+    }
+
+    fn splits(
+        &mut self,
+        gcid: GcID,
+        splits: &attempt::split::Set,
+        pb_run: Option<WithID<history::run::WithTotals<GcID>>>,
+    ) -> Result<short::Map<comparison::Split>> {
+        let split_pbs = self.split_pbs(gcid)?;
+        let run_pb_splits = pb_run.map_or_else(Default::default, |x| {
+            aggregate(splits, x.item.timing.totals)
+        });
+
+        Ok(merge_split_data(splits, &split_pbs, &run_pb_splits))
+    }
+}
+
+/// Lifts a split time map to one over aggregates by summing across the splits in `split`.
+fn aggregate(splits: &attempt::split::Set, totals: short::Map<Time>) -> short::Map<aggregate::Set> {
+    // TODO(@MattWindsor91): decouple this for testing.
+    aggregate::Set::accumulate_pairs(splits.iter().map(move |s| {
+        (
+            s.info.short,
+            totals.get(&s.info.short).copied().unwrap_or_default(),
+        )
+    }))
+    .collect()
+}
+
+fn merge_split_data(
+    splits: &attempt::split::Set,
+    split_pbs: &short::Map<Time>,
+    run_pb_splits: &short::Map<aggregate::Set>,
+) -> short::Map<comparison::Split> {
+    splits
+        .iter()
+        .map(|x| {
+            (
+                x.info.short,
+                comparison::Split {
+                    split_pb: split_pbs.get(&x.info.short).copied(),
+                    in_run: run_pb_splits.get(&x.info.short).copied(),
+                },
+            )
+        })
+        .collect()
+}

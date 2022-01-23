@@ -1,6 +1,6 @@
 //! The [Session] type and related code.
 
-use crate::model::timing::comparison::{self, pace, Comparison};
+use crate::model::timing::comparison::{pace, provider, Comparison};
 
 use super::{
     super::{
@@ -9,7 +9,7 @@ use super::{
         timing::{aggregate, Time},
     },
     action,
-    observer::{self, split::Observer as SO, time::Observer as TO},
+    observer::{self, split::Observer as SO, time::Observer as TO, Event},
     split, Observer, Run,
 };
 
@@ -33,7 +33,7 @@ pub struct Session<'cmp, 'obs, O> {
     /// The function for timestamping outgoing runs.
     timestamper: fn() -> chrono::DateTime<chrono::Utc>,
     /// The comparison provider.
-    comparator: Box<dyn comparison::Provider + 'cmp>,
+    comparator: Box<dyn provider::Provider + 'cmp>,
 }
 
 impl<'cmp, 'obs, O: Observer> action::Handler for Session<'cmp, 'obs, O> {
@@ -58,7 +58,7 @@ impl<'cmp, 'obs, O: Observer> Session<'cmp, 'obs, O> {
             comparison: Comparison::default(),
             observer,
             timestamper: chrono::Utc::now,
-            comparator: Box::new(comparison::NullProvider),
+            comparator: Box::new(provider::NullProvider),
         }
     }
 
@@ -75,7 +75,7 @@ impl<'cmp, 'obs, O: Observer> Session<'cmp, 'obs, O> {
     /// need to be done to get comparisons working.
     ///
     /// Triggers an immediate comparison reset.
-    pub fn set_comparison_provider(&mut self, p: Box<dyn comparison::Provider + 'cmp>) {
+    pub fn set_comparison_provider(&mut self, p: Box<dyn provider::Provider + 'cmp>) {
         self.comparator = p;
         self.refresh_comparison();
     }
@@ -108,10 +108,17 @@ impl<'cmp, 'obs, O: Observer> Session<'cmp, 'obs, O> {
     /// This should occur when the run is reset, in case the outgoing run has
     /// changed the comparisons.
     fn refresh_comparison(&mut self) {
-        if let Some(c) = self.comparator.comparison() {
-            self.comparison = c;
+        // TODO(@MattWindsor91): abort on error?
+        match self.comparator.comparison() {
+            Ok(Some(c)) => {
+                self.comparison = c;
+                self.observe_comparison();
+            }
+            Ok(None) => {}
+            Err(e) => {
+                log::error!("couldn't get comparison: {e}");
+            }
         }
-        self.observe_comparison();
     }
 
     /// Dumps initial session information to the observers.
@@ -128,7 +135,7 @@ impl<'cmp, 'obs, O: Observer> Session<'cmp, 'obs, O> {
     /// Sends information about each split to the observers.
     fn observe_splits(&self) {
         self.observer
-            .observe(observer::Event::NumSplits(self.run.splits.len()));
+            .observe(Event::NumSplits(self.run.splits.len()));
         for (index, split) in self.run.splits.iter().enumerate() {
             self.observer.observe_split(
                 split.info.short,
@@ -141,18 +148,16 @@ impl<'cmp, 'obs, O: Observer> Session<'cmp, 'obs, O> {
     }
 
     fn observe_reset(&self) {
-        self.observer
-            .observe(observer::Event::Reset(self.run_as_historic()));
+        self.observer.observe(Event::Reset(self.run_as_historic()));
     }
 
     fn observe_attempt(&self) {
-        self.observer
-            .observe(observer::Event::Attempt(self.run.attempt));
+        self.observer.observe(Event::Attempt(self.run.attempt));
     }
 
     fn observe_game_category(&self) {
         self.observer
-            .observe(observer::Event::GameCategory(self.metadata.clone()));
+            .observe(Event::GameCategory(self.metadata.clone()));
     }
 
     /// Observes all paces and aggregates for each split, notifying all
@@ -180,7 +185,7 @@ impl<'cmp, 'obs, O: Observer> Session<'cmp, 'obs, O> {
         }
 
         self.observer
-            .observe(observer::Event::Total(total, aggregate::Source::Attempt));
+            .observe(Event::Total(total, aggregate::Source::Attempt));
     }
 
     fn split_pace(&self, split: &super::Split, agg: aggregate::Set) -> pace::SplitInRun {
@@ -196,11 +201,16 @@ impl<'cmp, 'obs, O: Observer> Session<'cmp, 'obs, O> {
     /// This lets the user interface know, for each splits, which times we are
     /// running against.
     fn observe_comparison(&self) {
+        let Comparison {
+            total, sum_of_best, ..
+        } = self.comparison;
+
         // TODO(@MattWindsor91): wrapping this in a PacedTime is a bit silly.
-        self.observer.observe(observer::Event::Total(
-            pace::PacedTime::inconclusive(self.comparison.total()),
+        self.observer.observe(Event::Total(
+            pace::PacedTime::inconclusive(total),
             aggregate::Source::Comparison,
         ));
+        self.observer.observe(Event::SumOfBest(sum_of_best));
         self.observe_comparison_splits();
     }
 

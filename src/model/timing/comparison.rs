@@ -1,27 +1,29 @@
 //! Parts of the model related to comparisons.
 
 pub mod pace;
+pub mod provider;
 
 pub use pace::{Pace, PacedTime};
+pub use provider::Provider;
 
 use super::{super::short, aggregate, Time};
 
-/// A comparison set.
+/// Comparison data, containing information about split and run personal bests (PBs).
+///
+/// A comparison struct contains both per-split and aggregated times.  There is no inherent checking
+/// that the former and latter agree, as some comparison providers may have ways of calculating the
+/// latter that don't involve
 #[derive(Clone, Debug, Default)]
 pub struct Comparison {
     /// Split comparisons.
-    splits: short::Map<Split>,
-    /// The precomputed total across all splits.
-    total: Time,
+    pub splits: short::Map<Split>,
+    /// The precomputed total across all splits in the PB run.
+    pub total: Time,
+    /// The sum of all split PBs.
+    pub sum_of_best: Time,
 }
 
 impl Comparison {
-    /// Gets the total time across all splits.
-    #[must_use]
-    pub fn total(&self) -> Time {
-        self.total
-    }
-
     /// Gets a pace note for the split with short name `split`, which has just
     /// posted an aggregate time pair of `against`.
     #[must_use]
@@ -39,15 +41,6 @@ impl Comparison {
     }
 }
 
-/// A [Comparison] can be created using named split comparisons.
-impl FromIterator<(short::Name, Split)> for Comparison {
-    fn from_iter<T: IntoIterator<Item = (short::Name, Split)>>(iter: T) -> Self {
-        let splits = iter.into_iter().collect();
-        let total = calculate_total(&splits);
-        Comparison { splits, total }
-    }
-}
-
 /// A [Comparison] can be turned back into an iterator over split name-comparison pairs.
 impl IntoIterator for Comparison {
     type Item = (short::Name, Split);
@@ -56,16 +49,6 @@ impl IntoIterator for Comparison {
     fn into_iter(self) -> Self::IntoIter {
         self.splits.into_iter()
     }
-}
-
-/// Calculates the total of a split map.
-fn calculate_total(splits: &short::Map<Split>) -> Time {
-    // TODO(@MattWindsor91): this can probably be made O(1) if we change the type of `splits`.
-    // We could _also_ just take the maximum aggregate time.
-    splits
-        .iter()
-        .filter_map(|(_, s)| s.in_run.map(|t| t.split))
-        .sum()
 }
 
 /// Split comparisons.
@@ -125,20 +108,5 @@ impl Split {
     /// Checks whether `split time` is a new personal best.
     fn is_personal_best(&self, split_time: Time) -> bool {
         self.split_pb.map_or(false, |pb| split_time < pb)
-    }
-}
-
-/// Trait of objects that can provide comparisons.
-pub trait Provider {
-    /// Gets the current comparison for a game-category.
-    fn comparison(&mut self) -> Option<Comparison>;
-}
-
-/// A provider that never provides comparisons.
-pub struct NullProvider;
-
-impl Provider for NullProvider {
-    fn comparison(&mut self) -> Option<Comparison> {
-        None
     }
 }

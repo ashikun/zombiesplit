@@ -11,7 +11,7 @@ use tokio::sync::{broadcast, mpsc};
 pub use error::{Error, Result};
 
 use crate::model::attempt::observer::Event;
-use crate::model::timing::comparison;
+use crate::model::timing::comparison::provider;
 
 use super::super::{
     config,
@@ -118,10 +118,10 @@ impl Manager {
         Ok(session)
     }
 
-    fn comparison_provider<'a>(&self, insp: Inspector<'a>) -> Box<dyn comparison::Provider + 'a> {
+    fn comparison_provider<'a>(&self, insp: Inspector<'a>) -> Box<dyn provider::Provider + 'a> {
         match self.cfg.comparison.provider {
             config::server::comparison::Provider::Database => Box::new(insp),
-            _ => Box::new(comparison::NullProvider),
+            _ => Box::new(provider::NullProvider),
         }
     }
 }
