@@ -1,9 +1,10 @@
 //! Main system configuration.
 
 pub mod comparison;
+mod db;
 
+use db::Database;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
 
 /// Server configuration for zombiesplit.
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
@@ -32,22 +33,6 @@ impl Server {
     /// deserialising the configuration.
     pub fn load(custom_path: Option<std::path::PathBuf>) -> Result<Self, config::ConfigError> {
         super::util::base_config("server", custom_path)?.try_into()
-    }
-}
-
-/// Server configuration for the database.
-#[derive(Clone, Serialize, Deserialize, Debug, Eq, PartialEq)]
-#[serde(default)]
-pub struct Database {
-    /// The database location.
-    pub path: PathBuf,
-}
-
-impl Default for Database {
-    fn default() -> Self {
-        Self {
-            path: PathBuf::from("zombiesplit.db"),
-        }
     }
 }
 

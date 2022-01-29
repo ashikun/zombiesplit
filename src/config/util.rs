@@ -27,7 +27,8 @@ fn global_config_path(name: &str) -> Option<std::path::PathBuf> {
     })
 }
 
-fn dir() -> Option<directories::ProjectDirs> {
+/// Gets the base project directory configuration for zombiesplit.
+pub fn dir() -> Option<directories::ProjectDirs> {
     // TODO(@MattWindsor91): maybe eventually there will be a better organisation here.
     directories::ProjectDirs::from("xyz", "ashikun", "zombiesplit")
 }
