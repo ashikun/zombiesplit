@@ -4,13 +4,17 @@ use super::Comparison;
 /// Trait of objects that can provide comparisons.
 pub trait Provider {
     /// Gets the current comparison for a game-category.
+    ///
+    /// # Errors
+    ///
+    /// Propagates forwards any errors from the particular comparison method itself.
     fn comparison(&mut self) -> Result;
 }
 
 /// A provider that never provides comparisons.
-pub struct NullProvider;
+pub struct Null;
 
-impl Provider for NullProvider {
+impl Provider for Null {
     fn comparison(&mut self) -> Result {
         Ok(None)
     }

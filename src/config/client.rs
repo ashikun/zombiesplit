@@ -18,7 +18,7 @@ impl Default for Client {
     fn default() -> Self {
         Self {
             server_addr: super::server::default_addr(),
-            ui: Default::default(),
+            ui: Ui::default(),
         }
     }
 }

@@ -41,7 +41,7 @@ impl<'db> timing::comparison::provider::Provider for Inspector<'db> {
         Ok(Some(
             self.comparison
                 .get(&mut self.cat, &mut self.run, self.info.id)
-                .map_err(|e| anyhow::Error::from(e))?,
+                .map_err(anyhow::Error::from)?,
         ))
     }
 }

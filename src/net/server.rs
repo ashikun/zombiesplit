@@ -121,7 +121,7 @@ impl Manager {
     fn comparison_provider<'a>(&self, insp: Inspector<'a>) -> Box<dyn provider::Provider + 'a> {
         match self.cfg.comparison.provider {
             config::server::comparison::Provider::Database => Box::new(insp),
-            _ => Box::new(provider::NullProvider),
+            _ => Box::new(provider::Null),
         }
     }
 }

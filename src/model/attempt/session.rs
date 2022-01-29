@@ -58,7 +58,7 @@ impl<'cmp, 'obs, O: Observer> Session<'cmp, 'obs, O> {
             comparison: Comparison::default(),
             observer,
             timestamper: chrono::Utc::now,
-            comparator: Box::new(provider::NullProvider),
+            comparator: Box::new(provider::Null),
         }
     }
 
