@@ -20,17 +20,6 @@ pub struct Map<T> {
     pub large: T,
 }
 
-/// The default path map assumes the fonts are in 'assets/fonts'.
-impl Default for Map<Path> {
-    fn default() -> Self {
-        Self {
-            small: Path::new("assets/fonts/small"),
-            medium: Path::new("assets/fonts/medium"),
-            large: Path::new("assets/fonts/large"),
-        }
-    }
-}
-
 /// [Map]s can be indexed by [Id].
 impl<T> std::ops::Index<Id> for Map<T> {
     type Output = T;
@@ -44,23 +33,53 @@ impl<T> std::ops::Index<Id> for Map<T> {
     }
 }
 
-/// A font directory path.
+/// [Map]s can be indexed mutably by [Id].
+impl<T> std::ops::IndexMut<Id> for Map<T> {
+    fn index_mut(&mut self, id: Id) -> &mut T {
+        match id {
+            Id::Small => &mut self.small,
+            Id::Medium => &mut self.medium,
+            Id::Large => &mut self.large,
+        }
+    }
+}
+
+impl<T> IntoIterator for Map<T> {
+    type Item = (Id, T);
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        vec![(Id::Small, self.small), (Id::Medium, self.medium), (Id::Large, self.large)].into_iter()
+    }
+}
+
+/// A font directory path (wrapping a `PathBuf`).
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Path(
     // We can't use Path here because we use confy to load/store config, and that doesn't support
     // serde borrowing.
-    std::path::PathBuf,
+    pub std::path::PathBuf,
 );
 
 impl Path {
-    /// Constructs a path from the given string.
+    /// Constructs a path from the given theme directory and font ID.
+    ///
+    /// ```
+    /// use zombiesplit::ui::view::gfx::font::map;
+    ///
+    /// let mut expected = std::path::PathBuf::new();
+    /// expected.push("foo");
+    /// expected.push("fonts");
+    /// expected.push("large");
+    ///
+    /// assert_eq!(expected, map::Path::new(std::path::Path::new("foo"), map::Id::Large).0);
+    /// ```
     #[must_use]
-    pub fn new(raw: &str) -> Path {
-        use std::str::FromStr;
-        match std::path::PathBuf::from_str(raw) {
-            Ok(x) => Path(x),
-            Err(e) => match e {},
-        }
+    pub fn new(theme_dir: &std::path::Path, id: Id) -> Path {
+        let mut pb = theme_dir.to_path_buf();
+        pb.push("fonts");
+        pb.push(font_dir(id));
+        Path(pb)
     }
 
     /// Constructs the path to the font's texture.
@@ -81,6 +100,14 @@ impl Path {
     }
 }
 
+fn font_dir(id: Id) -> &'static str {
+    match id {
+        Id::Small => "small",
+        Id::Medium => "medium",
+        Id::Large => "large",
+    }
+}
+
 impl Map<Path> {
     /// Resolves metrics for all of the paths in this map.
     ///
@@ -94,6 +121,16 @@ impl Map<Path> {
             medium: self.medium.metrics()?,
             large: self.large.metrics()?,
         })
+    }
+
+    /// Constructs a path map using conventional paths starting from `theme_dir`.
+    #[must_use]
+    pub fn new(theme_dir: &std::path::Path) -> Self {
+        Self {
+            small: Path::new(theme_dir, Id::Small),
+            medium: Path::new(theme_dir, Id::Medium),
+            large: Path::new(theme_dir, Id::Large),
+        }
     }
 }
 
@@ -123,6 +160,9 @@ impl Id {
     pub fn coloured(self, colour: super::super::colour::fg::Id) -> Spec {
         Spec { id: self, colour }
     }
+
+    /// All IDs currently available.
+    pub const ALL: &'static [Self] = &[Id::Small, Id::Medium, Id::Large];
 }
 
 // A font specification (ID and colour).

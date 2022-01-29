@@ -1,0 +1,20 @@
+[bg]
+window = "#2a2f4e"
+editor = "#0c0293"
+editor_field = "#3003d9"
+
+[fg]
+editor = "#0cf1ff"
+editor_field = "#94fdff"
+cursor = "#f389f5"
+done = "#657392"
+normal = "white"
+header = "#fdd2ed"
+
+[fg.pace]	
+inconclusive = "white"
+ahead = "#d3fc7e"
+ahead_losing = "#5ac54f"
+behind_gaining = "#f68187"
+behind = "#ea323c"
+personal_best = "#ffc825"

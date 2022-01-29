@@ -30,8 +30,9 @@ fn run() -> anyhow::Result<()> {
         Ok(())
     });
 
-    let sdl = ui::sdl::Manager::new(&cfg.ui)?;
-    let mut ui = ui::Instance::new(&cfg.ui, &sdl, &mut asend, ppump)?;
+    let vconf = cfg.ui.into_view_config()?;
+    let sdl = ui::sdl::Manager::new(&vconf)?;
+    let mut ui = ui::Instance::new(&vconf, &sdl, &mut asend, ppump)?;
     ui.run()?;
 
     // TODO(@MattWindsor91): make this work

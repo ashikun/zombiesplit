@@ -24,15 +24,25 @@ zombiesplit is licenced under MIT.
 
 ## Usage
 
-_NOTE:_ zombiesplit currently looks in `.` for pretty much everything - config,
-database, game files.  This might be fixed later, but for now the easiest way to
-try zombiesplit is `cargo run`ning it out of a working copy.  For that,
-substitute eg `cargo run --bin zsdb -- XYZ` for `zsdb XYZ` below.
+### Copying over the assets
+
+In the absence of a proper installation script, using `zombiesplit` will
+require you to do some copying or symlinking of files into the places it
+expects them.  The main directory you'll need to copy/symlink is the `assets`
+directory, which contains the default font set.  This generally
+needs to go into:
+
+- Linux: `~/.local/share/zombiesplit`
+- macOS: `~/Library/Application Support/xyz.ashikun/zombiesplit`
+- Windows: `C:\Users\NAME\AppData\Roaming\Ashikun\Zombiesplit`
+
+See [the `directories` documentation](https://docs.rs/directories/latest/directories/struct.ProjectDirs.html#method.data_dir)
+for details.
 
 ### Configuration
 
 The main way to configure zombiesplit is through two TOML files, `client.toml`
-and `server.rs`, typically located in:
+and `server.toml`, typically located in:
 
 - Linux: `~/.config/zombiesplit`
 - macOS: `~/Library/Application Support/xyz.ashikun.zombiesplit`
@@ -49,7 +59,7 @@ For examples of what these files look like, see `examples/config`.
 ### Initialising the database
 
 zombiesplit uses a SQLite database to store game and (eventually) run data;
-before using zombiesplit you'll need to use `zsdb` to :
+before using zombiesplit you'll need to use `zsdb` to set up the database:
 
 ```
 $ zsdb init
@@ -64,6 +74,9 @@ $ zsdb add-game scd11.toml
 where `scd11.toml` is a game specification file (conveniently, this is the
 one pre-packed with zombiesplit as an example).  The game will be stored into
 the database as the filename less its extension (so `scd11`.)
+
+The default location for the zombiesplit database, if not configured otherwise
+in `server.toml`, is `zombiesplit.db` in the same directory as `assets`.
 
 ### Operation
 

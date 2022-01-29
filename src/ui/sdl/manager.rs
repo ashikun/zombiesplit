@@ -16,7 +16,7 @@ pub struct Manager<'c> {
     screen: RefCell<sdl2::render::Canvas<sdl2::video::Window>>,
     textures: sdl2::render::TextureCreator<sdl2::video::WindowContext>,
     /// The configured theme (fonts and colours), which is borrowing parts of a config file.
-    cfg: &'c view::config::Theme,
+    cfg: &'c view::config::theme::Theme,
 }
 
 impl<'c> Manager<'c> {
@@ -62,11 +62,8 @@ impl<'r, 'c> super::super::Manager<'r> for Manager<'c> {
     fn renderer(&'r self) -> Result<Renderer<'r>> {
         let font_manager = font::Manager::new(
             &self.textures,
-            &self.cfg.fonts,
-            self.cfg
-                .fonts
-                .metrics()
-                .map_err(super::super::view::gfx::Error::LoadFont)?,
+            &self.cfg.font_paths,
+            self.cfg.font_metrics.clone(),
             &self.cfg.colours.fg,
         );
         Ok(Renderer::new(

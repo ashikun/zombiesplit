@@ -65,7 +65,7 @@ impl Default for Footer {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Row {
     /// The type of data being shown in this row.
-    pub contents: super::super::presenter::state::footer::RowType,
+    pub contents: footer::RowType,
     /// The font to use for the time.
-    pub font: super::font::Id,
+    pub font: font::Id,
 }
