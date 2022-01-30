@@ -57,7 +57,7 @@ impl Size {
     /// ```
     /// use zombiesplit::ui::view::gfx::metrics::Size;
     ///
-    /// assert_eq!(Size{w: 62, h: 22}, Size{w: 42, h:10}.stack_vertically(Size{w: 20, h: 22}));
+    /// assert_eq!(Size{w: 62, h: 22}, Size{w: 42, h:10}.stack_horizontally(Size{w: 20, h: 22}));
     /// ```
     #[must_use]
     pub fn stack_horizontally(self, other: Self) -> Self {
