@@ -5,28 +5,39 @@ use widget::Widget;
 use super::{presenter, Result};
 
 pub use self::config::Config;
-use self::gfx::{font, render::Renderer};
+use self::gfx::render::Renderer;
 
 pub mod config;
+pub mod event;
 pub mod gfx;
 mod layout;
 mod widget;
 
+pub use event::Event;
+
 /// The top-level view structure.
-pub struct View<R> {
+///
+/// This has a lifetime dependency on the view configuration.
+pub struct View<'c, R> {
     /// The renderer to use for the view.
     renderer: R,
     /// The root widget of the user interface.
     root: widget::Root,
+    /// The user layout configuration.
+    config: &'c config::Layout,
 }
 
-impl<R: Renderer> View<R> {
+impl<'c, R: Renderer> View<'c, R> {
     /// Creates a new graphics core.
     #[must_use]
-    pub fn new(renderer: R, config: &config::layout::Layout) -> Self {
-        let mut root = widget::Root::default();
-        root.layout(root_layout_context(renderer.font_metrics(), config));
-        Self { renderer, root }
+    pub fn new(renderer: R, config: &'c config::layout::Layout) -> Self {
+        let mut result = Self {
+            renderer,
+            root: widget::Root::default(),
+            config,
+        };
+        result.layout_root(config.window.win_size());
+        result
     }
 
     /// Redraws the user interface.
@@ -41,18 +52,22 @@ impl<R: Renderer> View<R> {
 
         Ok(())
     }
-}
 
-/// Creates the root layout context.
-fn root_layout_context<'m>(
-    font_metrics: &'m font::Map<font::Metrics>,
-    config: &'m config::layout::Layout,
-) -> layout::Context<'m> {
-    let bounds = config.window.win_rect();
+    /// Handles the event `event`.
+    pub fn handle_event(&mut self, event: &event::Event) {
+        match event {
+            Event::Resize(size) => self.layout_root(*size),
+        }
+    }
 
-    layout::Context {
-        config,
-        bounds,
-        font_metrics,
+    fn layout_root(&mut self, size: gfx::metrics::Size) {
+        self.root.layout(layout::Context {
+            config: self.config,
+            bounds: gfx::metrics::Rect {
+                top_left: gfx::metrics::Point::default(),
+                size,
+            },
+            font_metrics: self.renderer.font_metrics(),
+        });
     }
 }

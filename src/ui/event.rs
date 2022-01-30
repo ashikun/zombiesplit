@@ -11,16 +11,16 @@ driver for the user interface. */
 
 /// The event pump.
 pub trait Pump {
-    /// Pumps all current events available into an interator.
+    /// Pumps all current events available into a vector.
     fn pump(&mut self) -> Vec<Event>;
 }
 
 /// A view or presenter event.
 pub enum Event {
     /// A view event.
-    View(View),
+    View(super::view::Event),
     /// A presenter event.
-    Presenter(super::presenter::event::Event),
+    Presenter(super::presenter::Event),
 }
 
 impl Event {
@@ -35,10 +35,4 @@ impl Event {
     pub fn modal(m: super::presenter::event::Modal) -> Event {
         Event::Presenter(super::presenter::event::Event::Modal(m))
     }
-}
-
-/// A view event.
-pub enum View {
-    /// The window has resized to the given dimensions.
-    Resize(super::view::gfx::metrics::Size),
 }

@@ -1,13 +1,13 @@
 //! Mapping between SDL events and presenter events.
 
 use super::super::{
-    event::{self, Event, View},
+    event::{self, Event},
     presenter::{
         self,
         event::{Edit, Modal},
         state::cursor,
     },
-    view::gfx::metrics::Size,
+    view,
 };
 use crate::model::{attempt, timing::time};
 
@@ -27,8 +27,11 @@ fn from_sdl(e: &sdl2::event::Event) -> Option<Event> {
         sdl2::event::Event::Window {
             win_event: sdl2::event::WindowEvent::SizeChanged(w, h),
             ..
-        } => Some(Event::View(View::Resize(Size { w: *w, h: *h }))),
-        sdl2::event::Event::Quit { .. } => Some(Event::Presenter(presenter::event::Event::Quit)),
+        } => Some(Event::View(view::Event::Resize(view::gfx::metrics::Size {
+            w: *w,
+            h: *h,
+        }))),
+        sdl2::event::Event::Quit { .. } => Some(Event::Presenter(presenter::Event::Quit)),
         sdl2::event::Event::KeyDown {
             keycode: Some(k), ..
         } => from_key(*k),

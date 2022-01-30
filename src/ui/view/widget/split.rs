@@ -22,6 +22,7 @@ pub struct Widget {
 
 impl Layoutable for Widget {
     fn layout(&mut self, ctx: layout::Context) {
+        let ctx = ctx.padded();
         self.rect = ctx.bounds;
         self.rows = rows(ctx);
     }

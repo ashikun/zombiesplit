@@ -15,6 +15,7 @@ pub use size::{Length, Size};
 #[derive(Copy, Clone, Debug, Deserialize, Serialize)]
 #[serde(default)]
 pub struct Window {
+    // TODO(@MattWindsor91): this should eventually be reduced to just win_w/h and padding.
     /// The window width.
     pub win_w: Length,
     /// The window height.
@@ -44,73 +45,15 @@ impl Default for Window {
 }
 
 impl Window {
-    /// Gets the configured rectangle for the window.
+    /// Gets the configured size for the window.
     ///
     /// This determines the size that the window will take up initially; the
     /// window may be resized later on.
     #[must_use]
-    pub fn win_rect(&self) -> Rect {
-        Rect {
-            top_left: Point { x: 0, y: 0 },
-            size: Size {
-                w: self.win_w,
-                h: self.win_h,
-            },
+    pub fn win_size(&self) -> Size {
+        Size {
+            w: self.win_w,
+            h: self.win_h,
         }
-    }
-
-    /// Gets the bounding box of the header part of the window.
-    #[must_use]
-    pub fn header_rect(&self) -> Rect {
-        Rect {
-            top_left: Point { x: 0, y: 0 },
-            size: Size {
-                w: self.win_w,
-                h: self.header_h,
-            },
-        }
-        .grow(-self.padding)
-    }
-
-    /// Gets the bounding box of the splits part of the window.
-    #[must_use]
-    pub fn splits_rect(&self) -> Rect {
-        Rect {
-            top_left: Point {
-                x: 0,
-                y: self.header_h,
-            },
-            size: Size {
-                w: self.win_w,
-                h: self.splits_h(),
-            },
-        }
-        .grow(-self.padding)
-    }
-
-    /// Gets the bounding box of the total part of the window.
-    #[must_use]
-    pub fn total_rect(&self) -> Rect {
-        Rect {
-            top_left: Point {
-                x: 0,
-                y: self.total_y(),
-            },
-            size: Size {
-                w: self.win_w,
-                h: self.footer_h,
-            },
-        }
-        .grow(-self.padding)
-    }
-
-    /// Gets the Y position of the total part of the window.
-    fn total_y(&self) -> Length {
-        self.win_h - self.footer_h
-    }
-
-    /// Gets the height of the splits part of the window.
-    fn splits_h(&self) -> Length {
-        self.win_h - self.header_h - self.footer_h
     }
 }

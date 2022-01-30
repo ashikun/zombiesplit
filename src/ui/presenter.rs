@@ -23,6 +23,8 @@ pub mod event;
 pub mod mode;
 pub mod state;
 
+pub use event::Event;
+
 /// A zombiesplit UI presenter, containing all state and modality.
 pub struct Presenter<'h, H> {
     /// The current mode.

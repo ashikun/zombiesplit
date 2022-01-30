@@ -36,4 +36,9 @@ impl<'m> Context<'m> {
             ..self
         }
     }
+
+    /// Makes a copy of this layout context with the bounding box shrunk by the padding amount.
+    pub fn padded(self) -> Self {
+        self.with_bounds(self.bounds.grow(-self.config.window.padding))
+    }
 }

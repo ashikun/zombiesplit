@@ -35,12 +35,13 @@ pub struct Root {
 
 impl layout::Layoutable for Root {
     fn layout(&mut self, ctx: layout::Context) {
-        self.header
-            .layout(ctx.with_bounds(ctx.config.window.header_rect()));
-        self.splits
-            .layout(ctx.with_bounds(ctx.config.window.splits_rect()));
-        self.footer
-            .layout(ctx.with_bounds(ctx.config.window.total_rect()));
+        let mut bounds = ctx.bounds;
+        for (w, h) in widget_heights(ctx) {
+            bounds.size.h = h;
+            self[w].layout(ctx.with_bounds(bounds));
+
+            bounds.top_left.y += h;
+        }
     }
 }
 
@@ -52,5 +53,52 @@ impl<R: gfx::Renderer> Widget<R> for Root {
         self.splits.render(r, s)?;
         self.footer.render(r, &s.footer)?;
         Ok(())
+    }
+}
+
+/// Calculates heights for all of the widgets in the root widget.
+fn widget_heights(ctx: layout::Context) -> Vec<(RootWidget, gfx::metrics::Length)> {
+    // TODO(@MattWindsor91): probe each widget for its needed minimum height
+    // TODO(@MattWindsor91): generalised layout algorithm?
+    let header = ctx.config.window.header_h;
+    let footer = ctx.config.window.footer_h;
+    let splitset = ctx.bounds.size.h - header - footer;
+
+    vec![
+        (RootWidget::Header, header),
+        (RootWidget::Splitset, splitset),
+        (RootWidget::Footer, footer),
+    ]
+}
+
+/// Enumeration of the various widgets stored on the root.
+enum RootWidget {
+    /// Represents the header widget.
+    Header,
+    /// Represents the splitset widget.
+    Splitset,
+    /// Represents the status widget.
+    Footer,
+}
+
+impl std::ops::Index<RootWidget> for Root {
+    type Output = dyn super::layout::Layoutable;
+
+    fn index(&self, index: RootWidget) -> &Self::Output {
+        match index {
+            RootWidget::Header => &self.header,
+            RootWidget::Splitset => &self.splits,
+            RootWidget::Footer => &self.footer,
+        }
+    }
+}
+
+impl std::ops::IndexMut<RootWidget> for Root {
+    fn index_mut(&mut self, index: RootWidget) -> &mut Self::Output {
+        match index {
+            RootWidget::Header => &mut self.header,
+            RootWidget::Splitset => &mut self.splits,
+            RootWidget::Footer => &mut self.footer,
+        }
     }
 }

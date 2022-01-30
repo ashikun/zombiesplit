@@ -25,7 +25,7 @@ pub struct Widget {
 impl layout::Layoutable for Widget {
     fn layout(&mut self, ctx: layout::Context) {
         // TODO(@MattWindsor91): this is the parent bounds set.
-        self.rect = ctx.bounds;
+        self.rect = ctx.padded().bounds;
 
         let header_metrics = &ctx.font_metrics[HEADER_FONT_SPEC.id];
         let one_below_header = header_metrics.span_h(1);

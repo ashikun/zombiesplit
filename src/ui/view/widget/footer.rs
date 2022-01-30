@@ -27,7 +27,7 @@ pub struct Footer {
 
 impl layout::Layoutable for Footer {
     fn layout(&mut self, ctx: layout::Context) {
-        self.rect = ctx.bounds;
+        self.rect = ctx.padded().bounds;
 
         if self.rows.is_empty() {
             self.init_rows(ctx);

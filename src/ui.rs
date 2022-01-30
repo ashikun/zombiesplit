@@ -42,7 +42,7 @@ pub trait Manager<'r> {
 /// Top-level user interface instance.
 pub struct Instance<'h, E, H, R> {
     events: E,
-    view: view::View<R>,
+    view: view::View<'h, R>,
     presenter: presenter::Presenter<'h, H>,
     forwarder: presenter::ModelEventPump,
     // TODO(@MattWindsor91): decouple the SDL use here
@@ -56,7 +56,7 @@ impl<'m, E: event::Pump, H: Handler, R: view::gfx::Renderer> Instance<'m, E, H, 
     ///
     /// Fails if the manager can't construct certain components of the UI.
     pub fn new(
-        cfg: &view::Config,
+        cfg: &'m view::Config,
         manager: &'m impl Manager<'m, Pump = E, Renderer = R>,
         action_handler: &'m mut H,
         forwarder: presenter::ModelEventPump,
@@ -82,13 +82,22 @@ impl<'m, E: event::Pump, H: Handler, R: view::gfx::Renderer> Instance<'m, E, H, 
         self.view.redraw(&self.presenter.state)?;
 
         while self.presenter.is_running() {
-            self.forwarder.pump(&mut self.presenter);
-
-            self.pump_events();
-
-            self.view.redraw(&self.presenter.state)?;
-            self.limiter.delay();
+            self.cycle()?;
         }
+
+        Ok(())
+    }
+
+    fn cycle(&mut self) -> Result<()> {
+        self.forwarder.pump(&mut self.presenter);
+
+        self.pump_events();
+
+        self.view.redraw(&self.presenter.state)?;
+
+        // TODO(@MattWindsor91): this effectively limits how quickly we can respond to network
+        // traffic to 60fps, too!
+        self.limiter.delay();
 
         Ok(())
     }
@@ -96,7 +105,7 @@ impl<'m, E: event::Pump, H: Handler, R: view::gfx::Renderer> Instance<'m, E, H, 
     fn pump_events(&mut self) {
         for e in self.events.pump() {
             match e {
-                event::Event::View(_) => (),
+                event::Event::View(e) => self.view.handle_event(&e),
                 event::Event::Presenter(e) => self.presenter.handle_event(&e),
             };
         }
