@@ -8,6 +8,7 @@ attempt session forming the model).
 */
 
 pub mod error;
+mod event;
 pub mod presenter;
 pub mod sdl;
 pub mod view;
@@ -48,7 +49,7 @@ pub struct Instance<'h, E, H, R> {
     limiter: sdl::Limiter,
 }
 
-impl<'h, E: presenter::event::Pump<H>, H: Handler, R: view::gfx::Renderer> Instance<'h, E, H, R> {
+impl<'m, E: event::Pump, H: Handler, R: view::gfx::Renderer> Instance<'m, E, H, R> {
     /// Constructs a new UI instance using the configuration in `config`,
     ///
     /// # Errors
@@ -56,8 +57,8 @@ impl<'h, E: presenter::event::Pump<H>, H: Handler, R: view::gfx::Renderer> Insta
     /// Fails if the manager can't construct certain components of the UI.
     pub fn new(
         cfg: &view::Config,
-        manager: &'h impl Manager<'h, Pump = E, Renderer = R>,
-        action_handler: &'h mut H,
+        manager: &'m impl Manager<'m, Pump = E, Renderer = R>,
+        action_handler: &'m mut H,
         forwarder: presenter::ModelEventPump,
     ) -> Result<Self> {
         Ok(Self {
@@ -81,18 +82,23 @@ impl<'h, E: presenter::event::Pump<H>, H: Handler, R: view::gfx::Renderer> Insta
         self.view.redraw(&self.presenter.state)?;
 
         while self.presenter.is_running() {
-            self.cycle()?;
+            self.forwarder.pump(&mut self.presenter);
+
+            self.pump_events();
+
+            self.view.redraw(&self.presenter.state)?;
+            self.limiter.delay();
         }
 
         Ok(())
     }
 
-    fn cycle(&mut self) -> Result<()> {
-        self.forwarder.pump(&mut self.presenter);
-        self.events.pump(&mut self.presenter);
-        self.view.redraw(&self.presenter.state)?;
-        self.limiter.delay();
-
-        Ok(())
+    fn pump_events(&mut self) {
+        for e in self.events.pump() {
+            match e {
+                event::Event::View(_) => (),
+                event::Event::Presenter(e) => self.presenter.handle_event(&e),
+            };
+        }
     }
 }

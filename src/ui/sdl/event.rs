@@ -1,20 +1,22 @@
 //! Mapping between SDL events and presenter events.
 
-use super::super::presenter::{
-    event::{self, Edit, Event, Modal},
-    state::cursor,
-    Presenter,
+use super::super::{
+    event::{self, Event, View},
+    presenter::{
+        self,
+        event::{Edit, Modal},
+        state::cursor,
+    },
+    view::gfx::metrics::Size,
 };
 use crate::model::{attempt, timing::time};
 
 /// Wrapper over SDL event pumps to promote them into `event::Pump` instances.
 pub struct Pump(pub sdl2::EventPump);
 
-impl<H: attempt::action::Handler> event::Pump<H> for Pump {
-    fn pump<'a>(&'a mut self, send_to: &'a mut Presenter<H>) {
-        for e in self.0.poll_iter().filter_map(|x| from_sdl(&x)) {
-            send_to.handle_event(&e);
-        }
+impl event::Pump for Pump {
+    fn pump(&mut self) -> Vec<Event> {
+        self.0.poll_iter().filter_map(|x| from_sdl(&x)).collect()
     }
 }
 
@@ -22,7 +24,11 @@ impl<H: attempt::action::Handler> event::Pump<H> for Pump {
 #[must_use]
 fn from_sdl(e: &sdl2::event::Event) -> Option<Event> {
     match e {
-        sdl2::event::Event::Quit { .. } => Some(Event::Quit),
+        sdl2::event::Event::Window {
+            win_event: sdl2::event::WindowEvent::SizeChanged(w, h),
+            ..
+        } => Some(Event::View(View::Resize(Size { w: *w, h: *h }))),
+        sdl2::event::Event::Quit { .. } => Some(Event::Presenter(presenter::event::Event::Quit)),
         sdl2::event::Event::KeyDown {
             keycode: Some(k), ..
         } => from_key(*k),
@@ -44,25 +50,27 @@ fn from_key(k: sdl2::keyboard::Keycode) -> Option<Event> {
         Keycode::Num7 => Some(Event::digit(7)),
         Keycode::Num8 => Some(Event::digit(8)),
         Keycode::Num9 => Some(Event::digit(9)),
-        Keycode::Backspace => Some(Event::Modal(Modal::Edit(Edit::Remove))),
+        Keycode::Backspace => Some(Event::modal(Modal::Edit(Edit::Remove))),
         // Time fields
         // We don't allow entering hours yet, but this may change.
-        Keycode::M => Some(Event::Modal(Modal::EnterField(time::Position::Minutes))),
-        Keycode::S => Some(Event::Modal(Modal::EnterField(time::Position::Seconds))),
-        Keycode::Period => Some(Event::Modal(Modal::EnterField(
+        Keycode::M => Some(Event::modal(Modal::EnterField(time::Position::Minutes))),
+        Keycode::S => Some(Event::modal(Modal::EnterField(time::Position::Seconds))),
+        Keycode::Period => Some(Event::modal(Modal::EnterField(
             time::Position::Milliseconds,
         ))),
         // Cursor motions
         Keycode::J | Keycode::Down | Keycode::Space | Keycode::Return => {
-            Some(Event::Modal(Modal::Cursor(cursor::Motion::Down)))
+            Some(Event::modal(Modal::Cursor(cursor::Motion::Down)))
         }
-        Keycode::K | Keycode::Up => Some(Event::Modal(Modal::Cursor(cursor::Motion::Up))),
+        Keycode::K | Keycode::Up => Some(Event::modal(Modal::Cursor(cursor::Motion::Up))),
         // Top-level commands
-        Keycode::H | Keycode::Left => Some(Event::Modal(Modal::Undo)),
-        Keycode::L | Keycode::Right => Some(Event::Modal(Modal::Commit)),
-        Keycode::X | Keycode::Delete => Some(Event::Modal(Modal::Delete)),
-        Keycode::Z => Some(Event::Action(attempt::Action::NewRun)),
-        Keycode::Escape => Some(Event::Quit),
+        Keycode::H | Keycode::Left => Some(Event::modal(Modal::Undo)),
+        Keycode::L | Keycode::Right => Some(Event::modal(Modal::Commit)),
+        Keycode::X | Keycode::Delete => Some(Event::modal(Modal::Delete)),
+        Keycode::Z => Some(Event::Presenter(presenter::event::Event::Action(
+            attempt::Action::NewRun,
+        ))),
+        Keycode::Escape => Some(Event::Presenter(presenter::event::Event::Quit)),
         _ => None,
     }
 }

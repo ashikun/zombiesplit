@@ -90,6 +90,7 @@ fn make_window(
             metrics::u32_or_zero(wmetrics.win_h),
         )
         .position_centered()
+        .resizable()
         .build()
         .map_err(Error::Window)?;
     Ok(window)
