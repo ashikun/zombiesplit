@@ -7,7 +7,15 @@ use super::gfx::{font, metrics};
 /// Layout is decoupled from rendering, and typically happens once at the start of the view creation
 /// followed by occasional follow-ups if the size of the window changes.
 pub trait Layoutable {
+    /// Asks the widget to precalculate a minimal bounding box.
+    ///
+    /// The context `parent_ctx` is relative to the parent widget, and exists mainly to allow the
+    /// widget to use font metrics to work out its size.
+    fn min_bounds(&self, parent_ctx: Context) -> metrics::Size;
+
     /// Asks the widget to calculate a layout based on the context `ctx`.
+    ///
+    /// `ctx` is relative to the calculated bounding box of the widget,
     fn layout(&mut self, ctx: Context);
 }
 

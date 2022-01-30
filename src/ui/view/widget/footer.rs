@@ -17,7 +17,6 @@ use super::{
 mod row;
 
 /// The footer widget.
-#[derive(Default)]
 pub struct Footer {
     /// The bounding box for the footer widget.
     rect: metrics::Rect,
@@ -26,17 +25,23 @@ pub struct Footer {
 }
 
 impl layout::Layoutable for Footer {
+    fn min_bounds(&self, parent_ctx: layout::Context) -> Size {
+        Size::stack_many(
+            self.rows
+                .iter()
+                .map(|x| layout::Layoutable::min_bounds(x, parent_ctx)),
+            Size::stack_vertically,
+        )
+        .grow(2 * parent_ctx.config.window.padding)
+    }
+
     fn layout(&mut self, ctx: layout::Context) {
         self.rect = ctx.padded().bounds;
-
-        if self.rows.is_empty() {
-            self.init_rows(ctx);
-        }
 
         let w = self.rect.size.w;
         let mut top_left = self.rect.top_left;
         for row in &mut self.rows {
-            let h = ctx.font_metrics[row.time.font_id].span_h(1);
+            let h = row.min_bounds(ctx).h;
             let row_rect = top_left.to_rect(Size { w, h }, Anchor::TOP_LEFT);
             row.layout(ctx.with_bounds(row_rect));
             top_left.offset_mut(0, h);
@@ -56,14 +61,12 @@ impl<R: Renderer> super::Widget<R> for Footer {
 }
 
 impl Footer {
-    fn init_rows(&mut self, ctx: layout::Context) {
-        self.rows = ctx
-            .config
-            .widgets
-            .footer
-            .rows
-            .iter()
-            .map(Row::new)
-            .collect();
+    /// Constructs a new footer widget.
+    #[must_use]
+    pub fn new(cfg: &super::super::config::layout::Footer) -> Self {
+        Self {
+            rect: Default::default(),
+            rows: cfg.rows.iter().map(Row::new).collect(),
+        }
     }
 }

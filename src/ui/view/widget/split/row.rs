@@ -1,6 +1,7 @@
 //! Sub-widget for rendering a split row.
 
 use crate::model::timing::aggregate::{Scope, Source};
+use crate::ui::view::layout::Context;
 use std::fmt::Write;
 
 use super::super::{
@@ -10,14 +11,15 @@ use super::super::{
     },
     gfx::{
         self, colour, font,
-        metrics::{Anchor, Point, Rect},
+        metrics::{Anchor, Point, Rect, Size},
         Renderer, Writer,
     },
-    layout, time, Widget,
+    layout::{self, Layoutable},
+    time, Widget,
 };
 
 /// Contains all state useful to draw one split.
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct Row {
     /// Bounding box used for the widget.
     rect: Rect,
@@ -29,16 +31,26 @@ pub struct Row {
     time: time::Layout,
 }
 
-impl layout::Layoutable for Row {
+impl Layoutable for Row {
+    fn min_bounds(&self, parent_ctx: layout::Context) -> Size {
+        Size::stack_horizontally(
+            name_size(parent_ctx),
+            Size::stack_horizontally(
+                attempt_count_size(parent_ctx),
+                self.time.min_bounds(parent_ctx),
+            ),
+        )
+        .grow(2 * parent_ctx.config.window.padding)
+    }
+
     fn layout(&mut self, ctx: layout::Context) {
-        self.rect = ctx.bounds;
+        self.rect = ctx.padded().bounds;
         self.name_top_left = self.rect.top_left;
 
         let time_rect = self.time_display_rect(ctx);
         self.time.layout(ctx.with_bounds(time_rect));
 
-        // TODO(@MattWindsor91): de-hardcode the 3 character offset here
-        let attempt_offset = ctx.font_metrics[font::Id::Small].span_w(-3);
+        let attempt_offset = ctx.font_metrics[font::Id::Small].span_w(-ATTEMPT_COUNT_LENGTH);
         self.attempt_count_top_left = time_rect.top_left.offset(attempt_offset, 0);
     }
 }
@@ -102,8 +114,8 @@ impl Row {
 
     fn time_display_rect(&self, ctx: layout::Context) -> Rect {
         self.rect
-            .point(0, 0, Anchor::TOP_RIGHT)
-            .to_rect(self.time.minimal_size(ctx), Anchor::TOP_RIGHT)
+            .anchor(Anchor::TOP_RIGHT)
+            .to_rect(self.time.min_bounds(ctx), Anchor::TOP_RIGHT)
     }
 
     fn draw_num_times(&self, r: &mut dyn Renderer, state: &state::Split) -> gfx::Result<()> {
@@ -114,6 +126,17 @@ impl Row {
         Ok(())
     }
 }
+
+fn name_size(parent_ctx: Context) -> Size {
+    parent_ctx.font_metrics[font::Id::Medium].text_size(0, 1)
+}
+
+fn attempt_count_size(parent_ctx: Context) -> Size {
+    parent_ctx.font_metrics[font::Id::Small].text_size(ATTEMPT_COUNT_LENGTH, 1)
+}
+
+// TODO(@MattWindsor91): de-hardcode this
+const ATTEMPT_COUNT_LENGTH: i32 = 3; // #xx
 
 /// Decide which source to use for the aggregate displayed on this split.
 ///

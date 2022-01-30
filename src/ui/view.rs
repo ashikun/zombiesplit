@@ -33,7 +33,7 @@ impl<'c, R: Renderer> View<'c, R> {
     pub fn new(renderer: R, config: &'c config::layout::Layout) -> Self {
         let mut result = Self {
             renderer,
-            root: widget::Root::default(),
+            root: widget::Root::new(&config.widgets),
             config,
         };
         result.layout_root(config.window.win_size());

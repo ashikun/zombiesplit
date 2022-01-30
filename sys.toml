@@ -22,7 +22,6 @@ server_addr = "0.0.0.0:1337"
 	# for the splits.
 	header_h = 40
 	footer_h = 64
-	split_h = 16
 
 # Fonts
 [ui.fonts]

@@ -5,6 +5,8 @@ each of which has access to the presenter state and a renderer.
 */
 
 use super::{super::presenter::State, gfx, layout};
+use crate::ui::view::gfx::metrics::Size;
+use crate::ui::view::layout::{Context, Layoutable};
 
 mod footer;
 mod header;
@@ -23,7 +25,6 @@ pub trait Widget<R: ?Sized>: super::layout::Layoutable {
 /// The root widget.
 ///
 /// Widgets
-#[derive(Default)]
 pub struct Root {
     /// The header widget.
     header: header::Widget,
@@ -34,9 +35,14 @@ pub struct Root {
 }
 
 impl layout::Layoutable for Root {
+    fn min_bounds(&self, _parent_ctx: Context) -> Size {
+        // This is never actually used, as there is no parent widget for the root.
+        Size::default()
+    }
+
     fn layout(&mut self, ctx: layout::Context) {
         let mut bounds = ctx.bounds;
-        for (w, h) in widget_heights(ctx) {
+        for (w, h) in self.widget_heights(ctx) {
             bounds.size.h = h;
             self[w].layout(ctx.with_bounds(bounds));
 
@@ -56,19 +62,33 @@ impl<R: gfx::Renderer> Widget<R> for Root {
     }
 }
 
-/// Calculates heights for all of the widgets in the root widget.
-fn widget_heights(ctx: layout::Context) -> Vec<(RootWidget, gfx::metrics::Length)> {
-    // TODO(@MattWindsor91): probe each widget for its needed minimum height
-    // TODO(@MattWindsor91): generalised layout algorithm?
-    let header = ctx.config.window.header_h;
-    let footer = ctx.config.window.footer_h;
-    let splitset = ctx.bounds.size.h - header - footer;
+impl Root {
+    /// Constructs a new root widget using the given layout configuration.
+    #[must_use]
+    pub fn new(cfg: &super::config::layout::WidgetSet) -> Self {
+        Self {
+            header: header::Widget::default(),
+            splits: split::Widget::default(),
+            footer: footer::Footer::new(&cfg.footer),
+        }
+    }
 
-    vec![
-        (RootWidget::Header, header),
-        (RootWidget::Splitset, splitset),
-        (RootWidget::Footer, footer),
-    ]
+    /// Calculates heights for all of the widgets in the root widget.
+    fn widget_heights(&self, ctx: layout::Context) -> Vec<(RootWidget, gfx::metrics::Length)> {
+        // TODO(@MattWindsor91): generalised layout algorithm?
+        let header = self.header.min_bounds(ctx).h;
+        let footer = self.footer.min_bounds(ctx).h;
+
+        // We ignore the (empty) splitset min bounds and calculate it as the remainder of the
+        // height after taking the other widgets into consideration.
+        let splitset = ctx.bounds.size.h - header - footer;
+
+        vec![
+            (RootWidget::Header, header),
+            (RootWidget::Splitset, splitset),
+            (RootWidget::Footer, footer),
+        ]
+    }
 }
 
 /// Enumeration of the various widgets stored on the root.

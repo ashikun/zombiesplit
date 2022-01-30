@@ -23,8 +23,21 @@ pub struct Widget {
 }
 
 impl layout::Layoutable for Widget {
+    fn min_bounds(&self, parent_ctx: layout::Context) -> metrics::Size {
+        // TODO(@MattWindsor91): this is clearly a stack, and there should be a less manual way
+        // of dealing with it.
+        metrics::Size::stack_vertically(
+            header_bounds(parent_ctx),
+            metrics::Size::stack_horizontally(
+                // TODO(@MattWindsor91): attempts spec != category spec
+                category_bounds(parent_ctx),
+                category_bounds(parent_ctx),
+            ),
+        )
+        .grow(2 * parent_ctx.config.window.padding)
+    }
+
     fn layout(&mut self, ctx: layout::Context) {
-        // TODO(@MattWindsor91): this is the parent bounds set.
         self.rect = ctx.padded().bounds;
 
         let header_metrics = &ctx.font_metrics[HEADER_FONT_SPEC.id];
@@ -38,6 +51,19 @@ impl layout::Layoutable for Widget {
             .rect
             .point(0, one_below_header, metrics::Anchor::TOP_RIGHT);
     }
+}
+
+fn header_bounds(ctx: layout::Context) -> metrics::Size {
+    text_bounds(ctx, HEADER_FONT_SPEC.id)
+}
+
+fn category_bounds(ctx: layout::Context) -> metrics::Size {
+    text_bounds(ctx, CATEGORY_FONT_SPEC.id)
+}
+
+fn text_bounds(ctx: layout::Context, font_id: font::Id) -> metrics::Size {
+    // We don't yet require space to be laid out for a particular number of chars.
+    ctx.font_metrics[font_id].text_size(0, 1)
 }
 
 impl<R: Renderer> super::Widget<R> for Widget {

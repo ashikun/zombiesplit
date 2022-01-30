@@ -3,7 +3,7 @@ use super::super::{
     super::{
         super::presenter::state::{self, footer},
         config,
-        gfx::{self, colour, metrics, metrics::Anchor, Renderer, Writer},
+        gfx::{self, colour, font, metrics, Renderer, Writer},
         layout,
     },
     time::Layout,
@@ -58,15 +58,24 @@ impl Row {
 }
 
 impl layout::Layoutable for Row {
+    fn min_bounds(&self, parent_ctx: layout::Context) -> metrics::Size {
+        // TODO(@MattWindsor91): restructure this as a stack?
+        metrics::Size::stack_horizontally(label_size(parent_ctx), self.time.min_bounds(parent_ctx))
+    }
+
     fn layout(&mut self, ctx: layout::Context) {
         self.label_top_left = ctx.bounds.top_left;
 
         let time_rect = ctx
             .bounds
-            .point(0, 0, Anchor::TOP_RIGHT)
-            .to_rect(self.time.minimal_size(ctx), Anchor::TOP_RIGHT);
+            .anchor(metrics::Anchor::TOP_RIGHT)
+            .to_rect(self.time.min_bounds(ctx), metrics::Anchor::TOP_RIGHT);
         self.time.layout(ctx.with_bounds(time_rect));
     }
+}
+
+fn label_size(ctx: layout::Context) -> metrics::Size {
+    ctx.font_metrics[font::Id::Medium].text_size(0, 1)
 }
 
 impl<R: Renderer> Widget<R> for Row {

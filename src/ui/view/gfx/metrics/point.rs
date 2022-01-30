@@ -61,7 +61,7 @@ impl Point {
         self.y += dy;
     }
 
-    /// Lifts this [Point] to a [Rect], with the point forming the top-left.
+    /// Lifts this [Point] to a [Rect], with the point forming the given `anchor` of the new rect.
     ///
     /// # Example
     ///

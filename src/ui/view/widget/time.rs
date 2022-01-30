@@ -9,13 +9,14 @@ use super::{
     layout,
 };
 use crate::model::timing::time::{self, format::Component};
+use crate::ui::view::layout::Context;
 use std::{
     fmt::{Display, Write},
     ops::Index,
 };
 
 /// Layout information for a general time widget.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Layout {
     /// Bounding box of the layout.
     rect: Rect,
@@ -28,22 +29,9 @@ pub struct Layout {
 }
 
 impl layout::Layoutable for Layout {
-    fn layout(&mut self, ctx: layout::Context) {
-        self.rect = ctx.bounds;
-
-        self.update_positions(ctx);
-    }
-}
-
-impl Layout {
-    /// Calculates the minimal size required for this time widget.
-    ///
-    /// This should usually be used in conjunction with `layout`, using this size to produce the
-    /// bounding box for this widget's layout.
-    #[must_use]
-    pub fn minimal_size(&self, ctx: layout::Context) -> Size {
-        let fm = &ctx.font_metrics[self.font_id];
-        let raw: i32 = ctx
+    fn min_bounds(&self, parent_ctx: Context) -> Size {
+        let fm = &parent_ctx.font_metrics[self.font_id];
+        let raw: i32 = parent_ctx
             .config
             .time
             .components()
@@ -56,6 +44,14 @@ impl Layout {
         }
     }
 
+    fn layout(&mut self, ctx: layout::Context) {
+        self.rect = ctx.bounds;
+
+        self.update_positions(ctx);
+    }
+}
+
+impl Layout {
     fn update_positions(&mut self, ctx: layout::Context) {
         let fm = &ctx.font_metrics[self.font_id];
 

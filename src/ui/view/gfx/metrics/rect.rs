@@ -35,6 +35,12 @@ impl Rect {
         }
     }
 
+    /// Shorthand for getting an anchor point on a rect.
+    #[must_use]
+    pub fn anchor(self, anchor: Anchor) -> Point {
+        self.point(0, 0, anchor)
+    }
+
     /// Resolves an X coordinate within a rectangle, given an offset `dx` from
     /// `anchor`.
     #[must_use]
