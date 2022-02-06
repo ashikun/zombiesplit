@@ -5,11 +5,7 @@ use row::Row;
 use super::{
     super::{
         super::presenter::state,
-        gfx::{
-            self,
-            metrics::{self, Anchor, Size},
-            Renderer,
-        },
+        gfx::{self, metrics, Renderer},
     },
     layout,
 };
@@ -25,12 +21,12 @@ pub struct Footer {
 }
 
 impl layout::Layoutable for Footer {
-    fn min_bounds(&self, parent_ctx: layout::Context) -> Size {
-        Size::stack_many(
+    fn min_bounds(&self, parent_ctx: layout::Context) -> metrics::Size {
+        metrics::Size::stack_many(
             self.rows
                 .iter()
                 .map(|x| layout::Layoutable::min_bounds(x, parent_ctx)),
-            Size::stack_vertically,
+            metrics::Size::stack_vertically,
         )
         .grow(2 * parent_ctx.config.window.padding)
     }
@@ -42,7 +38,7 @@ impl layout::Layoutable for Footer {
         let mut top_left = self.rect.top_left;
         for row in &mut self.rows {
             let h = row.min_bounds(ctx).h;
-            let row_rect = top_left.to_rect(Size { w, h }, Anchor::TOP_LEFT);
+            let row_rect = top_left.to_rect(metrics::Size { w, h }, metrics::Anchor::TOP_LEFT);
             row.layout(ctx.with_bounds(row_rect));
             top_left.offset_mut(0, h);
         }
@@ -65,7 +61,7 @@ impl Footer {
     #[must_use]
     pub fn new(cfg: &super::super::config::layout::Footer) -> Self {
         Self {
-            rect: Default::default(),
+            rect: metrics::Rect::default(),
             rows: cfg.rows.iter().map(Row::new).collect(),
         }
     }

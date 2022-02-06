@@ -1,35 +1,51 @@
 //! Sub-widget for rendering a split row.
 
 use crate::model::timing::aggregate::{Scope, Source};
-use crate::ui::view::layout::Context;
 use std::fmt::Write;
 
 use super::super::{
     super::{
+        gfx::{
+            self, colour, font,
+            metrics::{anchor, Anchor, Point, Rect, Size},
+            Renderer, Writer,
+        },
+        layout::{self, Layoutable},
         presenter::state,
-        widget::time::{Colour, FieldColour},
     },
-    gfx::{
-        self, colour, font,
-        metrics::{Anchor, Point, Rect, Size},
-        Renderer, Writer,
-    },
-    layout::{self, Layoutable},
+    label::Label,
     time, Widget,
 };
 
 /// Contains all state useful to draw one split.
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct Row {
     /// Bounding box used for the widget.
     rect: Rect,
-    /// Top-left coordinate of the name.
-    name_top_left: Point,
+    /// The name label.
+    name: Label,
     /// Top-left coordinate of the attempt count.
     attempt_count_top_left: Point,
     /// Layout information for the timer.
     time: time::Layout,
 }
+
+impl Default for Row {
+    fn default() -> Self {
+        Self {
+            rect: Rect::default(),
+            name: Label::new(NAME_FONT_SPEC, NAME_MIN_CHARS, anchor::X::Left),
+            attempt_count_top_left: Point::default(),
+            time: time::Layout::default(),
+        }
+    }
+}
+
+const NAME_FONT_SPEC: font::Spec = font::Spec {
+    id: font::Id::Medium,
+    colour: colour::fg::Id::Name(state::cursor::SplitPosition::Coming),
+};
+const NAME_MIN_CHARS: u8 = 10;
 
 impl Layoutable for Row {
     fn min_bounds(&self, parent_ctx: layout::Context) -> Size {
@@ -45,7 +61,9 @@ impl Layoutable for Row {
 
     fn layout(&mut self, ctx: layout::Context) {
         self.rect = ctx.padded().bounds;
-        self.name_top_left = self.rect.top_left;
+
+        let name_rect = self.name_rect(ctx);
+        self.name.layout(ctx.with_bounds(name_rect));
 
         let time_rect = self.time_display_rect(ctx);
         self.time.layout(ctx.with_bounds(time_rect));
@@ -70,12 +88,7 @@ impl<R: Renderer> Widget<R> for Row {
 impl Row {
     fn draw_name(&self, r: &mut impl Renderer, state: &state::Split) -> gfx::Result<()> {
         let colour = colour::fg::Id::Name(state.position);
-
-        Writer::new(r)
-            .with_pos(self.name_top_left)
-            .with_font(font::Id::Medium.coloured(colour))
-            .write_str(&state.name)?;
-        Ok(())
+        self.name.render_extended(r, &state.name, colour)
     }
 
     fn draw_time_display(&self, r: &mut impl Renderer, state: &state::Split) -> gfx::Result<()> {
@@ -87,14 +100,14 @@ impl Row {
     }
 
     fn draw_editor(&self, r: &mut impl Renderer, e: &state::Editor) -> gfx::Result<()> {
-        let field = e.field.map(|field| FieldColour {
+        let field = e.field.map(|field| time::FieldColour {
             field,
             colour: colour::Pair {
                 fg: colour::fg::Id::FieldEditor,
                 bg: Some(colour::bg::Id::FieldEditor),
             },
         });
-        let col = Colour {
+        let col = time::Colour {
             base: colour::Pair {
                 fg: colour::fg::Id::Editor,
                 bg: Some(colour::bg::Id::Editor),
@@ -118,6 +131,12 @@ impl Row {
             .to_rect(self.time.min_bounds(ctx), Anchor::TOP_RIGHT)
     }
 
+    fn name_rect(&self, ctx: layout::Context) -> Rect {
+        let mut r = self.rect;
+        r.size.h = self.name.min_bounds(ctx).h;
+        r
+    }
+
     fn draw_num_times(&self, r: &mut dyn Renderer, state: &state::Split) -> gfx::Result<()> {
         let mut w = Writer::new(r)
             .with_pos(self.attempt_count_top_left)
@@ -127,11 +146,11 @@ impl Row {
     }
 }
 
-fn name_size(parent_ctx: Context) -> Size {
+fn name_size(parent_ctx: layout::Context) -> Size {
     parent_ctx.font_metrics[font::Id::Medium].text_size(0, 1)
 }
 
-fn attempt_count_size(parent_ctx: Context) -> Size {
+fn attempt_count_size(parent_ctx: layout::Context) -> Size {
     parent_ctx.font_metrics[font::Id::Small].text_size(ATTEMPT_COUNT_LENGTH, 1)
 }
 

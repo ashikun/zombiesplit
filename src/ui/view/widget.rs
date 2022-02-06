@@ -10,13 +10,14 @@ use crate::ui::view::layout::{Context, Layoutable};
 
 mod footer;
 mod header;
+mod label;
 mod split;
 mod time;
 
 /// Trait for things that can render information from a presenter.
 pub trait Widget<R: ?Sized>: super::layout::Layoutable {
     /// Type of state that this widget accepts.
-    type State;
+    type State: ?Sized;
 
     /// Renders the widget.
     fn render(&self, r: &mut R, s: &Self::State) -> gfx::Result<()>;

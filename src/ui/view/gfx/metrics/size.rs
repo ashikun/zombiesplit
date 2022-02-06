@@ -74,6 +74,6 @@ impl Size {
         sizes: impl IntoIterator<Item = Self>,
         f: impl Fn(Self, Self) -> Self,
     ) -> Self {
-        sizes.into_iter().reduce(f).unwrap_or_else(Self::default)
+        sizes.into_iter().reduce(f).unwrap_or_default()
     }
 }
