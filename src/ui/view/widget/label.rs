@@ -12,6 +12,9 @@ use super::{
     },
     Widget,
 };
+use crate::ui::view::gfx::colour::fg::Id;
+use crate::ui::view::gfx::font::Spec;
+use crate::ui::view::gfx::metrics::Point;
 use std::fmt::Write;
 
 /// A widget that displays a static single-line string with a static font.
@@ -51,14 +54,24 @@ impl Label {
         str: impl std::fmt::Display,
         colour: impl Into<Option<colour::fg::Id>>,
     ) -> Result<()> {
-        let font = colour
-            .into()
-            .map_or(self.font_spec, |c| self.font_spec.id.coloured(c));
         let mut w = Writer::new(r)
-            .with_pos(self.rect.top_left)
-            .with_font(font)
+            .with_pos(self.writer_pos())
+            .with_font(self.override_font(colour))
             .align(self.align);
         Ok(write!(w, "{}", str)?)
+    }
+
+    fn writer_pos(&self) -> Point {
+        self.rect.anchor(anchor::Anchor {
+            x: self.align,
+            y: anchor::Y::Top,
+        })
+    }
+
+    fn override_font(&self, colour: impl Into<Option<Id>>) -> Spec {
+        colour
+            .into()
+            .map_or(self.font_spec, |c| self.font_spec.id.coloured(c))
     }
 }
 

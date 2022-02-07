@@ -1,4 +1,5 @@
 //! Models relating to the set of categories attached to a game.
+use std::fmt::Formatter;
 use std::{fmt::Display, str::FromStr};
 
 use super::super::short;
@@ -109,5 +110,12 @@ impl AttemptInfo {
         if is_completed {
             self.completed += 1;
         }
+    }
+}
+
+/// Display attempt info as 'total (completed)'.
+impl Display for AttemptInfo {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} ({})", self.total, self.completed)
     }
 }
