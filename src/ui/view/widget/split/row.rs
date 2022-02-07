@@ -7,7 +7,7 @@ use super::super::{
     super::{
         gfx::{
             self, colour, font,
-            metrics::{anchor, Anchor, Point, Rect, Size},
+            metrics::{Anchor, Point, Rect, Size},
             Renderer, Writer,
         },
         layout::{self, Layoutable},
@@ -34,7 +34,7 @@ impl Default for Row {
     fn default() -> Self {
         Self {
             rect: Rect::default(),
-            name: Label::new(NAME_FONT_SPEC, NAME_MIN_CHARS, anchor::X::Left),
+            name: Label::new(NAME_FONT_SPEC).min_chars(NAME_MIN_CHARS),
             attempt_count_top_left: Point::default(),
             time: time::Layout::default(),
         }

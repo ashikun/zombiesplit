@@ -4,7 +4,7 @@ use super::{
     super::{
         gfx::{
             colour, font,
-            metrics::{anchor, Rect, Size},
+            metrics::{anchor, Point, Rect, Size},
             render::Renderer,
             Result, Writer,
         },
@@ -12,9 +12,6 @@ use super::{
     },
     Widget,
 };
-use crate::ui::view::gfx::colour::fg::Id;
-use crate::ui::view::gfx::font::Spec;
-use crate::ui::view::gfx::metrics::Point;
 use std::fmt::Write;
 
 /// A widget that displays a static single-line string with a static font.
@@ -24,25 +21,37 @@ pub struct Label {
     rect: Rect,
 
     /// The font spec for the label.
-    font_spec: font::Spec,
+    pub font_spec: font::Spec,
 
     /// The minimum amount of expected characters in the label.
-    min_chars: u8,
+    pub min_chars: u8,
 
     /// The horizontal alignment of the label.
-    align: anchor::X,
+    pub align: anchor::X,
 }
 
 impl Label {
-    /// Constructs a new label widget with the given `font_spec`.
+    /// Constructs a label with the given font specification.
     #[must_use]
-    pub fn new(font_spec: font::Spec, min_chars: u8, align: anchor::X) -> Self {
+    pub fn new(font_spec: font::Spec) -> Self {
         Self {
             rect: Rect::default(),
             font_spec,
-            min_chars,
-            align,
+            min_chars: 0,
+            align: anchor::X::Left,
         }
+    }
+
+    /// Sets the alignment of the label.
+    pub fn align(mut self, to: anchor::X) -> Self {
+        self.align = to;
+        self
+    }
+
+    /// Sets the minimum character amount of the label.
+    pub fn min_chars(mut self, to: u8) -> Self {
+        self.min_chars = to;
+        self
     }
 
     /// Renders `str` onto the label with the given colour.
@@ -68,7 +77,7 @@ impl Label {
         })
     }
 
-    fn override_font(&self, colour: impl Into<Option<Id>>) -> Spec {
+    fn override_font(&self, colour: impl Into<Option<colour::fg::Id>>) -> font::Spec {
         colour
             .into()
             .map_or(self.font_spec, |c| self.font_spec.id.coloured(c))

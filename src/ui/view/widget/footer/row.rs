@@ -3,42 +3,35 @@ use super::super::{
     super::{
         super::presenter::state::{self, footer},
         config,
-        gfx::{self, colour, font, metrics, Renderer, Writer},
+        gfx::{self, colour, font, metrics, Renderer},
         layout,
     },
-    time::Layout,
-    Widget,
+    time, Label, Widget,
 };
 use crate::model::timing::comparison;
-use std::{borrow::Cow, fmt::Write};
+use std::borrow::Cow;
 
 /// Sub-widget for a row in the footer.
 pub struct Row {
-    /// The type of row being shown in this.
-    pub(super) row_type: footer::RowType,
+    /// The type of row being shown here.
+    row_type: footer::RowType,
 
-    /// The top-left position of the label.
-    pub(super) label_top_left: metrics::Point,
-    /// The layout information for the time.
-    pub(super) time: Layout,
+    /// The label widget.
+    label: Label,
+    /// The time widget.
+    time: time::Layout,
 }
 
 impl Row {
     /// Constructs a row with the given initial layout information and no set positioning.
     pub(super) fn new(layout: &config::layout::Row) -> Self {
-        let mut time = Layout::default();
+        let mut time = time::Layout::default();
         time.font_id = layout.font;
         Self {
             row_type: layout.contents,
-            label_top_left: metrics::Point::default(),
+            label: Label::new(font::Spec::default()),
             time,
         }
-    }
-
-    fn render_label(&self, r: &mut impl Renderer) -> gfx::Result<()> {
-        let mut w = Writer::new(r).with_pos(self.label_top_left);
-        write!(w, "{}", self.row_type)?;
-        Ok(())
     }
 
     fn render_time(
@@ -64,7 +57,7 @@ impl layout::Layoutable for Row {
     }
 
     fn layout(&mut self, ctx: layout::Context) {
-        self.label_top_left = ctx.bounds.top_left;
+        self.label.layout(ctx);
 
         let time_rect = ctx
             .bounds
@@ -82,7 +75,7 @@ impl<R: Renderer> Widget<R> for Row {
     type State = state::Footer;
 
     fn render(&self, r: &mut R, s: &Self::State) -> gfx::Result<()> {
-        self.render_label(r)?;
+        self.label.render(r, self.row_type.label())?;
         self.render_time(r, &s.get(self.row_type))?;
         Ok(())
     }
