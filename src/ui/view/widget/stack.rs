@@ -135,6 +135,11 @@ impl<W> Stack<W> {
         }
     }
 
+    /// Pushes a widget and ratio onto the end of the stack.
+    pub fn push(&mut self, widget: W, ratio: u8) {
+        self.contents.push(Entry::new(widget, ratio));
+    }
+
     /// Extends the stack with the given iterable of widget/ratio pairs.
     pub fn extend(&mut self, widgets: impl IntoIterator<Item = (W, u8)>) {
         self.contents.extend(
