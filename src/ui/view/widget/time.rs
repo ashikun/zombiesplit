@@ -19,7 +19,7 @@ use std::{
 #[derive(Debug, Default, Clone)]
 pub struct Layout {
     /// Bounding box of the layout.
-    rect: Rect,
+    bounds: Rect,
 
     /// Font used for the time display.
     pub font_id: font::Id,
@@ -44,8 +44,12 @@ impl layout::Layoutable for Layout {
         }
     }
 
+    fn actual_bounds(&self) -> Size {
+        self.bounds.size
+    }
+
     fn layout(&mut self, ctx: layout::Context) {
-        self.rect = ctx.bounds;
+        self.bounds = ctx.bounds;
 
         self.update_positions(ctx);
     }
@@ -55,7 +59,7 @@ impl Layout {
     fn update_positions(&mut self, ctx: layout::Context) {
         let fm = &ctx.font_metrics[self.font_id];
 
-        let mut point = self.rect.top_left;
+        let mut point = self.bounds.top_left;
 
         self.positions.clear();
 
@@ -88,7 +92,7 @@ impl Layout {
     ) -> Result<()> {
         let mut w = Writer::new(r).with_font_id(self.font_id);
 
-        try_fill(&mut w, self.rect, colour.base)?;
+        try_fill(&mut w, self.bounds, colour.base)?;
 
         for pos in &self.positions {
             w = w.with_pos(pos.rect.top_left);

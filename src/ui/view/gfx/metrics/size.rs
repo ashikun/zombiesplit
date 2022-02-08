@@ -66,14 +66,4 @@ impl Size {
             h: self.h.max(other.h),
         }
     }
-
-    /// Merges multiple `sizes` into one using `f`, which should be one of `stack_horizontally` or
-    /// `stack_vertically`.
-    #[must_use]
-    pub fn stack_many(
-        sizes: impl IntoIterator<Item = Self>,
-        f: impl Fn(Self, Self) -> Self,
-    ) -> Self {
-        sizes.into_iter().reduce(f).unwrap_or_default()
-    }
 }

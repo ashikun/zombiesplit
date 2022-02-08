@@ -2,11 +2,13 @@
 use serde::{Deserialize, Serialize};
 
 pub mod anchor;
+pub mod axis;
 pub mod point;
 pub mod rect;
 pub mod size;
 
 pub use anchor::Anchor;
+pub use axis::Axis;
 pub use point::Point;
 pub use rect::Rect;
 pub use size::{Length, Size};

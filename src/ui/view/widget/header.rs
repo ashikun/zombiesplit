@@ -11,7 +11,10 @@ use super::{
 
 /// Views information about the run in the form of a header.
 pub struct Widget {
-    /// The bounding box for the header widget.
+    /// The outer bounding box for the header widget.
+    bounds: metrics::Rect,
+
+    /// The effective (padded) bounding box for the header widget.
     rect: metrics::Rect,
 
     /// The game label.
@@ -27,11 +30,14 @@ pub struct Widget {
 impl Default for Widget {
     fn default() -> Self {
         Self {
+            bounds: metrics::Rect::default(),
             rect: metrics::Rect::default(),
-            name: Label::new(HEADER_FONT_SPEC, 0, metrics::anchor::X::Left),
-            category: Label::new(CATEGORY_FONT_SPEC, 0, metrics::anchor::X::Left),
+            name: Label::new(HEADER_FONT_SPEC),
+            category: Label::new(CATEGORY_FONT_SPEC),
             // TODO(@MattWindsor91): attempts spec != category spec
-            attempts: Label::new(CATEGORY_FONT_SPEC, 3, metrics::anchor::X::Right),
+            attempts: Label::new(CATEGORY_FONT_SPEC)
+                .min_chars(3)
+                .align(metrics::anchor::X::Right),
         }
     }
 }
@@ -50,7 +56,12 @@ impl layout::Layoutable for Widget {
         .grow(2 * parent_ctx.config.window.padding)
     }
 
+    fn actual_bounds(&self) -> metrics::Size {
+        self.bounds.size
+    }
+
     fn layout(&mut self, ctx: layout::Context) {
+        self.bounds = ctx.bounds;
         self.rect = ctx.padded().bounds;
 
         // TODO(@MattWindsor91): common pattern, abstract.

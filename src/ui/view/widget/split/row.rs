@@ -20,7 +20,9 @@ use super::super::{
 /// Contains all state useful to draw one split.
 #[derive(Clone)]
 pub struct Row {
-    /// Bounding box used for the widget.
+    /// Outer bounding box used for the widget.
+    bounds: Rect,
+    /// Inner, padded, bounding box used for the widget.
     rect: Rect,
     /// The name label.
     name: Label,
@@ -33,6 +35,7 @@ pub struct Row {
 impl Default for Row {
     fn default() -> Self {
         Self {
+            bounds: Rect::default(),
             rect: Rect::default(),
             name: Label::new(NAME_FONT_SPEC).min_chars(NAME_MIN_CHARS),
             attempt_count_top_left: Point::default(),
@@ -59,7 +62,12 @@ impl Layoutable for Row {
         .grow(2 * parent_ctx.config.window.padding)
     }
 
+    fn actual_bounds(&self) -> Size {
+        self.bounds.size
+    }
+
     fn layout(&mut self, ctx: layout::Context) {
+        self.bounds = ctx.bounds;
         self.rect = ctx.padded().bounds;
 
         let name_rect = self.name_rect(ctx);

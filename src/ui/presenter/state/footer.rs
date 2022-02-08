@@ -58,11 +58,19 @@ pub enum RowType {
 /// Produces the label names for each row type.
 impl Display for RowType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str(match self {
-            RowType::Total => "Total",
-            RowType::Comparison => "Comparison",
-            RowType::UpToCursor => "Up to cursor",
-            RowType::SumOfBest => "Sum of best",
-        })
+        f.write_str(self.label())
+    }
+}
+
+impl RowType {
+    /// Gets the label associated with this row type.
+    #[must_use]
+    pub const fn label(&self) -> &'static str {
+        match self {
+            Self::Total => "Total",
+            Self::Comparison => "Comparison",
+            Self::UpToCursor => "Up to cursor",
+            Self::SumOfBest => "Sum of best",
+        }
     }
 }

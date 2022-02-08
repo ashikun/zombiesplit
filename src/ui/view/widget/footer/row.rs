@@ -9,10 +9,13 @@ use super::super::{
     time, Label, Widget,
 };
 use crate::model::timing::comparison;
+use crate::ui::view::gfx::metrics::Size;
 use std::borrow::Cow;
 
 /// Sub-widget for a row in the footer.
 pub struct Row {
+    bounds: metrics::Rect,
+
     /// The type of row being shown here.
     row_type: footer::RowType,
 
@@ -28,6 +31,7 @@ impl Row {
         let mut time = time::Layout::default();
         time.font_id = layout.font;
         Self {
+            bounds: metrics::Rect::default(),
             row_type: layout.contents,
             label: Label::new(font::Spec::default()),
             time,
@@ -56,7 +60,13 @@ impl layout::Layoutable for Row {
         metrics::Size::stack_horizontally(label_size(parent_ctx), self.time.min_bounds(parent_ctx))
     }
 
+    fn actual_bounds(&self) -> Size {
+        self.bounds.size
+    }
+
     fn layout(&mut self, ctx: layout::Context) {
+        self.bounds = ctx.bounds;
+
         self.label.layout(ctx);
 
         let time_rect = ctx

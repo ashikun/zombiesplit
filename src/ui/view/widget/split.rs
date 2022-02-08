@@ -14,7 +14,9 @@ use super::super::{
 /// The split viewer widget.
 #[derive(Default)]
 pub struct Widget {
-    /// The bounding box used for the widget.
+    /// The outer bounding box used for the widget.
+    bounds: Rect,
+    /// The inner, padded, bounding box used for the widget.
     rect: Rect,
     /// The split drawer set, containing enough drawers for one layout.
     rows: Vec<row::Row>,
@@ -27,7 +29,13 @@ impl Layoutable for Widget {
         Size::default()
     }
 
+    fn actual_bounds(&self) -> Size {
+        self.bounds.size
+    }
+
     fn layout(&mut self, ctx: layout::Context) {
+        self.bounds = ctx.bounds;
+
         let ctx = ctx.padded();
         self.rect = ctx.bounds;
         self.rows = rows(ctx);

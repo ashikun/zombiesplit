@@ -1,5 +1,6 @@
 //! The split total widget.
 
+use crate::ui::view::gfx::metrics::Size;
 use row::Row;
 
 use super::{
@@ -14,34 +15,34 @@ mod row;
 
 /// The footer widget.
 pub struct Footer {
-    /// The bounding box for the footer widget.
+    /// The outer bounding box for the footer widget.
+    bounds: metrics::Rect,
+
+    /// The padded inner box for the footer widget.
     rect: metrics::Rect,
+
     /// The rows configured into this Footer.
-    rows: Vec<Row>,
+    rows: super::stack::Stack<Row>,
 }
 
 impl layout::Layoutable for Footer {
     fn min_bounds(&self, parent_ctx: layout::Context) -> metrics::Size {
-        metrics::Size::stack_many(
-            self.rows
-                .iter()
-                .map(|x| layout::Layoutable::min_bounds(x, parent_ctx)),
-            metrics::Size::stack_vertically,
-        )
-        .grow(2 * parent_ctx.config.window.padding)
+        self.rows
+            .min_bounds(parent_ctx)
+            .grow(2 * parent_ctx.config.window.padding)
+    }
+
+    fn actual_bounds(&self) -> Size {
+        self.bounds.size
     }
 
     fn layout(&mut self, ctx: layout::Context) {
-        self.rect = ctx.padded().bounds;
+        self.bounds = ctx.bounds;
 
-        let w = self.rect.size.w;
-        let mut top_left = self.rect.top_left;
-        for row in &mut self.rows {
-            let h = row.min_bounds(ctx).h;
-            let row_rect = top_left.to_rect(metrics::Size { w, h }, metrics::Anchor::TOP_LEFT);
-            row.layout(ctx.with_bounds(row_rect));
-            top_left.offset_mut(0, h);
-        }
+        let ctx = ctx.padded();
+        self.rect = ctx.bounds;
+
+        self.rows.layout(ctx);
     }
 }
 
@@ -49,10 +50,7 @@ impl<R: Renderer> super::Widget<R> for Footer {
     type State = state::Footer;
 
     fn render(&self, r: &mut R, s: &Self::State) -> gfx::Result<()> {
-        for row in &self.rows {
-            row.render(r, s)?;
-        }
-        Ok(())
+        self.rows.render(r, s)
     }
 }
 
@@ -60,9 +58,13 @@ impl Footer {
     /// Constructs a new footer widget.
     #[must_use]
     pub fn new(cfg: &super::super::config::layout::Footer) -> Self {
+        let mut rows = super::Stack::new(metrics::Axis::Vertical);
+        rows.extend(cfg.rows.iter().map(|x| (Row::new(x), 0)));
+
         Self {
+            bounds: metrics::Rect::default(),
             rect: metrics::Rect::default(),
-            rows: cfg.rows.iter().map(Row::new).collect(),
+            rows,
         }
     }
 }

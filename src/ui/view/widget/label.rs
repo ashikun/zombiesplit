@@ -18,7 +18,7 @@ use std::fmt::Write;
 #[derive(Clone)]
 pub struct Label {
     /// The most recently computed bounding box for the label.
-    rect: Rect,
+    bounds: Rect,
 
     /// The font spec for the label.
     pub font_spec: font::Spec,
@@ -35,7 +35,7 @@ impl Label {
     #[must_use]
     pub fn new(font_spec: font::Spec) -> Self {
         Self {
-            rect: Rect::default(),
+            bounds: Rect::default(),
             font_spec,
             min_chars: 0,
             align: anchor::X::Left,
@@ -71,7 +71,7 @@ impl Label {
     }
 
     fn writer_pos(&self) -> Point {
-        self.rect.anchor(anchor::Anchor {
+        self.bounds.anchor(anchor::Anchor {
             x: self.align,
             y: anchor::Y::Top,
         })
@@ -89,8 +89,12 @@ impl Layoutable for Label {
         parent_ctx.font_metrics[self.font_spec.id].text_size(i32::from(self.min_chars), 1)
     }
 
+    fn actual_bounds(&self) -> Size {
+        self.bounds.size
+    }
+
     fn layout(&mut self, ctx: Context) {
-        self.rect = ctx.bounds;
+        self.bounds = ctx.bounds;
     }
 }
 
