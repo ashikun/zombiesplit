@@ -19,7 +19,7 @@ pub struct Size {
 impl Size {
     /// Grows the size in both dimensions by `amount`.
     ///
-    /// To shrink, grow by a negative amount.
+    /// To shrink, grow by a negative amount.  Neither dimension will shrink past 0.
     ///
     /// ```
     /// use zombiesplit::ui::view::gfx::metrics::Size;
@@ -30,8 +30,8 @@ impl Size {
     #[must_use]
     pub fn grow(self, amount: Length) -> Self {
         Self {
-            w: self.w + amount,
-            h: self.h + amount,
+            w: (self.w + amount).max(0),
+            h: (self.h + amount).max(0),
         }
     }
 
@@ -65,5 +65,16 @@ impl Size {
             w: self.w + other.w,
             h: self.h.max(other.h),
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    /// Sizes must not be made negative by growing them by negative amounts.
+    #[test]
+    fn grow_negative_clamp() {
+        assert_eq!(Size::default(), Size::default().grow(-1));
     }
 }

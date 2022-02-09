@@ -50,7 +50,11 @@ impl<W: Layoutable> Layoutable for Stack<W> {
 
             let mut top_left = self.bounds.top_left;
             for entry in except_last {
-                let allocation = entry.allocation(length_per_ratio, self.orientation);
+                // 'axis' comes into this calculation because we might have run out of allocation
+                // midway through the stack, even though we have some non-flexible elements left.
+                let allocation = entry
+                    .allocation(length_per_ratio, self.orientation)
+                    .clamp(0, axis);
 
                 let size = self.orientation.size(allocation, perp_axis);
                 entry
@@ -58,6 +62,7 @@ impl<W: Layoutable> Layoutable for Stack<W> {
                     .layout(ctx.with_bounds(metrics::Rect { top_left, size }));
 
                 axis -= allocation;
+                assert!(0 <= axis, "axis should never become negative");
                 top_left[self.orientation] += allocation;
             }
 
