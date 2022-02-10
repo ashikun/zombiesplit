@@ -57,9 +57,7 @@ impl<W: Layoutable> Layoutable for Stack<W> {
                     .clamp(0, axis);
 
                 let size = self.orientation.size(allocation, perp_axis);
-                entry
-                    .widget
-                    .layout(ctx.with_bounds(metrics::Rect { top_left, size }));
+                entry.layout(ctx.with_bounds(metrics::Rect { top_left, size }));
 
                 axis -= allocation;
                 assert!(0 <= axis, "axis should never become negative");
@@ -68,8 +66,7 @@ impl<W: Layoutable> Layoutable for Stack<W> {
 
             // Fill the rest of the stack with the remaining allocation.
             let size = self.orientation.size(axis.max(0), perp_axis);
-            last.widget
-                .layout(ctx.with_bounds(metrics::Rect { top_left, size }));
+            last.layout(ctx.with_bounds(metrics::Rect { top_left, size }));
         }
     }
 }
@@ -82,7 +79,7 @@ impl<R, S, W: Widget<R, State = S>> Widget<R> for Stack<W> {
 
     fn render(&self, r: &mut R, s: &Self::State) -> crate::ui::view::gfx::Result<()> {
         for c in &self.contents {
-            if 0 < c.widget.actual_bounds()[self.orientation] {
+            if c.visible {
                 c.widget.render(r, s)?;
             }
         }
@@ -162,6 +159,8 @@ struct Entry<W> {
     min_bounds: metrics::Size,
     /// The widget's ratio.
     ratio: u8,
+    /// Whether the widget is visible.
+    visible: bool,
 }
 
 impl<W> Entry<W> {
@@ -170,6 +169,7 @@ impl<W> Entry<W> {
             widget,
             ratio,
             min_bounds: metrics::Size::default(),
+            visible: false,
         }
     }
 }
@@ -185,5 +185,10 @@ impl<W: Layoutable> Entry<W> {
         } else {
             metrics::Length::from(self.ratio) * gap_per_ratio
         }
+    }
+
+    fn layout(&mut self, ctx: layout::Context) {
+        self.widget.layout(ctx);
+        self.visible = self.widget.actual_bounds().is_zero();
     }
 }

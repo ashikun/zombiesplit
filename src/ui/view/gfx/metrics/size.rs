@@ -66,6 +66,20 @@ impl Size {
             h: self.h.max(other.h),
         }
     }
+
+    /// Gets whether either dimension of this size is zero.
+    ///
+    /// ```
+    /// use zombiesplit::ui::view::gfx::metrics::Size;
+    ///
+    /// assert!(Size{w: 0, h: 10}.is_zero());
+    /// assert!(Size{w: 10, h: 0}.is_zero());
+    /// assert!(!Size{w: 10, h: 10}.is_zero());
+    /// ```
+    #[must_use]
+    pub const fn is_zero(&self) -> bool {
+        self.h <= 0 || self.w <= 0
+    }
 }
 
 #[cfg(test)]
