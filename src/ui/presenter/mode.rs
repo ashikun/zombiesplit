@@ -5,6 +5,7 @@ pub mod nav;
 
 pub use editor::Editor;
 pub use nav::Nav;
+use std::fmt::{Display, Formatter};
 
 use super::{event, State};
 use crate::model::attempt::Action;
@@ -20,7 +21,10 @@ use crate::model::attempt::Action;
 ///   model or transitions to other modes;
 /// - modify the presenter's visual state;
 /// - retain their own state, such as a split editor or a cursor.
-pub trait Mode {
+///
+/// They can also be `Display`ed; this should show a condensed form of the mode to fit within eg.
+/// a status bar.
+pub trait Mode: Display {
     /// Called when the mode has been swapped in.
     ///
     /// The [Mode] can perform any initialisation on the visual `state` here.
@@ -51,6 +55,12 @@ pub trait Mode {
 
 /// Mode for when we are quitting.
 pub struct Quitting;
+
+impl Display for Quitting {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str("quit")
+    }
+}
 
 impl Mode for Quitting {
     fn on_entry(&mut self, _state: &mut State) {}

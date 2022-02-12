@@ -31,6 +31,9 @@ pub struct State {
     /// Information about the game and category being played.
     pub game_category: category::Info,
 
+    /// Stringified name of the current mode.
+    pub mode: String,
+
     /// State for the splits being displayed in the UI.
     splits: split::Set,
 
@@ -55,6 +58,12 @@ impl State {
     #[must_use]
     pub fn cursor_position(&self) -> usize {
         self.cursor.position()
+    }
+
+    /// Gets the total number of splits in the state.
+    #[must_use]
+    pub fn num_splits(&self) -> usize {
+        self.splits.len()
     }
 
     /// Moves the cursor in the direction of `m` `multiplier` times.

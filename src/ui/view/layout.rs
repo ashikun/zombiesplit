@@ -52,4 +52,10 @@ impl<'m> Context<'m> {
     pub fn padded(self) -> Self {
         self.with_bounds(self.bounds.grow(-self.config.window.padding))
     }
+
+    /// Applies the configured padding amount to `size`.
+    #[must_use]
+    pub fn pad_size(&self, size: metrics::Size) -> metrics::Size {
+        size.grow(self.config.window.padding * 2)
+    }
 }

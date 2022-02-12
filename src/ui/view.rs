@@ -1,6 +1,6 @@
 //! The visual portion of the zombiesplit user interface.
 use layout::Layoutable;
-use widget::{root, Widget};
+use widget::{Root, Widget};
 
 use super::{presenter, Result};
 
@@ -22,7 +22,7 @@ pub struct View<'c, R> {
     /// The renderer to use for the view.
     renderer: R,
     /// The root widget of the user interface.
-    root: root::Root,
+    root: Root,
     /// The user layout configuration.
     config: &'c config::Layout,
 }
@@ -33,7 +33,7 @@ impl<'c, R: Renderer> View<'c, R> {
     pub fn new(renderer: R, config: &'c config::layout::Layout) -> Self {
         let mut result = Self {
             renderer,
-            root: root::Root::new(&config.widgets),
+            root: Root::new(&config.widgets),
             config,
         };
         result.layout_root(config.window.win_size());

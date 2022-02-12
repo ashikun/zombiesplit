@@ -49,7 +49,12 @@ impl<T> IntoIterator for Map<T> {
     type IntoIter = std::vec::IntoIter<Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
-        vec![(Id::Small, self.small), (Id::Medium, self.medium), (Id::Large, self.large)].into_iter()
+        vec![
+            (Id::Small, self.small),
+            (Id::Medium, self.medium),
+            (Id::Large, self.large),
+        ]
+        .into_iter()
     }
 }
 
@@ -157,7 +162,7 @@ impl Default for Id {
 impl Id {
     /// Constructs a `Spec` with this `Id` and the given `colour`.
     #[must_use]
-    pub fn coloured(self, colour: super::super::colour::fg::Id) -> Spec {
+    pub const fn coloured(self, colour: super::super::colour::fg::Id) -> Spec {
         Spec { id: self, colour }
     }
 

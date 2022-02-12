@@ -24,6 +24,16 @@ pub struct Editor {
     pub index: usize,
 }
 
+impl Display for Editor {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        if let Some(fld) = self.field.as_ref() {
+            write!(f, "edit[{}]", fld.position)
+        } else {
+            f.write_str("edit")
+        }
+    }
+}
+
 impl Mode for Editor {
     fn on_entry(&mut self, state: &mut State) {
         state.set_editor(self.index, Some(self));

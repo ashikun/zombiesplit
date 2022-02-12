@@ -44,7 +44,7 @@ impl<'h, H: Handler> Presenter<'h, H> {
     pub fn new(action_handler: &'h mut H) -> Self {
         Self {
             mode: Box::new(mode::Nav),
-            state: state::State::default(),
+            state: initial_state(),
             action_handler,
         }
     }
@@ -68,6 +68,13 @@ impl<'h, H: Handler> Presenter<'h, H> {
         if let Some(a) = self.handle_local_event(e) {
             self.action_handler.handle(a);
         }
+        // This is slightly inefficient, as we don't always change the mode when an event happens.
+        self.update_mode_line();
+    }
+
+    /// Updates the state's representation of which mode the presenter is in.
+    fn update_mode_line(&mut self) {
+        self.state.mode = self.mode.to_string();
     }
 
     fn handle_local_event(&mut self, e: &event::Event) -> Option<Action> {
@@ -114,7 +121,7 @@ impl<'h, H: Handler> Presenter<'h, H> {
         self.state.handle_event(ev);
     }
 
-    /// Observes `evt` on the presenter
+    /// Observes `evt` on the presenter.
     fn observe_locally(&mut self, ev: &observer::Event) {
         match ev {
             observer::Event::Split(short, ev) => self.observe_split(*short, ev),
@@ -154,6 +161,12 @@ impl<'h, H: Handler> Presenter<'h, H> {
         self.mode = new_mode;
         self.mode.on_entry(&mut self.state);
     }
+}
+
+fn initial_state() -> State {
+    let mut s = State::default();
+    s.mode = "Welcome to zombiesplit!".to_string();
+    s
 }
 
 /// Used to feed events from an `Observer` into a `Presenter`.

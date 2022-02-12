@@ -8,21 +8,24 @@ use super::{gfx, layout};
 
 mod footer;
 mod header;
-pub mod label;
-pub mod root;
+mod label;
+mod root;
 mod split;
-pub mod stack;
+mod stack;
+mod status;
 mod time;
 
+pub use footer::Footer;
 pub use label::Label;
 pub use root::Root;
 pub use stack::Stack;
+pub use status::Status;
 
 /// Trait for things that can render information from a presenter.
 pub trait Widget<R: ?Sized>: super::layout::Layoutable {
     /// Type of state that this widget accepts.
     type State: ?Sized;
 
-    /// Renders the widget.
+    /// Renders the widget onto `r`.
     fn render(&self, r: &mut R, s: &Self::State) -> gfx::Result<()>;
 }

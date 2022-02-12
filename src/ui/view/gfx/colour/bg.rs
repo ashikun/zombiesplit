@@ -12,6 +12,8 @@ pub enum Id {
     Editor,
     /// The field editor colour.
     FieldEditor,
+    /// The status bar background colour.
+    Status,
 }
 
 /// A set of background colours.
@@ -24,6 +26,8 @@ pub struct Set {
     pub editor: Colour,
     /// Background for the field editor.
     pub editor_field: Colour,
+    /// Background for the status bar.
+    pub status: Colour,
 }
 
 /// Provides default background colours.
@@ -33,6 +37,7 @@ impl Default for Set {
             window: EGA.dark.black,
             editor: EGA.dark.blue,
             editor_field: EGA.dark.cyan,
+            status: EGA.dark.white,
         }
     }
 }
@@ -45,6 +50,7 @@ impl Set {
             Id::Window => self.window,
             Id::Editor => self.editor,
             Id::FieldEditor => self.editor_field,
+            Id::Status => self.status,
         }
     }
 }

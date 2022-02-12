@@ -25,6 +25,8 @@ pub enum Id {
     SplitInRunPace(pace::SplitInRun),
     /// A pacing colour.
     Pace(pace::Pace),
+    /// Foreground text for the status bar.
+    Status,
 }
 
 /// There is a default foreground colour, `Normal`.
@@ -58,6 +60,9 @@ pub struct Set {
 
     /// Foreground text for times with an associated pace.
     pub pace: Pace,
+
+    /// Foreground text for the status bar.
+    pub status: Colour,
 }
 
 impl Set {
@@ -72,6 +77,7 @@ impl Set {
             Id::Pace(pace) => self.pace[pace],
             Id::Editor => self.editor,
             Id::FieldEditor => self.editor_field,
+            Id::Status => self.status,
         }
     }
 
@@ -95,6 +101,7 @@ impl Default for Set {
             done: EGA.bright.black,
             normal: EGA.dark.white,
             cursor: EGA.bright.magenta,
+            status: EGA.dark.black,
             pace: Pace::default(),
         }
     }

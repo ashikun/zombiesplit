@@ -10,7 +10,7 @@ use super::{
         gfx,
         layout::{self, Layoutable},
     },
-    footer, header, split, Widget,
+    header, split, Footer, Status, Widget,
 };
 
 /// The root widget.
@@ -45,7 +45,8 @@ impl Root {
         let mut stack = super::Stack::new(gfx::metrics::Axis::Vertical);
         stack.push(Component::Header(header::Widget::default()), 0);
         stack.push(Component::Splitset(split::Widget::default()), 1);
-        stack.push(Component::Footer(footer::Footer::new(&cfg.footer)), 0);
+        stack.push(Component::Footer(Footer::new(&cfg.footer)), 0);
+        stack.push(Component::Status(Status::default()), 0);
         Self(stack)
     }
 }
@@ -58,8 +59,10 @@ enum Component {
     Header(header::Widget),
     /// Represents the splitset widget.
     Splitset(split::Widget),
+    /// Represents the footer widget.
+    Footer(Footer),
     /// Represents the status widget.
-    Footer(footer::Footer),
+    Status(Status),
 }
 
 impl Layoutable for Component {
@@ -68,6 +71,7 @@ impl Layoutable for Component {
             Self::Header(h) => h.min_bounds(parent_ctx),
             Self::Splitset(s) => s.min_bounds(parent_ctx),
             Self::Footer(f) => f.min_bounds(parent_ctx),
+            Self::Status(t) => t.min_bounds(parent_ctx),
         }
     }
 
@@ -76,6 +80,7 @@ impl Layoutable for Component {
             Self::Header(h) => h.actual_bounds(),
             Self::Splitset(s) => s.actual_bounds(),
             Self::Footer(f) => f.actual_bounds(),
+            Self::Status(t) => t.actual_bounds(),
         }
     }
 
@@ -84,6 +89,7 @@ impl Layoutable for Component {
             Self::Header(h) => h.layout(ctx),
             Self::Splitset(s) => s.layout(ctx),
             Self::Footer(f) => f.layout(ctx),
+            Self::Status(t) => t.layout(ctx),
         }
     }
 }
@@ -96,6 +102,7 @@ impl<R: gfx::Renderer> Widget<R> for Component {
             Self::Header(h) => h.render(r, state),
             Self::Splitset(s) => s.render(r, state),
             Self::Footer(f) => f.render(r, &state.footer),
+            Self::Status(t) => t.render(r, state),
         }
     }
 }

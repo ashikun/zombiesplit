@@ -2,6 +2,7 @@
 
 use crate::model::attempt::Action;
 use crate::model::timing::time;
+use std::fmt::{Display, Formatter};
 
 use super::{
     super::state::{cursor, State},
@@ -12,6 +13,12 @@ use super::{
 
 /// Mode for when we are navigating splits.
 pub struct Nav;
+
+impl Display for Nav {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str("normal")
+    }
+}
 
 impl Mode for Nav {
     fn on_entry(&mut self, _state: &mut State) {}

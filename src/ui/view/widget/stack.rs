@@ -78,12 +78,7 @@ impl<R, S, W: Widget<R, State = S>> Widget<R> for Stack<W> {
     type State = S;
 
     fn render(&self, r: &mut R, s: &Self::State) -> crate::ui::view::gfx::Result<()> {
-        for c in &self.contents {
-            if c.visible {
-                c.widget.render(r, s)?;
-            }
-        }
-        Ok(())
+        self.contents.iter().try_for_each(|c| c.render(r, s))
     }
 }
 
@@ -176,7 +171,7 @@ impl<W> Entry<W> {
 
 impl<W: Layoutable> Entry<W> {
     fn compute_min_bounds(&mut self, ctx: layout::Context) {
-        self.min_bounds = self.widget.min_bounds(ctx);
+        self.min_bounds = self.min_bounds(ctx);
     }
 
     fn allocation(&self, gap_per_ratio: i32, axis: metrics::Axis) -> metrics::Length {
@@ -186,9 +181,32 @@ impl<W: Layoutable> Entry<W> {
             metrics::Length::from(self.ratio) * gap_per_ratio
         }
     }
+}
+
+/// Delegates to the actual bounds of the entry.
+impl<W: Layoutable> Layoutable for Entry<W> {
+    fn min_bounds(&self, parent_ctx: layout::Context) -> metrics::Size {
+        self.widget.min_bounds(parent_ctx)
+    }
+
+    fn actual_bounds(&self) -> metrics::Size {
+        self.widget.actual_bounds()
+    }
 
     fn layout(&mut self, ctx: layout::Context) {
         self.widget.layout(ctx);
-        self.visible = self.widget.actual_bounds().is_zero();
+        self.visible = !self.actual_bounds().is_zero();
+    }
+}
+
+/// Entries are widgets, distributing rendering to their embedded widget.
+impl<R, S, W: Widget<R, State = S>> Widget<R> for Entry<W> {
+    type State = S;
+
+    fn render(&self, r: &mut R, s: &Self::State) -> crate::ui::view::gfx::Result<()> {
+        if self.visible {
+            self.widget.render(r, s)?;
+        }
+        Ok(())
     }
 }
