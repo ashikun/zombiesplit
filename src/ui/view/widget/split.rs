@@ -10,6 +10,7 @@ use super::super::{
     },
     layout::{self, Layoutable},
 };
+use num_integer::Integer;
 
 /// The split viewer widget.
 #[derive(Default)]
@@ -46,7 +47,9 @@ impl<R: Renderer> super::Widget<R> for Widget {
     type State = State;
 
     fn render(&self, r: &mut R, s: &Self::State) -> Result<()> {
-        for (i, row) in self.rows.iter().enumerate() {
+        let iter = SplitIndexIter::new(self.rows.len(), s.num_splits(), s.cursor_position());
+
+        for (i, row) in iter.zip(self.rows.iter()) {
             // TODO(@MattWindsor91): calculate scroll point
             if let Some(split) = s.split_at_index(i) {
                 row.render(r, split)?;
@@ -83,5 +86,62 @@ fn row_bounds(ctx: layout::Context, split_h: Length, ix: Length) -> Rect {
             w: ctx.bounds.size.w,
             h: split_h,
         },
+    }
+}
+
+/// Iterator producing the raw split indices to fit into split rows.
+struct SplitIndexIter {
+    num_slots: usize,
+    num_splits: usize,
+    cur_split: usize,
+    cursor: usize,
+}
+
+impl Iterator for SplitIndexIter {
+    type Item = usize;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // Have we run out of splits?
+        if self.num_splits <= self.cur_split {
+            None
+        } else {
+            if self.cur_split == 0 && self.num_slots < self.num_splits {
+                self.cur_split = self.first_windowed_split();
+            }
+
+            let index = self.cur_split;
+            self.cur_split += 1;
+            Some(index)
+        }
+    }
+}
+
+impl SplitIndexIter {
+    #[must_use]
+    pub fn new(num_slots: usize, num_splits: usize, cursor: usize) -> Self {
+        // We can't provide more slots than we have splits!
+        let num_slots = num_slots.min(num_splits);
+        Self {
+            num_slots,
+            num_splits,
+            cursor,
+            cur_split: 0,
+        }
+    }
+
+    fn first_windowed_split(&self) -> usize {
+        // Find out where we want to put our cursor.
+        // Ideally, we want to have the cursor be halfway through the slots.
+        // We floor to avoid the possibility of a 1-slot scroll not showing the cursor.
+        let ideal_cursor_slot = self.num_slots.div_floor(&2);
+
+        // This means that our first approximation of the first split is that many slots
+        // above the cursor.  A saturating subtraction means that, if the cursor is on the
+        // first few slots, it will progressively move up to the top of the splits.
+        let split = self.cursor.saturating_sub(ideal_cursor_slot);
+
+        // Nudge the first split down to make sure that we fill all of the available slots.
+        let gap = (split + self.num_slots).saturating_sub(self.num_splits);
+        split.saturating_sub(gap)
     }
 }
