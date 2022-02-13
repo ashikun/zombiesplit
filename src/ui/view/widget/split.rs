@@ -50,7 +50,6 @@ impl<R: Renderer> super::Widget<R> for Widget {
         let iter = SplitIndexIter::new(self.rows.len(), s.num_splits(), s.cursor_position());
 
         for (i, row) in iter.zip(self.rows.iter()) {
-            // TODO(@MattWindsor91): calculate scroll point
             if let Some(split) = s.split_at_index(i) {
                 row.render(r, split)?;
             }
@@ -105,7 +104,7 @@ impl Iterator for SplitIndexIter {
         if self.num_splits <= self.cur_split {
             None
         } else {
-            if self.cur_split == 0 && self.num_slots < self.num_splits {
+            if self.need_windowing() {
                 self.cur_split = self.first_windowed_split();
             }
 
@@ -143,5 +142,9 @@ impl SplitIndexIter {
         // Nudge the first split down to make sure that we fill all of the available slots.
         let gap = (split + self.num_slots).saturating_sub(self.num_splits);
         split.saturating_sub(gap)
+    }
+
+    fn need_windowing(&self) -> bool {
+        self.cur_split == 0 && self.num_slots < self.num_splits
     }
 }
