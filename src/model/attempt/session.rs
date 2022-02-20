@@ -1,16 +1,17 @@
 //! The [Session] type and related code.
 
-use crate::model::timing::comparison::{pace, provider, Comparison};
-
 use super::{
     super::{
-        game::category,
-        history,
-        timing::{aggregate, Time},
+        game::category::Info,
+        timing::{
+            aggregate,
+            comparison::{pace, provider, Comparison},
+            Time,
+        },
     },
     action,
     observer::{self, split::Observer as SO, time::Observer as TO, Event},
-    split, Observer, Run,
+    sink, split, Observer, Run,
 };
 
 /// Holds all data for an attempt session.
@@ -22,8 +23,6 @@ use super::{
 /// about the run's progress, and a comparison provider.  The latter feeds into
 /// the session's lifetime.
 pub struct Session<'cmp, 'obs, O> {
-    /// Metadata for the game/category currently being run.
-    pub metadata: category::Info,
     /// The current run.
     run: Run,
     /// Comparison data for the game/category currently being run.
@@ -32,6 +31,14 @@ pub struct Session<'cmp, 'obs, O> {
     observer: &'obs O,
     /// The function for timestamping outgoing runs.
     timestamper: fn() -> chrono::DateTime<chrono::Utc>,
+
+    //
+    // Integrations with the historical model
+    //
+
+    // TODO(@MattWindsor91): refactor those into a separate struct?
+    /// The sink attached to the session, for emitting saved runs.
+    sink: Box<dyn sink::Sink>,
     /// The comparison provider.
     comparator: Box<dyn provider::Provider + 'cmp>,
 }
@@ -48,18 +55,24 @@ impl<'cmp, 'obs, O: Observer> action::Handler for Session<'cmp, 'obs, O> {
     }
 }
 
-impl<'cmp, 'obs, O: Observer> Session<'cmp, 'obs, O> {
+impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
     /// Starts a new session with a given set of metadata and starting run.
     #[must_use]
-    pub fn new(metadata: category::Info, run: Run, observer: &'obs O) -> Self {
+    pub fn new(run: Run, observer: &'obs O) -> Self {
         Self {
-            metadata,
             run,
             comparison: Comparison::default(),
             observer,
+            sink: Box::new(sink::Null),
             timestamper: chrono::Utc::now,
             comparator: Box::new(provider::Null),
         }
+    }
+
+    /// Gets a reference to the current run's metadata.
+    #[must_use]
+    pub fn metadata(&self) -> &Info {
+        &self.run.metadata
     }
 
     /// Replaces the session's timestamper with a different function.
@@ -80,27 +93,12 @@ impl<'cmp, 'obs, O: Observer> Session<'cmp, 'obs, O> {
         self.refresh_comparison();
     }
 
-    /// Converts this session's current run, if any, to a historic run.
+    /// Replaces the session's run sink with a different one.
     ///
-    /// Returns `None` if there is no started run.
-    #[must_use]
-    pub fn run_as_historic(&self) -> Option<history::run::FullyTimed<category::ShortDescriptor>> {
-        self.run
-            .status()
-            .to_completeness()
-            .map(|c| self.run_as_historic_with_completion(c))
-    }
-
-    fn run_as_historic_with_completion(
-        &self,
-        was_completed: bool,
-    ) -> history::run::FullyTimed<category::ShortDescriptor> {
-        history::run::FullyTimed {
-            category_locator: self.metadata.short,
-            was_completed,
-            date: (self.timestamper)(),
-            timing: self.run.timing_as_historic(),
-        }
+    /// By default, the session doesn't have comparisons set up, so this will
+    /// need to be done to get comparisons working.
+    pub fn set_sink(&mut self, s: Box<dyn sink::Sink>) {
+        self.sink = s;
     }
 
     /// Asks the comparison provider for an updated comparison.
@@ -148,7 +146,7 @@ impl<'cmp, 'obs, O: Observer> Session<'cmp, 'obs, O> {
     }
 
     fn observe_reset(&self) {
-        self.observer.observe(Event::Reset(self.run_as_historic()));
+        self.observer.observe(Event::Reset);
     }
 
     fn observe_attempt(&self) {
@@ -157,7 +155,7 @@ impl<'cmp, 'obs, O: Observer> Session<'cmp, 'obs, O> {
 
     fn observe_game_category(&self) {
         self.observer
-            .observe(Event::GameCategory(self.metadata.clone()));
+            .observe(Event::GameCategory(self.run.metadata.clone()));
     }
 
     /// Observes all paces and aggregates for each split, notifying all
@@ -227,9 +225,18 @@ impl<'cmp, 'obs, O: Observer> Session<'cmp, 'obs, O> {
 
     fn reset(&mut self) {
         self.observe_reset();
+        self.send_run_to_sink();
         self.run.reset();
         self.observe_attempt();
         self.refresh_comparison();
+    }
+
+    fn send_run_to_sink(&mut self) {
+        if let Some(r) = self.run.as_historic((self.timestamper)()) {
+            if let Err(e) = self.sink.accept(r) {
+                log::warn!("couldn't save run: {e}");
+            }
+        }
     }
 
     fn clear_at(&mut self, split: impl split::Locator) {

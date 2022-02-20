@@ -8,6 +8,7 @@ use super::{
 ///
 /// To operate on an individual split, use a [Locator] to get a reference to it,
 /// and use the method on the respective [Split].
+#[derive(Debug, Clone)]
 pub struct Set {
     /// The vector itself.
     contents: Vec<Split>,

@@ -15,7 +15,7 @@ use std::path::Path;
 pub use error::{Error, Result};
 use r2d2::ManageConnection;
 use r2d2_sqlite::SqliteConnectionManager;
-pub use run::Observer;
+pub use run::Sink;
 
 use self::{
     category::{GcID, Locator},

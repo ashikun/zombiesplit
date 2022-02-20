@@ -1,20 +1,28 @@
-//! Models relating to runs.
+//! Models relating to in-progress runs.
 
 use super::split::Set;
-use crate::model::{game::category::AttemptInfo, history};
+use crate::model::{game::category, history};
+use chrono::{DateTime, Utc};
 
 /// An in-progress run.
+///
+/// The representation of an in-progress run consists of a split set and some
+/// metadata about the run itself (the game, the category, how many attempts
+/// have been made, etc).
+#[derive(Debug, Clone)]
 pub struct Run {
+    /// Metadata for the game/category currently being run.
+    pub metadata: category::Info,
     // TODO(@MattWindsor91): make this an ADT to prevent resetting of splits
     // without incrementing of attempt information.
     /// Attempt information for this run.
-    pub attempt: AttemptInfo,
+    pub attempt: category::AttemptInfo,
     /// The split data for this run.
     pub splits: Set,
 }
 
 impl Run {
-    /// Resets the run, incrementing its attempt counter.
+    /// Resets this run and all splits inside it, incrementing the attempt if necessary.
     pub fn reset(&mut self) {
         self.increment_attempt();
         self.splits.reset();
@@ -50,6 +58,33 @@ impl Run {
                 .iter()
                 .map(|s| (s.info.short, s.all_times()))
                 .collect(),
+        }
+    }
+
+    /// Converts this run, if any, to a historic run on `date`.
+    ///
+    /// Returns `None` if the run has no timing on any splits (in which case,
+    /// recording the historic run would be pointless).
+    #[must_use]
+    pub fn as_historic(
+        &self,
+        date: DateTime<Utc>,
+    ) -> Option<history::run::FullyTimed<category::ShortDescriptor>> {
+        self.status()
+            .to_completeness()
+            .map(|c| self.as_historic_with_completion(c, date))
+    }
+
+    fn as_historic_with_completion(
+        &self,
+        was_completed: bool,
+        date: DateTime<Utc>,
+    ) -> history::run::FullyTimed<category::ShortDescriptor> {
+        history::run::FullyTimed {
+            category_locator: self.metadata.short,
+            was_completed,
+            date,
+            timing: self.timing_as_historic(),
         }
     }
 }

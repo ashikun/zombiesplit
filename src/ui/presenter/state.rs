@@ -126,7 +126,7 @@ impl State {
             Event::Total(time, source) => self.set_total(time, source),
             Event::SumOfBest(time) => self.footer.sum_of_best = Some(time),
             Event::NumSplits(count) => self.set_split_count(count),
-            Event::Reset(_) => self.reset(),
+            Event::Reset => self.reset(),
             Event::Attempt(a) => self.attempt = a,
             Event::GameCategory(gc) => self.game_category = gc,
             Event::Split(short, ev) => {

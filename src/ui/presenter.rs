@@ -125,7 +125,7 @@ impl<'h, H: Handler> Presenter<'h, H> {
     fn observe_locally(&mut self, ev: &observer::Event) {
         match ev {
             observer::Event::Split(short, ev) => self.observe_split(*short, ev),
-            observer::Event::Reset(_) => self.reset(),
+            observer::Event::Reset => self.reset(),
             _ => (),
         };
     }

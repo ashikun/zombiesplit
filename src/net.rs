@@ -3,6 +3,7 @@
 zombiesplit uses a client/server separation whereby the client and server talk to each other using
 a protocol defined in `proto`.  The netcode is asynchronous and built using tokio. */
 
+#![allow(clippy::pedantic)]
 pub mod proto {
     tonic::include_proto!("zombiesplit");
 }

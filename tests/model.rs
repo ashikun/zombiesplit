@@ -86,10 +86,11 @@ fn splits() -> [Split; 3] {
 pub(crate) fn make_session<'o, O: Observer>(observer: &'o O) -> Session<'static, 'o, O> {
     let splits = splits().into_iter().collect();
     let run = Run {
+        metadata: game_category(),
         attempt: attempt_info(),
         splits,
     };
-    Session::new(game_category(), run, observer)
+    Session::new(run, observer)
 }
 
 // TODO(@MattWindsor91): possibly unify with the presenter version.

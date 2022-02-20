@@ -112,6 +112,7 @@ impl<'conn> Getter<'conn> {
     /// Propagates any errors from the database.
     pub fn run<L: Locator>(&mut self, locator: &L) -> Result<attempt::Run> {
         Ok(attempt::Run {
+            metadata: locator.locate(self)?.info,
             attempt: self.attempt_info(locator)?,
             splits: self.splits(locator)?,
         })

@@ -48,7 +48,7 @@ impl<'db> timing::comparison::provider::Provider for Inspector<'db> {
 
 impl<'db> Inspector<'db> {
     /// Initialises an attempt session for the game/category referred to by
-    /// `desc`, and with the given observer.
+    /// `desc`, and with the given observer and sink.
     ///
     /// # Errors
     ///
@@ -57,11 +57,7 @@ impl<'db> Inspector<'db> {
         &mut self,
         obs: &'obs O,
     ) -> Result<attempt::Session<'db, 'obs, O>> {
-        Ok(attempt::Session::new(
-            self.info.info.clone(),
-            self.cat.run(&self.info)?,
-            obs,
-        ))
+        Ok(attempt::Session::new(self.cat.run(&self.info)?, obs))
     }
 
     /// Gets the run for this game-category pair.

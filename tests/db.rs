@@ -2,11 +2,14 @@
 
 use std::{convert::TryFrom, ops::Add, rc::Rc};
 use tempfile::{tempdir, TempDir};
-use zombiesplit::model::attempt::Action;
 use zombiesplit::{
-    db::{Db, Observer, Reader},
+    db::{Db, Reader, Sink},
     model::{
-        attempt::{self, action::Handler},
+        attempt::{
+            self,
+            action::{Action, Handler},
+            observer,
+        },
         game::{self, category::ShortDescriptor},
         history, short, Loadable, Time,
     },
@@ -38,11 +41,15 @@ fn short_descriptor() -> ShortDescriptor {
     ShortDescriptor::new(SAMPLE_GAME_NAME, SAMPLE_CATEGORY_NAME)
 }
 
-fn init_session<'d>(handle: &'d Reader, obs: &'d Observer) -> attempt::Session<'d, 'd, Observer> {
+fn init_session(handle: &Reader, snk: Sink) -> attempt::Session<observer::Null> {
     let mut insp = handle
         .inspect(&short_descriptor())
         .expect("couldn't open category db");
-    insp.init_session(obs).expect("couldn't init session")
+    let mut ses = insp
+        .init_session(&observer::Null)
+        .expect("couldn't init session");
+    ses.set_sink(Box::new(snk));
+    ses
 }
 
 /// Tests initialising the database and getting a session out of it.
@@ -54,14 +61,13 @@ fn test_sample_session() {
     let db = Rc::new(setup_db(&game, &tdir));
     let handle = db.reader().expect("couldn't open reader");
 
-    let obs = Observer::new(db);
-    let session = init_session(&handle, &obs);
-    assert_eq!(game.name, session.metadata.game);
+    let session = init_session(&handle, Sink::new(db));
+    assert_eq!(game.name, session.metadata().game);
     assert_eq!(
         game.categories
             .get(&short::Name::from(SAMPLE_CATEGORY_NAME))
             .map(|x| x.name.to_owned()),
-        Some(session.metadata.category)
+        Some(session.metadata().category.clone())
     );
 }
 
@@ -95,8 +101,7 @@ fn test_sample_observe_run() {
     let db = Rc::new(setup_db(&game, &tdir));
     let handle = db.reader().expect("couldn't open reader");
 
-    let obs = Observer::new(db.clone());
-    let mut session = init_session(&handle, &obs);
+    let mut session = init_session(&handle, Sink::new(db.clone()));
 
     // This shouldn't insert a run.
     session.handle(Action::NewRun);

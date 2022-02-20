@@ -9,7 +9,7 @@ use super::super::game;
 pub mod set;
 
 /// A split in a run attempt.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Split {
     /// The game/category split information for this split.
     ///

@@ -2,7 +2,7 @@
 
 pub mod get;
 pub mod inserter;
-pub mod observer;
+pub mod sink;
 pub use get::Getter;
 pub use inserter::Inserter;
-pub use observer::Observer;
+pub use sink::Sink;

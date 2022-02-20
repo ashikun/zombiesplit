@@ -2,14 +2,16 @@
 
 pub mod debug;
 pub mod mux;
+mod null;
 pub mod split;
 pub mod time;
 
-use super::super::{game::category, history, short, timing};
+use super::super::{game::category, short, timing};
 use serde::{Deserialize, Serialize};
 
 pub use debug::Debug;
 pub use mux::Mux;
+pub use null::Null;
 
 /// An observer for the session.
 pub trait Observer {
@@ -33,7 +35,7 @@ pub enum Event {
     /// This SHOULD be sent before `Split` events give `Init` information about the splits.
     NumSplits(usize),
     /// Observes a run reset, with any outgoing run attached as historic.
-    Reset(Option<history::run::FullyTimed<category::ShortDescriptor>>),
+    Reset,
     /// Observes information about the attempt number of a run.
     Attempt(category::AttemptInfo),
     /// Observes information about the game being run.

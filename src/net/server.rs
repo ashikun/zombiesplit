@@ -10,8 +10,10 @@ use tokio::sync::{broadcast, mpsc};
 
 pub use error::{Error, Result};
 
-use crate::model::attempt::observer::Event;
-use crate::model::timing::comparison::provider;
+use crate::model::{
+    attempt::{observer::Event, sink},
+    timing::comparison::provider,
+};
 
 use super::super::{
     config,
@@ -35,8 +37,19 @@ mod listener;
 /// This holds the configuration and database handles that will be used by the server proper.
 pub struct Manager {
     cfg: config::Server,
-    reader: db::Reader,
 
+    //
+    // Database
+    //
+
+    // Reader for acquiring comparisons.
+    reader: db::Reader,
+    // Sink for completed runs.
+    sink: db::Sink,
+
+    //
+    // Message routing
+    //
     /// Send/receive pair for broadcasting events from the session to clients.
     /// We hold the receiver here to keep it alive.
     bcast: (
@@ -44,6 +57,9 @@ pub struct Manager {
         broadcast::Receiver<attempt::observer::Event>,
     ),
 
+    //
+    // Observers
+    //
     observers: Vec<Arc<dyn attempt::Observer>>,
     obs_mux: attempt::observer::Mux,
 }
@@ -67,7 +83,6 @@ impl Manager {
         let db = std::rc::Rc::new(db::Db::new(&cfg.db.path)?);
         let reader = db.reader()?;
 
-        let db_obs: Arc<dyn attempt::Observer> = Arc::new(db::Observer::new(db));
         let debug_obs: Arc<dyn attempt::Observer> = Arc::new(Debug);
 
         let bcast = tokio::sync::broadcast::channel(BCAST_CAPACITY);
@@ -77,7 +92,8 @@ impl Manager {
             cfg,
             reader,
             bcast,
-            observers: vec![db_obs, debug_obs, bcast_obs],
+            sink: db::Sink::new(db),
+            observers: vec![debug_obs, bcast_obs],
             obs_mux: attempt::observer::Mux::default(),
         };
 
@@ -112,9 +128,10 @@ impl Manager {
     fn session<'a, 'db>(
         &'a self,
         mut insp: Inspector<'db>,
-    ) -> Result<model::attempt::Session<'db, 'a, model::attempt::observer::Mux>> {
+    ) -> Result<attempt::Session<'db, 'a, model::attempt::observer::Mux>> {
         let mut session = insp.init_session(&self.obs_mux)?;
         session.set_comparison_provider(self.comparison_provider(insp));
+        session.set_sink(self.sink());
         Ok(session)
     }
 
@@ -123,6 +140,11 @@ impl Manager {
             config::server::comparison::Provider::Database => Box::new(insp),
             _ => Box::new(provider::Null),
         }
+    }
+
+    fn sink(&self) -> Box<dyn sink::Sink> {
+        // TODO(@MattWindsor91): let users turn off database sinking
+        Box::new(self.sink.clone())
     }
 }
 
