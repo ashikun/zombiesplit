@@ -8,6 +8,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.40"
+bytes = "1.1.0"
 chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "3", features = ["cargo", "derive"] }
 config = { version = "0.11.0", default-features = false, features = ["toml"] }
@@ -19,6 +20,8 @@ futures = "0.3.19"
 itertools = "0.10.3"
 log = { version = "0.4", features = ["serde", "std"] }
 num-integer = "0.1.44"
+prost = "0.9"
+prost-types = "0.9"
 rusqlite = { version = "0.26.3", features = ["chrono"] }
 r2d2 = "0.8.9"
 r2d2_sqlite = "0.19.0"
@@ -34,6 +37,11 @@ tokio-serde = { version = "0.8.0", features = [ "cbor" ] }
 tempfile = "3"
 thiserror = "1.0.30"
 toml = "0.5.8"
+tonic = "0.6.2"
+
+[build-dependencies]
+prost-build = "0.9"
+tonic-build = "0.6.2"
 
 [dev-dependencies]
 pretty_assertions = "1.0.0"

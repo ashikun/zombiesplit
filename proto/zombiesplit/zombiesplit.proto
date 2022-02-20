@@ -1,0 +1,183 @@
+// The zombiesplit wire protocol.
+//
+// The wire protocol is asymmetric: the requests API forms an RPC layer,
+// and the responses API is a flat messaging stream.
+syntax = "proto3";
+package zombiesplit;
+
+//
+// Request RPC
+//
+
+// Service providing actions clients can send to servers.
+service Request {
+  // Requests a state dump.
+  rpc Dump(DumpRequest) returns (DumpResponse) {}
+
+  // Starts a new run in the current session.
+  rpc NewRun(NewRunRequest) returns (NewRunResponse) {}
+
+  // Modifies a split in the current session.
+  rpc ModifySplit(ModifySplitRequest) returns (ModifySplitResponse) {}
+
+  // Requests that we begin observing.
+  rpc Observe(ObserveRequest) returns (stream Event) {}
+}
+
+//
+// Dump
+//
+
+// A dump request.
+message DumpRequest {
+  // Space for rent
+  // This may accept filters later on.
+}
+
+// A dump response.
+// Currently this does not contain any information, but eventually it will
+// contain the full dump.
+message DumpResponse {
+  // Space for rent
+}
+
+//
+// NewRun
+//
+
+// A new-run request.
+// This may accept filters later on.
+message NewRunRequest {
+  bool save = 1; // Should this run be saved to the database?
+}
+
+// A new-run response.
+message NewRunResponse {
+  // Space for rent
+}
+
+//
+// ModifySplit
+//
+
+// A request to modify a particular split.
+message ModifySplitRequest {
+  uint64 index = 1; // Index of the split.
+
+  // Types of pop modification.
+  enum PopType {
+    ONE = 0; // Pop the most recent time from this split.
+    ALL = 1; // Pop all times from the split.
+  }
+
+  // Modification being requested.
+  oneof modification {
+    uint32 push = 2; // Push this time (milliseconds) onto the split.
+    PopType pop = 3; // Remove a certain amount of times from the split.
+  }
+}
+
+// A response from a split modification.
+message ModifySplitResponse {
+  // Space for rent
+}
+
+// Message from a server to a client.
+//
+// These are streamed by the server.
+message ServerMessage {
+  oneof payload {
+    Initial initial = 1;     // An initial payload.
+    SessionInfo session = 2; // Session information.
+    Event event = 3;         // An observer event.
+  }
+}
+
+// The first message sent from a server to a client on connection.
+message Initial {
+  // Server semantic version.
+  message Version {
+    uint32 major = 1; // Major version number.
+    uint32 minor = 2; // Minor version number.
+    uint32 patch = 3; // Patch version number.
+  }
+  Version server_version = 1; // The version of the server.
+}
+
+// Information about the session that the server is running.
+//
+// At the time of writing, this will only be sent once, right after `Initial`.
+// Future versions of zsserver MAY support creating a new session midway
+// through the server lifetime, at which point clients SHOULD tear down and
+// start again as appropriate.
+message SessionInfo {
+  string game_sid = 1;      // Short identifier for the game.
+  string category_sid = 2;  // Short identifier for the category.
+  string game_name = 3;     // Full name for the game.
+  string category_name = 4; // Full name for the category.
+  // Information about a split.
+  message Split {
+    string sid = 1;  // Short identifier for the split.
+    string name = 2; // Full name for the split.
+  }
+  repeated Split split = 5; // Information about a split.
+}
+
+message ObserveRequest {
+}
+
+// An event that has occurred on the session.
+message Event {
+  // Payload of the event.
+  oneof payload {
+    SplitEvent split = 1;    // An event on a split.
+    Aggregate aggregate = 2; // An aggregate time announcement.
+  }
+}
+
+// An event on a split.
+message SplitEvent {
+  uint64 index = 1; // Index of the split.
+
+  // Payload of the event.
+  oneof payload {
+    TimeEvent time = 2; // Something happened to the split time.
+    Pace pace = 3;      // The split has been re-paced.
+    bool is_pb = 4;     // Is the split a personal best?
+  }
+}
+
+// An event on a split time.
+message TimeEvent {
+  // Enumeration of types of time event.
+  enum Type {
+    PUSHED = 0;     // This time was just added to the split.
+    POPPED = 1;     // This time was just removed from the split.
+    TOTAL = 2;      // This is the new total for the split.
+    COMPARISON = 3; // This is the new comparison for the split.
+  }
+  Type type = 1;   // The type of time event.
+  uint32 time = 2; // The time, in milliseconds.
+}
+
+// An aggregate time announcement.
+message Aggregate {
+  // Enumeration of types of aggregate.
+  enum Type {
+    ATTEMPT = 0;     // Total so far in the attempt.
+    BEST_RUN = 1;    // Sum of segments in the best whole comparison run.
+    SUM_OF_BEST = 2; // Sum of best segment times in the comparison.
+  }
+  Type type = 1;    // The type of aggregate.
+  uint32 value = 2; // The value, in milliseconds.
+  Pace pace = 3;    // The pace of this aggregate, if applicable.
+}
+
+// A pace note.
+enum Pace {
+  NONE = 0;               // Pacing information not available.
+  BEHIND = 1;             // Behind comparison.
+  BEHIND_BUT_GAINING = 2; // Behind comparison but making up time.
+  AHEAD_BUT_LOSING = 3;   // Ahead of comparison but losing time.
+  AHEAD = 4;              // Ahead of comparison.
+}
