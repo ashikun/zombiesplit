@@ -12,7 +12,7 @@ pub enum Error {
     #[error("couldn't join task")]
     Join(#[from] tokio::task::JoinError),
     #[error("couldn't send action to session")]
-    CannotSendAction(#[from] tokio::sync::mpsc::error::SendError<crate::model::attempt::Action>),
+    CannotSendAction(#[from] tokio::sync::mpsc::error::SendError<super::Message>),
     #[error("couldn't receive event from session")]
     CannotReceiveEvent(#[from] tokio::sync::broadcast::error::RecvError),
 }

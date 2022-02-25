@@ -32,6 +32,7 @@ serde_with = "1.11.0"
 symbol = "0.1.9" # used for short names
 tabwriter = { version = "1", features = [ "ansi_formatting" ] }
 tokio = { version = "1", features = [ "full" ] }
+tokio-stream = { version = "0.1.8", features = [ "sync" ] }
 tokio-util = { version = "0.6.9", features = [ "codec" ] }
 tokio-serde = { version = "0.8.0", features = [ "cbor" ] }
 tempfile = "3"

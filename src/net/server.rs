@@ -6,7 +6,7 @@ and emits observations that reflect changes to the attempt.
 
 use std::sync::{Arc, Weak};
 
-use tokio::sync::{broadcast, mpsc};
+use tokio::sync::{broadcast, mpsc, oneshot};
 
 pub use error::{Error, Result};
 
@@ -30,6 +30,7 @@ use super::super::{
 };
 
 mod error;
+mod grpc;
 mod listener;
 
 /// A manager of a zombiesplit server.
@@ -111,16 +112,16 @@ impl Manager {
     /// Returns any database or UI errors caught during the session.
     pub fn server(&self, desc: &ShortDescriptor) -> Result<Server> {
         let insp = self.reader.inspect(desc)?;
-        let (action_in, action_out) = tokio::sync::mpsc::channel(MPSC_CAPACITY);
+        let (message_tx, message_rx) = tokio::sync::mpsc::channel(MPSC_CAPACITY);
         Ok(Server {
             listener: listener::Listener::new(
                 self.cfg.net.address,
-                action_in,
+                message_tx,
                 self.bcast.0.clone(),
             ),
             state: State {
                 session: self.session(insp)?,
-                action_out,
+                message_rx,
             },
         })
     }
@@ -183,17 +184,37 @@ impl<'cmp> Server<'cmp> {
 struct State<'m> {
     /// The session being wrapped by this server.
     session: attempt::Session<'m, 'm, attempt::observer::Mux>,
-    action_out: mpsc::Receiver<attempt::Action>,
+    /// Receives messages from the server handler.
+    message_rx: mpsc::Receiver<Message>,
 }
 
+/// A message to the server.
+#[derive(Debug)]
+pub enum Message {
+    /// An action to send to the session; no direct reply expected.
+    Action(attempt::Action),
+    /// A dumping query, which expects a reply through the given oneshot.
+    Dump(oneshot::Sender<Dump>),
+}
+
+/// A dump of all server state.
+#[derive(Debug)]
+pub struct Dump {}
+
 impl<'m> State<'m> {
-    /// Runs the state main loop, which constantly drains actions from clients and applies them.
+    /// Runs the state main loop, which constantly drains messages from clients and applies them.
     ///
-    /// These actions, in turn, give rise to observations that will bubble up through the broadcast
+    /// These messages, in turn, give rise to observations that will bubble up through the broadcast
     /// channel and into clients.
     async fn run(&mut self) {
-        while let Some(act) = self.action_out.recv().await {
-            self.session.handle(act);
+        while let Some(msg) = self.message_rx.recv().await {
+            match msg {
+                Message::Action(act) => self.session.handle(act),
+                Message::Dump(rx) => {
+                    /* temp */
+                    let _ = rx.send(Dump {});
+                }
+            }
         }
     }
 }

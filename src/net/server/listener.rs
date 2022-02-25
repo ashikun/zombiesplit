@@ -11,8 +11,8 @@ use tokio::{
 pub struct Listener {
     /// The address on which this listener is listening.
     addr: std::net::SocketAddr,
-    /// The main sender channel for actions (pointing back towards the server).
-    action_send: mpsc::Sender<attempt::Action>,
+    /// The main sender channel for messages (pointing back towards the server).
+    action_send: mpsc::Sender<super::Message>,
     /// A broadcast channel head for events, from which we subscribe new event receivers.
     event_broadcast: broadcast::Sender<attempt::observer::Event>,
 }
@@ -20,7 +20,7 @@ pub struct Listener {
 impl Listener {
     pub fn new(
         addr: std::net::SocketAddr,
-        action_send: mpsc::Sender<attempt::Action>,
+        action_send: mpsc::Sender<super::Message>,
         event_broadcast: broadcast::Sender<attempt::observer::Event>,
     ) -> Self {
         Self {
@@ -45,7 +45,10 @@ impl Listener {
                 is_running: true,
             };
 
-            handle.action_send.send(attempt::Action::Dump).await?;
+            handle
+                .action_send
+                .send(super::Message::Action(attempt::Action::Dump))
+                .await?;
 
             tokio::spawn(async move { handle.run().await });
         }
@@ -61,7 +64,7 @@ struct Handle {
     io: super::super::io::Stack<attempt::Action, attempt::observer::Event>,
 
     /// Sends actions to the session.
-    action_send: mpsc::Sender<attempt::Action>,
+    action_send: mpsc::Sender<super::Message>,
 
     /// Receives events from the session.
     event_recv: broadcast::Receiver<attempt::observer::Event>,
@@ -90,7 +93,9 @@ impl Handle {
     /// Handles a potential action from the client to the session.
     async fn handle_action(&mut self, maybe_action: Option<attempt::Action>) -> Result<()> {
         if let Some(action) = maybe_action {
-            self.action_send.send(action).await?;
+            self.action_send
+                .send(super::Message::Action(action))
+                .await?;
         } else {
             log::info!("connection closed: {}", self.addr);
             self.is_running = false;
