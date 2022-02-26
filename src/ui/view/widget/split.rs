@@ -10,7 +10,6 @@ use super::super::{
     },
     layout::{self, Layoutable},
 };
-use num_integer::Integer;
 
 /// The split viewer widget.
 #[derive(Default)]
@@ -132,7 +131,7 @@ impl SplitIndexIter {
         // Find out where we want to put our cursor.
         // Ideally, we want to have the cursor be halfway through the slots.
         // We floor to avoid the possibility of a 1-slot scroll not showing the cursor.
-        let ideal_cursor_slot = self.num_slots.div_floor(&2);
+        let ideal_cursor_slot = self.num_slots / 2;
 
         // This means that our first approximation of the first split is that many slots
         // above the cursor.  A saturating subtraction means that, if the cursor is on the
