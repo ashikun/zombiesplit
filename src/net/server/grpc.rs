@@ -1,11 +1,7 @@
 //! gRPC glue for the server.
 
 use super::super::{
-    super::model::{
-        attempt::{self, observer},
-        timing::time,
-        Time,
-    },
+    super::model::attempt::{self, observer},
     proto::{
         self, event, zombiesplit_server::Zombiesplit, DumpRequest, DumpResponse, Event,
         ModifySplitRequest, ModifySplitResponse, NewRunRequest, NewRunResponse, ObserveRequest,
@@ -69,7 +65,7 @@ impl Zombiesplit for Handler {
     ) -> Result<Self::ObserveStream> {
         let recv = self.event_broadcast.subscribe();
         let recv_stream = tokio_stream::wrappers::BroadcastStream::new(recv);
-        let mapped_stream = recv_stream.map(map_event_result);
+        let mapped_stream = recv_stream.map(|x| map_event_result(&x));
         let response = Pin::new(Box::new(mapped_stream));
         Ok(tonic::Response::new(response))
     }
@@ -81,15 +77,15 @@ fn map_dump(_dump: &super::Dump) -> proto::DumpResponse {
 }
 
 fn map_event_result(
-    event: std::result::Result<
+    event: &std::result::Result<
         attempt::observer::Event,
         tokio_stream::wrappers::errors::BroadcastStreamRecvError,
     >,
 ) -> std::result::Result<proto::Event, tonic::Status> {
-    event.map(map_event).map_err(map_event_error)
+    event.as_ref().map(map_event).map_err(map_event_error)
 }
 
-fn map_event(event: attempt::observer::Event) -> proto::Event {
+fn map_event(event: &attempt::observer::Event) -> proto::Event {
     Event {
         payload: match event {
             observer::Event::Total(_, _) => None,
@@ -103,7 +99,9 @@ fn map_event(event: attempt::observer::Event) -> proto::Event {
     }
 }
 
-fn map_event_error(err: tokio_stream::wrappers::errors::BroadcastStreamRecvError) -> tonic::Status {
+fn map_event_error(
+    err: &tokio_stream::wrappers::errors::BroadcastStreamRecvError,
+) -> tonic::Status {
     match err {
         tokio_stream::wrappers::errors::BroadcastStreamRecvError::Lagged(e) => {
             tonic::Status::data_loss(format!("lagged behind: {e}"))
@@ -128,7 +126,7 @@ impl Handler {
 fn modify_split_action(
     message: &ModifySplitRequest,
 ) -> std::result::Result<Option<attempt::Action>, tonic::Status> {
-    let index = read_index(message.index)?;
+    let index = proto::decode::split_index(message.index)?;
     message
         .modification
         .as_ref()
@@ -140,7 +138,7 @@ fn modify_split_action(
 }
 
 fn push(index: usize, stamp: u32) -> std::result::Result<attempt::Action, tonic::Status> {
-    Ok(attempt::Action::Push(index, read_time(stamp)?))
+    Ok(attempt::Action::Push(index, proto::decode::time(stamp)?))
 }
 
 fn pop(index: usize, ty: i32) -> std::result::Result<attempt::Action, tonic::Status> {
@@ -148,27 +146,5 @@ fn pop(index: usize, ty: i32) -> std::result::Result<attempt::Action, tonic::Sta
         Some(proto::modify_split_request::Pop::One) => Ok(attempt::Action::Pop(index)),
         Some(proto::modify_split_request::Pop::All) => Ok(attempt::Action::Clear(index)),
         None => Err(tonic::Status::out_of_range(format!("bad pop type: {ty}"))),
-    }
-}
-
-/// Converts a gRPC split index to one used in the model.
-///
-/// # Errors
-///
-/// Fails with `out_of_range` if the index is too large (which may happen on eg. 32-bit systems).
-fn read_index(index: u64) -> std::result::Result<usize, tonic::Status> {
-    usize::try_from(index).map_err(|e| tonic::Status::out_of_range(e.to_string()))
-}
-
-fn read_time(stamp: u32) -> std::result::Result<Time, tonic::Status> {
-    Time::try_from(stamp).map_err(adapt_time_error)
-}
-
-fn adapt_time_error(err: time::Error) -> tonic::Status {
-    match err {
-        time::Error::MsecOverflow(k) => {
-            tonic::Status::out_of_range(format!("millisecond value {k} too large"))
-        }
-        _ => tonic::Status::invalid_argument(format!("invalid time: {err}")),
     }
 }
