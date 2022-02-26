@@ -1,27 +1,40 @@
-// The zombiesplit wire protocol.
-//
-// The wire protocol is asymmetric: the requests API forms an RPC layer,
-// and the responses API is a flat messaging stream.
+// The zombiesplit gRPC protocol.
 syntax = "proto3";
 package zombiesplit;
 
+// The zombiesplit gRPC service.
 //
-// Request RPC
+// The zombiesplit API has a strong command-query separation, so commands
+// generally don't return any information.  Instead, use `Observe` to
+// subscribe to events, and monitor those.
 //
+// We give commands separate response messages, just in case this situation
+// changes.
+service Zombiesplit {
+  /*
+   * Queries
+   */
 
-// Service providing actions clients can send to servers.
-service Request {
   // Requests an initial dump.
+  //
+  // Use this before starting the user interface, or if the client has lagged
+  // behind its observation stream and needs a full refresh.
   rpc Dump(DumpRequest) returns (DumpResponse) {}
+
+  // Requests an observation stream.
+  //
+  // Use this to subscribe the client to observations.
+  rpc Observe(ObserveRequest) returns (stream Event) {}
+
+  /*
+   * Commands
+   */
 
   // Starts a new run in the current session.
   rpc NewRun(NewRunRequest) returns (NewRunResponse) {}
 
   // Modifies a split in the current session.
   rpc ModifySplit(ModifySplitRequest) returns (ModifySplitResponse) {}
-
-  // Requests that we begin observing.
-  rpc Observe(ObserveRequest) returns (stream Event) {}
 }
 
 //

@@ -7,8 +7,8 @@ use super::super::{
         Time,
     },
     proto::{
-        self, event, request_server::Request, DumpRequest, DumpResponse, Event, ModifySplitRequest,
-        ModifySplitResponse, NewRunRequest, NewRunResponse, ObserveRequest,
+        self, event, zombiesplit_server::Zombiesplit, DumpRequest, DumpResponse, Event,
+        ModifySplitRequest, ModifySplitResponse, NewRunRequest, NewRunResponse, ObserveRequest,
     },
 };
 use futures::StreamExt;
@@ -29,7 +29,7 @@ pub struct Handler {
 type Result<T> = std::result::Result<tonic::Response<T>, tonic::Status>;
 
 #[tonic::async_trait]
-impl Request for Handler {
+impl Zombiesplit for Handler {
     type ObserveStream = EventStream;
 
     async fn dump(&self, _request: tonic::Request<DumpRequest>) -> Result<DumpResponse> {
