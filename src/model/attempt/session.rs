@@ -134,7 +134,8 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
         // TODO(@MattWindsor91): make this idempotent.
         self.observe_game_category();
         self.observe_splits();
-        self.observe_attempt();
+        // TODO(@MattWindsor91): this is temporary.
+        self.observe_reset();
         self.observe_comparison();
     }
 
@@ -154,11 +155,7 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
     }
 
     fn observe_reset(&self) {
-        self.observer.observe(Event::Reset);
-    }
-
-    fn observe_attempt(&self) {
-        self.observer.observe(Event::Attempt(self.run.attempt));
+        self.observer.observe(Event::Reset(self.run.attempt));
     }
 
     fn observe_game_category(&self) {
@@ -232,10 +229,10 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
     }
 
     fn reset(&mut self) {
-        self.observe_reset();
         self.send_run_to_sink();
         self.run.reset();
-        self.observe_attempt();
+        // Important that this happens AFTER the run is reset, so the new attempt info is sent.
+        self.observe_reset();
         self.refresh_comparison();
     }
 

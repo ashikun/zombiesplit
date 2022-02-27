@@ -16,6 +16,7 @@ pub use state::State;
 
 use crate::model::{
     attempt::{self, action::Handler, observer, Action},
+    game::category::AttemptInfo,
     short, Time,
 };
 
@@ -105,10 +106,10 @@ impl<'h, H: Handler> Presenter<'h, H> {
         self.transition_with_exit(Box::new(mode::Quitting));
     }
 
-    fn reset(&mut self) {
+    fn reset(&mut self, new_attempt: &AttemptInfo) {
         // Don't call exit the previous mode's exit hook; it may modify the run
         // in ways we don't want to happen.
-        self.state.reset();
+        self.state.reset(new_attempt);
     }
 
     /// Observes `evt` on this presenter core.
@@ -125,7 +126,7 @@ impl<'h, H: Handler> Presenter<'h, H> {
     fn observe_locally(&mut self, ev: &observer::Event) {
         match ev {
             observer::Event::Split(short, ev) => self.observe_split(*short, ev),
-            observer::Event::Reset => self.reset(),
+            observer::Event::Reset(new_attempt) => self.reset(new_attempt),
             _ => (),
         };
     }

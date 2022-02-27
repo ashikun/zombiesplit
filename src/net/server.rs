@@ -208,7 +208,7 @@ impl<'m> State<'m> {
                 Message::Action(act) => self.session.handle(act),
                 Message::Dump(rx) => {
                     // TODO(@MattWindsor91): handle drop?
-                    let _ = rx.send(self.dump());
+                    let _res = rx.send(self.dump());
                 }
             }
         }

@@ -47,11 +47,12 @@ impl State {
     /// This clears the time count aggregate data for all splits.  It doesn't
     /// change the attempt information, as we expect there will be a separate
     /// observation for that.
-    pub fn reset(&mut self) {
+    pub fn reset(&mut self, new_attempt: &category::AttemptInfo) {
         self.cursor.reset();
         self.splits.refresh_cursors(&self.cursor);
         self.splits.reset();
         self.footer.total = PacedTime::default();
+        self.attempt = *new_attempt;
     }
 
     /// Gets the current position of the cursor.
@@ -126,8 +127,7 @@ impl State {
             Event::Total(time, source) => self.set_total(time, source),
             Event::SumOfBest(time) => self.footer.sum_of_best = Some(time),
             Event::NumSplits(count) => self.set_split_count(count),
-            Event::Reset => self.reset(),
-            Event::Attempt(a) => self.attempt = a,
+            Event::Reset(a) => self.reset(&a),
             Event::GameCategory(gc) => self.game_category = gc,
             Event::Split(short, ev) => {
                 self.handle_split_event(short, ev);
@@ -213,7 +213,7 @@ mod tests {
     fn test_reset_clears_total() {
         let mut state = State::default();
         state.footer.total.time = crate::model::Time::seconds(1337).expect("shouldn't overflow");
-        state.reset();
+        state.reset(category::AttemptInfo::default());
         assert!(state.footer.total.time.is_zero())
     }
 }

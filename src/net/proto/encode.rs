@@ -20,7 +20,6 @@ pub type Result<T> = std::result::Result<T, tonic::Status>;
 /// # Errors
 ///
 /// Fails with `out_of_range` if the attempt counts cannot be stored as 64-bit integers.
-#[must_use]
 pub fn dump(dump: &dump::Dump) -> Result<super::DumpResponse> {
     Ok(super::DumpResponse {
         server: Some(dump_server(&dump.server)),
@@ -78,21 +77,21 @@ fn milli_times(split: &Split) -> Vec<u32> {
 }
 
 /// Encodes an observer-level event into a protobuf event.
-#[must_use]
-pub fn event(event: &observer::Event) -> super::Event {
-    super::Event {
+///
+/// # Errors
+///
+/// Fails with `out_of_range` if any attempt counts cannot be stored as 64-bit integers.
+pub fn event(event: &observer::Event) -> Result<super::Event> {
+    Ok(super::Event {
         payload: match event {
             observer::Event::Total(_, _) => None,
             observer::Event::SumOfBest(_) => None,
             observer::Event::NumSplits(_) => None,
-            observer::Event::Reset => Some(super::event::Payload::Control(
-                super::event::Control::Reset as i32,
-            )),
-            observer::Event::Attempt(_) => None,
+            observer::Event::Reset(info) => Some(super::event::Payload::Reset(attempt_info(info)?)),
             observer::Event::GameCategory(_) => None,
             observer::Event::Split(_, _) => None,
         },
-    }
+    })
 }
 
 /// Encodes attempt information into its protobuf form.
@@ -100,7 +99,6 @@ pub fn event(event: &observer::Event) -> super::Event {
 /// # Errors
 ///
 /// Fails with `out_of_range` if the attempt counts cannot be stored as 64-bit integers.
-#[must_use]
 pub fn attempt_info(attempt: &category::AttemptInfo) -> Result<super::AttemptInfo> {
     Ok(super::AttemptInfo {
         total: try_from_range(attempt.total)?,

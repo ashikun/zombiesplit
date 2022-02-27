@@ -34,10 +34,8 @@ pub enum Event {
     ///
     /// This SHOULD be sent before `Split` events give `Init` information about the splits.
     NumSplits(usize),
-    /// Observes a run reset, with any outgoing run attached as historic.
-    Reset,
-    /// Observes information about the attempt number of a run.
-    Attempt(category::AttemptInfo),
+    /// Observes information about a reset, with the new attempt information attached.
+    Reset(category::AttemptInfo),
     /// Observes information about the game being run.
     GameCategory(category::Info),
     /// Observes an event on a split.

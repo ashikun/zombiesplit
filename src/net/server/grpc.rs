@@ -81,8 +81,8 @@ fn map_event_result(
 ) -> std::result::Result<proto::Event, tonic::Status> {
     event
         .as_ref()
-        .map(proto::encode::event)
         .map_err(map_event_error)
+        .and_then(proto::encode::event)
 }
 
 fn map_event_error(
