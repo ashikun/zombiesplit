@@ -51,31 +51,42 @@ message DumpRequest {
 // Currently this does not contain any information, but eventually it will
 // contain the full dump.
 message DumpResponse {
-  // Server semantic version.
-  message Version {
-    uint32 major = 1; // Major version number.
-    uint32 minor = 2; // Minor version number.
-    uint32 patch = 3; // Patch version number.
+  // Information about the server.
+  message Server {
+    // Server semantic version.
+    message Version {
+      uint64 major = 1; // Major version number.
+      uint64 minor = 2; // Minor version number.
+      uint64 patch = 3; // Patch version number.
+    }
+
+    string ident = 1;    // The name of the server software.
+    Version version = 2; // The version of the server.
   }
 
   // Information about the session that the server is running.
-  message Session {
-    // Information about a split.
+  message Run {
+    // Information about a game/category.
+    message GameCategory {
+      string game_sid = 1;      // Short identifier for the game.
+      string category_sid = 2;  // Short identifier for the category.
+      string game_name = 3;     // Full name for the game.
+      string category_name = 4; // Full name for the category.
+    }
+    // Information about a split marker.
     message Split {
-      string sid = 1;  // Short identifier for the split.
-      string name = 2; // Full name for the split.
+      string sid = 1;            // Short identifier for the split.
+      string name = 2;           // Full name for the split.
+      repeated uint32 times = 3; // Times for the split.
     }
 
-    string game_sid = 1;      // Short identifier for the game.
-    string category_sid = 2;  // Short identifier for the category.
-    string game_name = 3;     // Full name for the game.
-    string category_name = 4; // Full name for the category.
-    repeated Split split = 5; // Information about a split.
+    GameCategory game_category = 1; // Game/category information.
+    AttemptInfo attempt_info = 2;   // Current attempt information.
+    repeated Split splits = 3;      // Information about a split.
   }
 
-  Version server_version = 1; // The version of the server.
-  Session session = 2;        // The current session.
-  // TODO(@MattWindsor91): attempt dump
+  Server server = 1; // Server information.
+  Run run = 2;       // Dump of the current run state.
 }
 
 //
@@ -110,7 +121,7 @@ message ModifySplitRequest {
   // Modification being requested.
   oneof modification {
     uint32 push = 2; // Push this time (milliseconds) onto the split.
-    Pop pop = 3; // Remove a certain amount of times from the split.
+    Pop pop = 3;     // Remove a certain amount of times from the split.
   }
 }
 
@@ -131,7 +142,7 @@ message ObserveRequest {
 message Event {
   // Enumeration of control events.
   enum Control {
-    NOP = 0; // Zero value for control events.
+    NOP = 0;   // Zero value for control events.
     RESET = 1; // Reset run.
   }
   // An event on a split.
@@ -162,8 +173,9 @@ message Event {
   // Payload of the event.
   oneof payload {
     Control control = 1;     // A control event.
-    Split split = 2;    // An event on a split.
+    Split split = 2;         // An event on a split.
     Aggregate aggregate = 3; // An aggregate time announcement.
+    AttemptInfo reset = 4;   // A new attempt has started; the new attempt's information follows.
   }
 }
 
@@ -179,6 +191,14 @@ message Aggregate {
   Type type = 1;    // The type of aggregate.
   uint32 value = 2; // The value, in milliseconds.
   Pace pace = 3;    // The pace of this aggregate, if applicable.
+}
+
+// Attempt information.
+//
+// This is both sent in dumps as well as whenever a new attempt begins.
+message AttemptInfo {
+  uint64 total     = 1; // How many attempts have been run so far (ie. one below the current run's number).
+  uint64 completed = 2; // How many attempts have been run to completion so far.
 }
 
 // A pace note.

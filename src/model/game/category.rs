@@ -87,6 +87,8 @@ pub struct Info {
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AttemptInfo {
     /// The number of runs stored in total.
+    ///
+    /// Note that this is _one below_ the number of the current run.
     pub total: usize,
     /// The number of runs stored and marked as completed.
     pub completed: usize,

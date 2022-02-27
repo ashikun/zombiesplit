@@ -75,6 +75,8 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
         &self.run.metadata
     }
 
+    // TODO(@MattWindsor91): replace these 'set_' functions with a builder.
+
     /// Replaces the session's timestamper with a different function.
     ///
     /// Useful for stubbing out time when testing.
@@ -99,6 +101,12 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
     /// need to be done to get comparisons working.
     pub fn set_sink(&mut self, s: Box<dyn sink::Sink>) {
         self.sink = s;
+    }
+
+    /// Dumps a clone of the current run.
+    #[must_use]
+    pub fn dump(&self) -> Run {
+        self.run.clone()
     }
 
     /// Asks the comparison provider for an updated comparison.

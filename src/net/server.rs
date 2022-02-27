@@ -194,12 +194,8 @@ pub enum Message {
     /// An action to send to the session; no direct reply expected.
     Action(attempt::Action),
     /// A dumping query, which expects a reply through the given oneshot.
-    Dump(oneshot::Sender<Dump>),
+    Dump(oneshot::Sender<super::dump::Dump>),
 }
-
-/// A dump of all server state.
-#[derive(Debug)]
-pub struct Dump {}
 
 impl<'m> State<'m> {
     /// Runs the state main loop, which constantly drains messages from clients and applies them.
@@ -211,13 +207,26 @@ impl<'m> State<'m> {
             match msg {
                 Message::Action(act) => self.session.handle(act),
                 Message::Dump(rx) => {
-                    /* temp */
-                    let _ = rx.send(Dump {});
+                    // TODO(@MattWindsor91): handle drop?
+                    let _ = rx.send(self.dump());
                 }
             }
         }
     }
+
+    fn dump(&self) -> super::dump::Dump {
+        super::dump::Dump {
+            server: super::dump::Server {
+                ident: SERVER_IDENT.to_string(),
+                version: SERVER_VERSION,
+            },
+            run: self.session.dump(),
+        }
+    }
 }
+
+const SERVER_IDENT: &str = "zsserver";
+const SERVER_VERSION: semver::Version = semver::Version::new(0, 1, 0);
 
 // TODO(@MattWindsor91): https://github.com/MattWindsor91/zombiesplit/issues/23
 

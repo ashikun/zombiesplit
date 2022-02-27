@@ -4,6 +4,7 @@ zombiesplit uses a client/server separation whereby the client and server talk t
 a protocol defined in `proto`.  The netcode is asynchronous and built using tokio. */
 
 pub mod client;
+pub mod dump;
 mod io;
 pub mod proto;
 pub mod server;

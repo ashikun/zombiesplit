@@ -1,11 +1,8 @@
-//! gRPC glue for the server.
+//! `gRPC` glue for the server.
 
 use super::super::{
-    super::model::attempt::{self, observer},
-    proto::{
-        self, event, zombiesplit_server::Zombiesplit, DumpRequest, DumpResponse, Event,
-        ModifySplitRequest, ModifySplitResponse, NewRunRequest, NewRunResponse, ObserveRequest,
-    },
+    super::model::attempt,
+    proto::{self, zombiesplit_server::Zombiesplit},
 };
 use futures::StreamExt;
 use std::pin::Pin;
@@ -14,7 +11,7 @@ use tokio::sync::{broadcast, mpsc, oneshot};
 type EventStream =
     Pin<Box<dyn futures::Stream<Item = std::result::Result<proto::Event, tonic::Status>> + Send>>;
 
-/// gRPC handler for the zombiesplit server.
+/// `gRPC` handler for the zombiesplit server.
 pub struct Handler {
     /// The main sender channel for actions (pointing back towards the server).
     message_send: mpsc::Sender<super::Message>,
@@ -28,7 +25,10 @@ type Result<T> = std::result::Result<tonic::Response<T>, tonic::Status>;
 impl Zombiesplit for Handler {
     type ObserveStream = EventStream;
 
-    async fn dump(&self, _request: tonic::Request<DumpRequest>) -> Result<DumpResponse> {
+    async fn dump(
+        &self,
+        _request: tonic::Request<proto::DumpRequest>,
+    ) -> Result<proto::DumpResponse> {
         let (send, recv) = oneshot::channel();
 
         self.message_send
@@ -40,28 +40,30 @@ impl Zombiesplit for Handler {
             .await
             .map_err(|_| tonic::Status::internal("dump channel dropped"))?;
 
-        // Ignored for now.
-        Ok(tonic::Response::new(map_dump(&dump)))
+        Ok(tonic::Response::new(proto::encode::dump(&dump)?))
     }
 
-    async fn new_run(&self, _request: tonic::Request<NewRunRequest>) -> Result<NewRunResponse> {
+    async fn new_run(
+        &self,
+        _request: tonic::Request<proto::NewRunRequest>,
+    ) -> Result<proto::NewRunResponse> {
         self.act(attempt::Action::NewRun).await?;
-        Ok(tonic::Response::new(NewRunResponse {}))
+        Ok(tonic::Response::new(proto::NewRunResponse {}))
     }
 
     async fn modify_split(
         &self,
-        request: tonic::Request<ModifySplitRequest>,
-    ) -> Result<ModifySplitResponse> {
+        request: tonic::Request<proto::ModifySplitRequest>,
+    ) -> Result<proto::ModifySplitResponse> {
         if let Some(a) = modify_split_action(request.get_ref())? {
             self.act(a).await?;
         }
-        Ok(tonic::Response::new(ModifySplitResponse {}))
+        Ok(tonic::Response::new(proto::ModifySplitResponse {}))
     }
 
     async fn observe(
         &self,
-        _request: tonic::Request<ObserveRequest>,
+        _request: tonic::Request<proto::ObserveRequest>,
     ) -> Result<Self::ObserveStream> {
         let recv = self.event_broadcast.subscribe();
         let recv_stream = tokio_stream::wrappers::BroadcastStream::new(recv);
@@ -71,32 +73,16 @@ impl Zombiesplit for Handler {
     }
 }
 
-fn map_dump(_dump: &super::Dump) -> proto::DumpResponse {
-    // for now
-    proto::DumpResponse::default()
-}
-
 fn map_event_result(
     event: &std::result::Result<
         attempt::observer::Event,
         tokio_stream::wrappers::errors::BroadcastStreamRecvError,
     >,
 ) -> std::result::Result<proto::Event, tonic::Status> {
-    event.as_ref().map(map_event).map_err(map_event_error)
-}
-
-fn map_event(event: &attempt::observer::Event) -> proto::Event {
-    Event {
-        payload: match event {
-            observer::Event::Total(_, _) => None,
-            observer::Event::SumOfBest(_) => None,
-            observer::Event::NumSplits(_) => None,
-            observer::Event::Reset => Some(event::Payload::Control(event::Control::Reset as i32)),
-            observer::Event::Attempt(_) => None,
-            observer::Event::GameCategory(_) => None,
-            observer::Event::Split(_, _) => None,
-        },
-    }
+    event
+        .as_ref()
+        .map(proto::encode::event)
+        .map_err(map_event_error)
 }
 
 fn map_event_error(
@@ -124,7 +110,7 @@ impl Handler {
 }
 
 fn modify_split_action(
-    message: &ModifySplitRequest,
+    message: &proto::ModifySplitRequest,
 ) -> std::result::Result<Option<attempt::Action>, tonic::Status> {
     let index = proto::decode::split_index(message.index)?;
     message
