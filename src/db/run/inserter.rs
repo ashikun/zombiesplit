@@ -89,7 +89,7 @@ impl<'conn> Inserter<'conn> {
 
             let split_id = split_map
                 .get(short)
-                .ok_or_else(|| Error::MissingRunSplit { short: *short })?;
+                .ok_or(Error::MissingRunSplit { short: *short })?;
             self.query_add_split
                 .execute(named_params![":run_id": run_id, ":split_id": split_id])?;
             let run_split_id = self.conn.last_insert_rowid();
