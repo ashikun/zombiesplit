@@ -62,7 +62,7 @@ impl Source {
     }
 }
 
-/// Enumeration of scopes for aggregate times.
+/// Enumeration of scopes for split aggregate times.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum Scope {
     /// Total of all times logged on the split.

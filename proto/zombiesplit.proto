@@ -140,11 +140,6 @@ message ObserveRequest {
 
 // An event that has occurred on the session.
 message Event {
-  // Enumeration of control events.
-  enum Control {
-    NOP = 0;   // Zero value for control events.
-    RESET = 1; // Reset run.
-  }
   // An event on a split.
   message Split {
     // An event on a split time.
@@ -172,10 +167,9 @@ message Event {
 
   // Payload of the event.
   oneof payload {
-    Control control = 1;     // A control event.
-    Split split = 2;         // An event on a split.
-    Aggregate aggregate = 3; // An aggregate time announcement.
-    AttemptInfo reset = 4;   // A new attempt has started; the new attempt's information follows.
+    AttemptInfo reset = 1; // A new attempt has started; the new attempt's information follows.
+    Split split = 2;       // An event on a split.
+    Aggregate total = 3;   // A whole-run total time announcement.
   }
 }
 
@@ -184,7 +178,7 @@ message Aggregate {
   // Enumeration of types of aggregate.
   enum Type {
     ATTEMPT = 0;     // Total so far in the attempt.
-    BEST_RUN = 1;    // Sum of segments in the best whole comparison run.
+    COMPARISON = 1;  // Sum of segments in the best whole comparison run.
     SUM_OF_BEST = 2; // Sum of best segment times in the comparison.
   }
 

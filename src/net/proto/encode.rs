@@ -2,12 +2,13 @@
 
 use super::super::{
     super::model::{
-        attempt::{observer, split, Run},
+        attempt::{observer, split, Run, Split},
         game::category,
+        timing,
     },
     dump,
 };
-use crate::model::attempt::Split;
+use crate::model::timing::comparison::Pace;
 use itertools::Itertools;
 
 /// Shorthand for encoding errors.
@@ -84,14 +85,44 @@ fn milli_times(split: &Split) -> Vec<u32> {
 pub fn event(event: &observer::Event) -> Result<super::Event> {
     Ok(super::Event {
         payload: match event {
-            observer::Event::Total(_, _) => None,
-            observer::Event::SumOfBest(_) => None,
+            observer::Event::Total(t) => Some(super::event::Payload::Total(total(t))),
             observer::Event::NumSplits(_) => None,
             observer::Event::Reset(info) => Some(super::event::Payload::Reset(attempt_info(info)?)),
             observer::Event::GameCategory(_) => None,
             observer::Event::Split(_, _) => None,
         },
     })
+}
+
+/// Encodes a total into its protobuf form.
+///
+/// Split aggregates and run totals share a protobuf representation.
+fn total(total: &observer::Total) -> super::Aggregate {
+    let (time, ty) = match total {
+        observer::Total::Attempt(t) => (t.time, super::aggregate::Type::Attempt),
+        observer::Total::Comparison(t) => (*t, super::aggregate::Type::Comparison),
+        observer::Total::SumOfBest(t) => (*t, super::aggregate::Type::SumOfBest),
+    };
+    let mut agg = super::Aggregate {
+        r#type: ty as i32,
+        value: u32::from(time),
+        pace: 0,
+    };
+    if let observer::Total::Attempt(t) = total {
+        if let Some(p) = pace(t.pace) {
+            agg.set_pace(p);
+        }
+    }
+    agg
+}
+
+fn pace(pace: timing::comparison::Pace) -> Option<super::Pace> {
+    match pace {
+        Pace::Inconclusive => None,
+        Pace::Behind => Some(super::Pace::Behind),
+        Pace::Ahead => Some(super::Pace::Ahead),
+        Pace::PersonalBest => Some(super::Pace::Ahead),
+    }
 }
 
 /// Encodes attempt information into its protobuf form.

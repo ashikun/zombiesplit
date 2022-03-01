@@ -9,11 +9,12 @@ use std::ops::{Index, IndexMut};
 pub use footer::Footer;
 pub use split::Split;
 
+use crate::model::attempt::observer::Total;
 use crate::model::{
     attempt,
     game::category,
     short,
-    timing::{aggregate, comparison::pace::PacedTime, time},
+    timing::{comparison::pace::PacedTime, time},
 };
 
 pub mod cursor;
@@ -76,12 +77,17 @@ impl State {
         amt
     }
 
-    /// Sets the visible total (attempt or comparison, depending on `source`) to `time`.
-    pub fn set_total(&mut self, time: PacedTime, source: aggregate::Source) {
-        match source {
-            aggregate::Source::Attempt => self.footer.total = time,
-            aggregate::Source::Comparison => {
-                let _ = self.footer.target.insert(time.time);
+    /// Sets a total (eg attempt, comparison, sum-of-best).
+    pub fn set_total(&mut self, total: super::observer::Total) {
+        match total {
+            Total::Attempt(a) => {
+                self.footer.total = a;
+            }
+            Total::Comparison(c) => {
+                let _ = self.footer.target.insert(c);
+            }
+            Total::SumOfBest(s) => {
+                let _ = self.footer.sum_of_best.insert(s);
             }
         }
     }
@@ -124,8 +130,7 @@ impl State {
     pub fn handle_event(&mut self, ev: attempt::observer::Event) {
         use attempt::observer::Event;
         match ev {
-            Event::Total(time, source) => self.set_total(time, source),
-            Event::SumOfBest(time) => self.footer.sum_of_best = Some(time),
+            Event::Total(time) => self.set_total(time),
             Event::NumSplits(count) => self.set_split_count(count),
             Event::Reset(a) => self.reset(&a),
             Event::GameCategory(gc) => self.game_category = gc,

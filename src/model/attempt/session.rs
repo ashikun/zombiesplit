@@ -188,7 +188,7 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
         }
 
         self.observer
-            .observe(Event::Total(total, aggregate::Source::Attempt));
+            .observe(Event::Total(observer::Total::Attempt(total)));
     }
 
     fn split_pace(&self, split: &super::Split, agg: aggregate::Set) -> pace::SplitInRun {
@@ -208,12 +208,10 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
             total, sum_of_best, ..
         } = self.comparison;
 
-        // TODO(@MattWindsor91): wrapping this in a PacedTime is a bit silly.
-        self.observer.observe(Event::Total(
-            pace::PacedTime::inconclusive(total),
-            aggregate::Source::Comparison,
-        ));
-        self.observer.observe(Event::SumOfBest(sum_of_best));
+        self.observer
+            .observe(Event::Total(observer::Total::Comparison(total)));
+        self.observer
+            .observe(Event::Total(observer::Total::SumOfBest(sum_of_best)));
         self.observe_comparison_splits();
     }
 
