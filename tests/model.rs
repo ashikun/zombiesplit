@@ -14,7 +14,6 @@ use zombiesplit::{
             Observer, Run, Session,
         },
         game::{category, Split},
-        timing::aggregate,
     },
     ui::{presenter, Pump},
 };
@@ -50,12 +49,9 @@ fn test_session_dump() {
             },
         ));
     }
-    obs.assert_received(Event::Attempt(attempt_info()));
-    obs.assert_received(Event::Total(
-        Default::default(),
-        aggregate::Source::Comparison,
-    ));
-    obs.assert_received(Event::SumOfBest(Default::default()));
+    obs.assert_received(Event::Reset(attempt_info()));
+    obs.assert_received(Event::Total(observer::Total::Attempt(Default::default())));
+    obs.assert_received(Event::Total(observer::Total::SumOfBest(Default::default())));
     obs.assert_empty()
 }
 

@@ -218,7 +218,7 @@ mod tests {
     fn test_reset_clears_total() {
         let mut state = State::default();
         state.footer.total.time = crate::model::Time::seconds(1337).expect("shouldn't overflow");
-        state.reset(category::AttemptInfo::default());
-        assert!(state.footer.total.time.is_zero())
+        state.reset(&category::AttemptInfo::default());
+        assert!(state.footer.total.time.is_zero());
     }
 }
