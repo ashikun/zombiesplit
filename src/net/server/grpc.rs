@@ -12,11 +12,12 @@ type EventStream =
     Pin<Box<dyn futures::Stream<Item = std::result::Result<proto::Event, tonic::Status>> + Send>>;
 
 /// `gRPC` handler for the zombiesplit server.
+#[derive(Clone)]
 pub struct Handler {
     /// The main sender channel for actions (pointing back towards the server).
-    message_send: mpsc::Sender<super::Message>,
+    pub message_send: mpsc::Sender<super::Message>,
     /// A broadcast channel head for events, from which we subscribe new event receivers.
-    event_broadcast: broadcast::Sender<attempt::observer::Event>,
+    pub event_broadcast: broadcast::Sender<attempt::observer::Event>,
 }
 
 type Result<T> = std::result::Result<tonic::Response<T>, tonic::Status>;

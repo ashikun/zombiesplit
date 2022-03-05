@@ -39,7 +39,7 @@ tokio-serde = { version = "0.8.0", features = [ "cbor" ] }
 tempfile = "3"
 thiserror = "1.0.30"
 toml = "0.5.8"
-tonic = "0.6.2"
+tonic = { version = "0.6.2", features = [ "transport" ] }
 
 [build-dependencies]
 prost-build = "0.9"

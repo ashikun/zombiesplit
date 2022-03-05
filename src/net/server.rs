@@ -112,16 +112,16 @@ impl Manager {
     /// Returns any database or UI errors caught during the session.
     pub fn server(&self, desc: &ShortDescriptor) -> Result<Server> {
         let insp = self.reader.inspect(desc)?;
-        let (message_tx, message_rx) = tokio::sync::mpsc::channel(MPSC_CAPACITY);
+        let (message_send, message_recv) = tokio::sync::mpsc::channel(MPSC_CAPACITY);
         Ok(Server {
-            listener: listener::Listener::new(
-                self.cfg.net.address,
-                message_tx,
-                self.bcast.0.clone(),
-            ),
+            addr: self.cfg.net.address,
+            handler: grpc::Handler {
+                message_send,
+                event_broadcast: self.bcast.0.clone(),
+            },
             state: State {
                 session: self.session(insp)?,
-                message_rx,
+                message_recv,
             },
         })
     }
@@ -156,7 +156,7 @@ impl Observable for Manager {
     }
 }
 
-/// A server, wrapping a session with the means to control it.
+/// A server, wrapping a session with the means to control it (through gRPC).
 ///
 /// A server owns a running session, as well as the various observers attached to it, and performs
 /// many of the tasks of bringing up, maintaining, and tearing down those elements.
@@ -165,18 +165,31 @@ impl Observable for Manager {
 ///
 /// The lifetime `m` generally reflects that of its underlying `Manager`.
 pub struct Server<'m> {
-    listener: listener::Listener,
+    addr: std::net::SocketAddr,
+    handler: grpc::Handler,
     state: State<'m>,
 }
 
 impl<'cmp> Server<'cmp> {
     /// Runs the server, consuming it.
     pub async fn run(self) {
-        let mut listener = self.listener;
-        let mut state = self.state;
-        tokio::spawn(async move { listener.run().await });
+        tokio::spawn(run_grpc(self.addr, self.handler));
 
+        let mut state = self.state;
         state.run().await;
+    }
+}
+
+async fn run_grpc(addr: std::net::SocketAddr, handler: grpc::Handler) {
+    let srv = super::proto::zombiesplit_server::ZombiesplitServer::new(handler);
+    if let Err(e) = tonic::transport::server::Server::builder()
+        .concurrency_limit_per_connection(256)
+        .add_service(srv)
+        .serve(addr)
+        .await
+    {
+        // TODO(@MattWindsor91): handle error properly
+        log::error!("error in server: {e}");
     }
 }
 
@@ -185,7 +198,7 @@ struct State<'m> {
     /// The session being wrapped by this server.
     session: attempt::Session<'m, 'm, attempt::observer::Mux>,
     /// Receives messages from the server handler.
-    message_rx: mpsc::Receiver<Message>,
+    message_recv: mpsc::Receiver<Message>,
 }
 
 /// A message to the server.
@@ -203,7 +216,7 @@ impl<'m> State<'m> {
     /// These messages, in turn, give rise to observations that will bubble up through the broadcast
     /// channel and into clients.
     async fn run(&mut self) {
-        while let Some(msg) = self.message_rx.recv().await {
+        while let Some(msg) = self.message_recv.recv().await {
             match msg {
                 Message::Action(act) => self.session.handle(act),
                 Message::Dump(rx) => {
