@@ -49,10 +49,13 @@ impl<'conn> Getter<'conn> {
         gcid: GcID,
     ) -> Result<Comparison> {
         let pb_summary = self.run_pb(gcid)?;
-        let total = pb_summary
-            .as_ref()
-            .map(|x| x.item.timing.total)
-            .unwrap_or_default();
+
+        let total_in_pb_run = pb_summary.as_ref().map(|x| x.item.timing.total);
+        let sum_of_best = self.sum_of_best(gcid)?;
+        let run = comparison::Run {
+            total_in_pb_run,
+            sum_of_best,
+        };
 
         let pb_full = pb_summary
             .map(|x| run_get.add_split_totals(x))
@@ -61,8 +64,7 @@ impl<'conn> Getter<'conn> {
         let splits = cat_get.splits(&gcid)?;
         Ok(Comparison {
             splits: self.splits(gcid, &splits, pb_full)?,
-            total,
-            sum_of_best: self.sum_of_best(gcid)?,
+            run,
         })
     }
 
@@ -98,11 +100,10 @@ impl<'conn> Getter<'conn> {
     /// # Errors
     ///
     /// Errors if the database query fails.
-    pub fn sum_of_best(&mut self, id: GcID) -> Result<Time> {
+    pub fn sum_of_best(&mut self, id: GcID) -> Result<Option<Time>> {
         Ok(self
             .sum_of_best_query
-            .query_row(named_params![":game_category": id], |r| r.get("total"))
-            .unwrap_or_default())
+            .query_row(named_params![":game_category": id], |r| r.get("total"))?)
     }
 
     fn splits(
@@ -139,14 +140,17 @@ fn merge_split_data(
 ) -> short::Map<comparison::Split> {
     splits
         .iter()
-        .map(|x| {
-            (
-                x.info.short,
-                comparison::Split {
-                    split_pb: split_pbs.get(&x.info.short).copied(),
-                    in_run: run_pb_splits.get(&x.info.short).copied(),
-                },
-            )
+        .filter_map(|x| {
+            run_pb_splits.get(&x.info.short).copied().map(|in_run| {
+                (
+                    x.info.short,
+                    // The split PB should _really_ exist if there is an in-run PB.
+                    comparison::Split {
+                        split_pb: split_pbs.get(&x.info.short).copied().unwrap_or_default(),
+                        in_pb_run: in_run,
+                    },
+                )
+            })
         })
         .collect()
 }

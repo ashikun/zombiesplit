@@ -1692,6 +1692,7 @@ dependencies = [
  "directories",
  "env_logger",
  "futures",
+ "http",
  "itertools",
  "log",
  "num-integer",

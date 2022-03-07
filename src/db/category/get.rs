@@ -150,7 +150,6 @@ impl<'conn> Getter<'conn> {
         self.query_splits
             .query_and_then(named_params![":game_category": game_category], |row| {
                 Ok(Split::new(
-                    row.get("sid")?,
                     row.get::<_, short::Name>("sshort")?,
                     &row.get::<_, String>("sname")?,
                 ))

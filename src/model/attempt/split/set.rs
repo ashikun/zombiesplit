@@ -18,12 +18,20 @@ pub struct Set {
     cache: short::Map<usize>,
 }
 
-/// We can construct a [Set] from any iterator that yields us split information.
-impl FromIterator<game::Split> for Set {
-    fn from_iter<T: IntoIterator<Item = game::Split>>(iter: T) -> Self {
-        let contents: Vec<Split> = iter.into_iter().map(Split::new).collect();
+/// We can construct a [Set] from any iterator that yields attempt split information.
+impl FromIterator<Split> for Set {
+    fn from_iter<T: IntoIterator<Item = Split>>(iter: T) -> Self {
+        let contents: Vec<Split> = iter.into_iter().collect();
         let cache = make_cache(&contents);
         Self { contents, cache }
+    }
+}
+
+/// We can construct a [Set] from any iterator that yields initial (game) split information.
+/// The result is as if we created an empty attempt split for each game split first.
+impl FromIterator<game::Split> for Set {
+    fn from_iter<T: IntoIterator<Item = game::Split>>(iter: T) -> Self {
+        iter.into_iter().map(Split::new).collect()
     }
 }
 
@@ -142,9 +150,9 @@ mod test {
     // TODO(@MattWindsor91): possibly unify this with the integration test version?
     fn splits() -> [Split; 3] {
         [
-            Split::new(0, "s1", "Split 1"),
-            Split::new(1, "s2", "Split 2"),
-            Split::new(2, "s3", "Split 3"),
+            Split::new("s1", "Split 1"),
+            Split::new("s2", "Split 2"),
+            Split::new("s3", "Split 3"),
         ]
     }
 }

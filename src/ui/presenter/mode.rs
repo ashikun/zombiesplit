@@ -8,7 +8,7 @@ pub use nav::Nav;
 use std::fmt::{Display, Formatter};
 
 use super::{event, State};
-use crate::model::attempt::Action;
+use crate::model::attempt::action;
 
 /// Trait for presenter modes.
 ///
@@ -45,7 +45,7 @@ pub trait Mode: Display {
     /// The [Mode] can perform any last-minute adjustments to the visual
     /// `state`, and optionally return a follow-on [Action] representing the
     /// application of this mode's efforts to the model.
-    fn on_exit(&mut self, state: &mut State) -> Option<Action>;
+    fn on_exit(&mut self, state: &mut State) -> Option<action::Action>;
 
     /// Is zombiesplit running while this mode is active?
     fn is_running(&self) -> bool {
@@ -69,7 +69,7 @@ impl Mode for Quitting {
         EventResult::Handled
     }
 
-    fn on_exit(&mut self, _state: &mut State) -> Option<Action> {
+    fn on_exit(&mut self, _state: &mut State) -> Option<action::Action> {
         unreachable!("should not be able to exit out of the Quitting state")
     }
 
@@ -92,7 +92,7 @@ pub enum EventResult {
     /// The event was handled internally.
     Handled,
     /// The event raised an action to be applied to the attempt model.
-    Action(Action),
+    Action(action::Action),
     /// The event caused a transition to another mode.
     Transition(Box<dyn Mode>),
 }
@@ -102,5 +102,11 @@ impl EventResult {
     #[must_use]
     pub fn transition(to: impl Mode + 'static) -> Self {
         Self::Transition(Box::new(to))
+    }
+
+    /// Shorthand for creating a pop.
+    #[must_use]
+    pub fn pop(index: usize, ty: action::Pop) -> Self {
+        Self::Action(action::Action::Pop(index, ty))
     }
 }

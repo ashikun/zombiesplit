@@ -1,6 +1,7 @@
 //! The zombiesplit client.
 
 use clap::Parser;
+use zombiesplit::model::attempt::action::Handler;
 use zombiesplit::{cli, config::Client as Config, net, ui};
 
 fn main() {
@@ -22,18 +23,28 @@ fn run() -> anyhow::Result<()> {
     let args = Args::parse();
     let cfg = Config::load(args.config)?;
 
-    let (mut asend, arecv) = net::client::action::channel();
     let (pobs, ppump) = ui::presenter::observer();
 
+    let mut client = net::client::Sync::new(cfg.server_addr, pobs)?;
+    // TODO(@MattWindsor91): server info
+    let _state = client.dump()?;
+
+    let (csend, crecv) = tokio::sync::oneshot::channel();
+
+    let mut observing_client = client.clone();
     let _handle = std::thread::spawn(move || -> anyhow::Result<()> {
-        net::client::Sync::new(cfg.server_addr, pobs, arecv)?.run()?;
+        observing_client.observe(crecv)?;
         Ok(())
     });
 
     let vconf = cfg.ui.into_view_config()?;
     let sdl = ui::sdl::Manager::new(&vconf)?;
-    let mut ui = ui::Instance::new(&vconf, &sdl, &mut asend, ppump)?;
+    let mut ui = ui::Instance::new(&vconf, &sdl, &mut client, ppump)?;
     ui.run()?;
+
+    csend
+        .send(())
+        .map_err(|_| anyhow::Error::msg("couldn't cancel observer"))?;
 
     // TODO(@MattWindsor91): make this work
 

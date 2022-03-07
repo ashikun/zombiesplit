@@ -24,16 +24,14 @@ impl Default for Pace {
 }
 
 impl Pace {
-    /// Calculates the pace by comparing `time` to `compared_to`, if it exists.
+    /// Calculates the pace by comparing `time` to `compared_to`.
     #[must_use]
-    pub fn of_comparison(time: Time, compared_to: Option<Time>) -> Self {
-        compared_to.map_or(Self::default(), |cmp| {
-            if time <= cmp {
-                Self::Ahead
-            } else {
-                Self::Behind
-            }
-        })
+    pub fn of_comparison(time: Time, compared_to: Time) -> Self {
+        if time <= compared_to {
+            Self::Ahead
+        } else {
+            Self::Behind
+        }
     }
 }
 
@@ -67,7 +65,7 @@ impl PacedTime {
 
     /// Calculates the pace by comparing `time` to `compared_to`, if it exists.
     #[must_use]
-    pub fn of_comparison(time: Time, compared_to: Option<Time>) -> Self {
+    pub fn of_comparison(time: Time, compared_to: Time) -> Self {
         Self {
             pace: Pace::of_comparison(time, compared_to),
             time,

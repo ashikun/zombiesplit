@@ -15,6 +15,11 @@ service Zombiesplit {
    * Queries
    */
 
+  // Requests a server info structure.
+  //
+  // Use this to make sure the protocol is as expected.
+  rpc ServerInfo(ServerInfoRequest) returns (ServerInfoResponse) {}
+
   // Requests an initial dump.
   //
   // Use this before starting the user interface, or if the client has lagged
@@ -30,11 +35,37 @@ service Zombiesplit {
    * Commands
    */
 
-  // Starts a new run in the current session.
-  rpc NewRun(NewRunRequest) returns (NewRunResponse) {}
+  // Starts a new attempt in the current session.
+  rpc NewAttempt(NewAttemptRequest) returns (NewAttemptResponse) {}
 
-  // Modifies a split in the current session.
-  rpc ModifySplit(ModifySplitRequest) returns (ModifySplitResponse) {}
+  // Pushes a time to a split in the current session.
+  rpc Push(PushRequest) returns (PushResponse) {}
+
+  // Pops times from a split in the current session.
+  rpc Pop(PopRequest) returns (PopResponse) {}
+}
+
+//
+// Server info
+//
+
+// A server info request.
+message ServerInfoRequest {
+  // Space for rent
+  // This may accept filters later on.
+}
+
+// A server info response.
+message ServerInfoResponse {
+  // Server semantic version.
+  message Version {
+    uint64 major = 1; // Major version number.
+    uint64 minor = 2; // Minor version number.
+    uint64 patch = 3; // Patch version number.
+  }
+
+  string ident = 1;    // The name of the server software.
+  Version version = 2; // The version of the server.
 }
 
 //
@@ -48,24 +79,9 @@ message DumpRequest {
 }
 
 // A dump response.
-// Currently this does not contain any information, but eventually it will
-// contain the full dump.
 message DumpResponse {
-  // Information about the server.
-  message Server {
-    // Server semantic version.
-    message Version {
-      uint64 major = 1; // Major version number.
-      uint64 minor = 2; // Minor version number.
-      uint64 patch = 3; // Patch version number.
-    }
-
-    string ident = 1;    // The name of the server software.
-    Version version = 2; // The version of the server.
-  }
-
-  // Information about the session that the server is running.
-  message Run {
+  // Information about the current run attempt.
+  message Attempt {
     // Information about a game/category.
     message GameCategory {
       string game_sid = 1;      // Short identifier for the game.
@@ -85,49 +101,39 @@ message DumpResponse {
     repeated Split splits = 3;      // Information about a split.
   }
 
-  Server server = 1; // Server information.
-  Run run = 2;       // Dump of the current run state.
-}
+  // Information about the most recent comparison data.
+  message Comparison {
+    // Split comparison message.
+    message Split {
+      // Split aggregate information message.
+      message Aggregate {
+        uint32 split = 1;      // Timing for this split only.
+        uint32 cumulative = 2; // Precomputed cumulative timing.
+      }
 
-//
-// NewRun
-//
+      /// The personal best for this split, if any.
+      ///
+      /// Any splits that compare quicker than this time get the `PersonalBest`
+      /// pace.
+      uint32 split_pb = 1;     // Personal best for this split.
+      Aggregate in_pb_run = 2; // Comparison for this split in the personal-best run.
+    }
 
-// A new-run request.
-// This may accept filters later on.
-message NewRunRequest {
-  bool save = 1; // Should this run be saved to the database?
-}
+    // Pre-computed run-wide totals.
+    //
+    // These can be optional, as there is a distinction between a zero time (very unlikely but theoretically possible)
+    // and a nonexistent time (eg, comparison data is empty).
+    message Run {
+      optional uint32 total_in_pb_run = 1; // Precomputed total across all splits in the PB run.
+      optional uint32 sum_of_best = 2;     // Precomputed sum of all split PBs.
+    }
 
-// A new-run response.
-message NewRunResponse {
-  // Space for rent
-}
-
-//
-// ModifySplit
-//
-
-// A request to modify a particular split.
-message ModifySplitRequest {
-  // Types of pop modification.
-  enum Pop {
-    ONE = 0; // Pop the most recent time from this split.
-    ALL = 1; // Pop all times from the split.
+    map<string, Split> splits = 1; // Per-split comparisons.
+    Run run = 2;                   // Pre-computed run-wide totals.
   }
 
-  uint64 index = 1; // Index of the split.
-
-  // Modification being requested.
-  oneof modification {
-    uint32 push = 2; // Push this time (milliseconds) onto the split.
-    Pop pop = 3;     // Remove a certain amount of times from the split.
-  }
-}
-
-// A response from a split modification.
-message ModifySplitResponse {
-  // Space for rent
+  Attempt attempt = 1;       // Dump of the current run state.
+  Comparison comparison = 2; // Dump of the current comparison information.
 }
 
 //
@@ -146,22 +152,39 @@ message Event {
     message Time {
       // Enumeration of types of time event.
       enum Type {
-        PUSHED = 0;     // This time was just added to the split.
-        POPPED = 1;     // This time was just removed from the split.
-        TOTAL = 2;      // This is the new total for the split.
-        COMPARISON = 3; // This is the new comparison for the split.
+        PUSHED = 0;                // This time was just added to the split.
+        POPPED = 1;                // This time was just removed from the split.
+        ATTEMPT_TOTAL = 2;         // This is the new attempt total for the split.
+        COMPARISON_TOTAL = 3;      // This is the new comparison total for the split.
+        ATTEMPT_CUMULATIVE = 4;    // This is the new attempt total for the split.
+        COMPARISON_CUMULATIVE = 5; // This is the new comparison total for the split.
       }
       Type type = 1;   // The type of time event.
       uint32 time = 2; // The time, in milliseconds.
     }
 
-    uint64 index = 1; // Index of the split.
+    string sid = 1; // Short ID of the split.
 
     // Payload of the event.
     oneof payload {
       Time time = 2;  // Something happened to the split time.
       Pace pace = 3;  // The split has been re-paced.
-      bool is_pb = 4; // Is the split a personal best?
+    }
+  }
+
+  // One of the run-wide totals has changed.
+  message Total {
+    // Enumeration of types of comparison total.
+    enum ComparisonType {
+      TOTAL_IN_PB_RUN = 0; // Sum of segments in the best whole comparison run.
+      SUM_OF_BEST = 1;     // Sum of best segment times in the comparison.
+    }
+
+    optional uint32 value = 1; // The time, in milliseconds, if one is logged for this total.
+    // Information about what `value` means.
+    oneof type {
+      ComparisonType comparison = 2; // This is a comparison total.
+      Pace attempt = 3;              // This is an attempt total with the given pace.
     }
   }
 
@@ -169,29 +192,64 @@ message Event {
   oneof payload {
     AttemptInfo reset = 1; // A new attempt has started; the new attempt's information follows.
     Split split = 2;       // An event on a split.
-    Aggregate total = 3;   // A whole-run total time announcement.
+    Total total = 3;       // A whole-run total time announcement.
   }
 }
 
-// An aggregate time announcement.
-message Aggregate {
-  // Enumeration of types of aggregate.
-  enum Type {
-    ATTEMPT = 0;     // Total so far in the attempt.
-    COMPARISON = 1;  // Sum of segments in the best whole comparison run.
-    SUM_OF_BEST = 2; // Sum of best segment times in the comparison.
-  }
+//
+// NewAttempt
+//
 
-  Type type = 1;    // The type of aggregate.
-  uint32 value = 2; // The value, in milliseconds.
-  Pace pace = 3;    // The pace of this aggregate, if applicable.
+// A new-attempt request.
+// This may accept filters later on.
+message NewAttemptRequest {
+  bool save = 1; // Should this run be saved to the database?
 }
+
+// A new-attempt response.
+message NewAttemptResponse {
+  // Space for rent
+}
+
+//
+// Push
+//
+
+// A request to push a new time onto a particular split.
+message PushRequest {
+  uint64 index = 1; // Index of the split.
+  uint32 time = 2;  // Time being pushed, in milliseconds.
+}
+
+// Response from a PushRequest.
+message PushResponse {
+  // Space for rent
+}
+
+//
+// Pop
+//
+
+// A request to pop times from a particular split.
+message PopRequest {
+  uint64 index = 1; // Index of the split.
+  Pop type = 2;     // Type of pop.
+}
+
+// A response from a pop.
+message PopResponse {
+  // Space for rent
+}
+
+//
+// Shared
+//
 
 // Attempt information.
 //
 // This is both sent in dumps as well as whenever a new attempt begins.
 message AttemptInfo {
-  uint64 total     = 1; // How many attempts have been run so far (ie. one below the current run's number).
+  uint64 total = 1; // How many attempts have been run so far (ie. one below the current run's number).
   uint64 completed = 2; // How many attempts have been run to completion so far.
 }
 
@@ -202,4 +260,11 @@ enum Pace {
   BEHIND_BUT_GAINING = 2; // Behind comparison but making up time.
   AHEAD_BUT_LOSING = 3;   // Ahead of comparison but losing time.
   AHEAD = 4;              // Ahead of comparison.
+  PERSONAL_BEST = 5;      // Split PB.
+}
+
+// Types of pop modification.
+enum Pop {
+  ONE = 0; // Pop the most recent time from this split.
+  ALL = 1; // Pop all times from the split.
 }

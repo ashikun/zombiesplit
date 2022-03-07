@@ -31,7 +31,6 @@ use super::super::{
 
 mod error;
 mod grpc;
-mod listener;
 
 /// A manager of a zombiesplit server.
 ///
@@ -156,7 +155,7 @@ impl Observable for Manager {
     }
 }
 
-/// A server, wrapping a session with the means to control it (through gRPC).
+/// A server, wrapping a session with the means to control it (through `gRPC`).
 ///
 /// A server owns a running session, as well as the various observers attached to it, and performs
 /// many of the tasks of bringing up, maintaining, and tearing down those elements.
@@ -207,7 +206,9 @@ pub enum Message {
     /// An action to send to the session; no direct reply expected.
     Action(attempt::Action),
     /// A dumping query, which expects a reply through the given oneshot.
-    Dump(oneshot::Sender<super::dump::Dump>),
+    Dump(oneshot::Sender<attempt::session::State>),
+    /// A query for server information, which expects a reply through the given oneshot.
+    ServerInfo(oneshot::Sender<super::dump::Server>),
 }
 
 impl<'m> State<'m> {
@@ -218,23 +219,31 @@ impl<'m> State<'m> {
     async fn run(&mut self) {
         while let Some(msg) = self.message_recv.recv().await {
             match msg {
-                Message::Action(act) => self.session.handle(act),
+                Message::Action(act) => infallible(self.session.handle(act)),
                 Message::Dump(rx) => {
                     // TODO(@MattWindsor91): handle drop?
-                    let _res = rx.send(self.dump());
+                    let _res = rx.send(infallible(self.session.dump()));
+                }
+                Message::ServerInfo(rx) => {
+                    // TODO(@MattWindsor91): handle drop?
+                    let _res = rx.send(info());
                 }
             }
         }
     }
+}
 
-    fn dump(&self) -> super::dump::Dump {
-        super::dump::Dump {
-            server: super::dump::Server {
-                ident: SERVER_IDENT.to_string(),
-                version: SERVER_VERSION,
-            },
-            run: self.session.dump(),
-        }
+fn info() -> super::dump::Server {
+    super::dump::Server {
+        ident: SERVER_IDENT.to_string(),
+        version: SERVER_VERSION,
+    }
+}
+
+fn infallible<T>(x: std::result::Result<T, std::convert::Infallible>) -> T {
+    match x {
+        Ok(t) => t,
+        Err(e) => match e {},
     }
 }
 

@@ -5,7 +5,6 @@ a protocol defined in `proto`.  The netcode is asynchronous and built using toki
 
 pub mod client;
 pub mod dump;
-mod io;
 pub mod proto;
 pub mod server;
 

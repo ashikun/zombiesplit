@@ -27,29 +27,21 @@ pub trait Observer {
 #[non_exhaustive]
 pub enum Event {
     /// Observes a change in one of the run total times.
-    Total(Total),
-    /// Observes the number of splits, which can be used to prepare for incoming split information.
-    ///
-    /// This SHOULD be sent before `Split` events give `Init` information about the splits.
-    NumSplits(usize),
+    Total(Total, Option<timing::Time>),
     /// Observes information about a reset, with the new attempt information attached.
     Reset(category::AttemptInfo),
-    /// Observes information about the game being run.
-    GameCategory(category::Info),
     /// Observes an event on a split.
     Split(short::Name, split::Event),
 }
 
-/// A run-total time event.
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+/// Information about a type of total.
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub enum Total {
-    /// Total so far in the attempt.
-    Attempt(timing::comparison::PacedTime),
-    /// The comparison time.
-    Comparison(timing::Time),
-    /// The sum of best segment times in the comparison.
-    SumOfBest(timing::Time),
+    /// The total is the attempt total, and has the given pace note.
+    Attempt(timing::comparison::Pace),
+    /// The total is one of the comparison totals.
+    Comparison(timing::comparison::run::TotalType),
 }
 
 /// Blanket implementation for split observing on model observers.

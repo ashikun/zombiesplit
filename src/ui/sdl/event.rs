@@ -71,7 +71,8 @@ fn from_key(k: sdl2::keyboard::Keycode) -> Option<Event> {
         Keycode::L | Keycode::Right => Some(Event::modal(Modal::Commit)),
         Keycode::X | Keycode::Delete => Some(Event::modal(Modal::Delete)),
         Keycode::Z => Some(Event::Presenter(presenter::event::Event::Action(
-            attempt::Action::NewRun,
+            // TODO(@MattWindsor91): way of discarding runs
+            attempt::Action::NewRun(attempt::action::OldDestination::Save),
         ))),
         Keycode::Escape => Some(Event::Presenter(presenter::event::Event::Quit)),
         _ => None,

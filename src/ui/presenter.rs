@@ -67,7 +67,10 @@ impl<'h, H: Handler> Presenter<'h, H> {
     /// Any other events are handled directly.
     pub fn handle_event(&mut self, e: &event::Event) {
         if let Some(a) = self.handle_local_event(e) {
-            self.action_handler.handle(a);
+            // TODO(@MattWindsor91): handle this properly
+            if let Err(e) = self.action_handler.handle(a) {
+                log::error!("error handling action: {}", e.to_string());
+            }
         }
         // This is slightly inefficient, as we don't always change the mode when an event happens.
         self.update_mode_line();
@@ -188,6 +191,7 @@ impl<H: Handler> event::Pump<H> for ModelEventPump {
 }
 
 /// An observer that feeds into a [Presenter].
+#[derive(Clone)]
 pub struct Observer(mpsc::Sender<attempt::observer::Event>);
 
 impl attempt::Observer for Observer {

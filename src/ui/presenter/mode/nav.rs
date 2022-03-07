@@ -1,6 +1,6 @@
 //! The [Nav] struct and its implementations.
 
-use crate::model::attempt::Action;
+use crate::model::attempt::action;
 use crate::model::timing::time;
 use std::fmt::{Display, Formatter};
 
@@ -27,13 +27,13 @@ impl Mode for Nav {
         match event {
             Modal::Cursor(c) => move_cursor(c, state),
             Modal::EnterField(f) => enter_field(state.cursor_position(), f),
-            Modal::Undo => EventResult::Action(Action::Pop(state.cursor_position())),
-            Modal::Delete => EventResult::Action(Action::Clear(state.cursor_position())),
+            Modal::Undo => EventResult::pop(state.cursor_position(), action::Pop::One),
+            Modal::Delete => EventResult::pop(state.cursor_position(), action::Pop::All),
             _ => EventResult::Handled,
         }
     }
 
-    fn on_exit(&mut self, _state: &mut crate::ui::presenter::State) -> Option<Action> {
+    fn on_exit(&mut self, _state: &mut crate::ui::presenter::State) -> Option<action::Action> {
         // Don't clear the cursor, it'll probably be used by the new state.
         None
     }

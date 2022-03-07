@@ -26,40 +26,54 @@ type Result<T> = std::result::Result<tonic::Response<T>, tonic::Status>;
 impl Zombiesplit for Handler {
     type ObserveStream = EventStream;
 
+    async fn server_info(
+        &self,
+        _request: tonic::Request<proto::ServerInfoRequest>,
+    ) -> Result<proto::ServerInfoResponse> {
+        self.query(
+            "server info",
+            super::Message::ServerInfo,
+            proto::encode::server_info,
+        )
+        .await
+    }
+
     async fn dump(
         &self,
         _request: tonic::Request<proto::DumpRequest>,
     ) -> Result<proto::DumpResponse> {
-        let (send, recv) = oneshot::channel();
-
-        self.message_send
-            .send(super::Message::Dump(send))
+        self.query("dump", super::Message::Dump, proto::encode::dump)
             .await
-            .map_err(|e| tonic::Status::internal(format!("couldn't send dump message: {e}")))?;
-
-        let dump = recv
-            .await
-            .map_err(|_| tonic::Status::internal("dump channel dropped"))?;
-
-        Ok(tonic::Response::new(proto::encode::dump(&dump)?))
     }
 
-    async fn new_run(
+    async fn new_attempt(
         &self,
-        _request: tonic::Request<proto::NewRunRequest>,
-    ) -> Result<proto::NewRunResponse> {
-        self.act(attempt::Action::NewRun).await?;
-        Ok(tonic::Response::new(proto::NewRunResponse {}))
+        request: tonic::Request<proto::NewAttemptRequest>,
+    ) -> Result<proto::NewAttemptResponse> {
+        let dest = if request.into_inner().save {
+            attempt::action::OldDestination::Save
+        } else {
+            attempt::action::OldDestination::Discard
+        };
+
+        self.act(attempt::Action::NewRun(dest)).await?;
+        // TODO(@MattWindsor91): report back whether the save occurred.
+        Ok(tonic::Response::new(proto::NewAttemptResponse {}))
     }
 
-    async fn modify_split(
+    async fn push(
         &self,
-        request: tonic::Request<proto::ModifySplitRequest>,
-    ) -> Result<proto::ModifySplitResponse> {
-        if let Some(a) = modify_split_action(request.get_ref())? {
-            self.act(a).await?;
-        }
-        Ok(tonic::Response::new(proto::ModifySplitResponse {}))
+        request: tonic::Request<proto::PushRequest>,
+    ) -> Result<proto::PushResponse> {
+        self.act(proto::decode::push_action(&request.into_inner())?)
+            .await?;
+        Ok(tonic::Response::new(proto::PushResponse {}))
+    }
+
+    async fn pop(&self, request: tonic::Request<proto::PopRequest>) -> Result<proto::PopResponse> {
+        self.act(proto::decode::pop_action(&request.into_inner())?)
+            .await?;
+        Ok(tonic::Response::new(proto::PopResponse {}))
     }
 
     async fn observe(
@@ -71,28 +85,6 @@ impl Zombiesplit for Handler {
         let mapped_stream = recv_stream.map(|x| map_event_result(&x));
         let response = Pin::new(Box::new(mapped_stream));
         Ok(tonic::Response::new(response))
-    }
-}
-
-fn map_event_result(
-    event: &std::result::Result<
-        attempt::observer::Event,
-        tokio_stream::wrappers::errors::BroadcastStreamRecvError,
-    >,
-) -> std::result::Result<proto::Event, tonic::Status> {
-    event
-        .as_ref()
-        .map_err(map_event_error)
-        .and_then(proto::encode::event)
-}
-
-fn map_event_error(
-    err: &tokio_stream::wrappers::errors::BroadcastStreamRecvError,
-) -> tonic::Status {
-    match err {
-        tokio_stream::wrappers::errors::BroadcastStreamRecvError::Lagged(e) => {
-            tonic::Status::data_loss(format!("lagged behind: {e}"))
-        }
     }
 }
 
@@ -108,30 +100,49 @@ impl Handler {
             .await
             .map_err(|x| tonic::Status::internal(x.to_string()))
     }
+
+    /// Handles the main body of a RPC call that just asks the server to provide some information.
+    async fn query<T, P>(
+        &self,
+        type_name: &'static str,
+        to_message: fn(oneshot::Sender<T>) -> super::Message,
+        encoder: fn(&T) -> proto::encode::Result<P>,
+    ) -> Result<P> {
+        let (send, recv) = oneshot::channel();
+
+        self.message_send
+            .send(to_message(send))
+            .await
+            .map_err(|e| {
+                tonic::Status::internal(format!("couldn't send {type_name} message: {e}"))
+            })?;
+
+        let reply = recv
+            .await
+            .map_err(|_| tonic::Status::internal(format!("{type_name} channel dropped")))?;
+
+        encoder(&reply).map(tonic::Response::new)
+    }
 }
 
-fn modify_split_action(
-    message: &proto::ModifySplitRequest,
-) -> std::result::Result<Option<attempt::Action>, tonic::Status> {
-    let index = proto::decode::split_index(message.index)?;
-    message
-        .modification
+fn map_event_result(
+    event: &std::result::Result<
+        attempt::observer::Event,
+        tokio_stream::wrappers::errors::BroadcastStreamRecvError,
+    >,
+) -> std::result::Result<proto::Event, tonic::Status> {
+    event
         .as_ref()
-        .map(|modi| match modi {
-            proto::modify_split_request::Modification::Push(stamp) => push(index, *stamp),
-            proto::modify_split_request::Modification::Pop(ty) => pop(index, *ty),
-        })
-        .transpose()
+        .map_err(map_event_error)
+        .and_then(proto::encode::event::encode)
 }
 
-fn push(index: usize, stamp: u32) -> std::result::Result<attempt::Action, tonic::Status> {
-    Ok(attempt::Action::Push(index, proto::decode::time(stamp)?))
-}
-
-fn pop(index: usize, ty: i32) -> std::result::Result<attempt::Action, tonic::Status> {
-    match proto::modify_split_request::Pop::from_i32(ty) {
-        Some(proto::modify_split_request::Pop::One) => Ok(attempt::Action::Pop(index)),
-        Some(proto::modify_split_request::Pop::All) => Ok(attempt::Action::Clear(index)),
-        None => Err(tonic::Status::out_of_range(format!("bad pop type: {ty}"))),
+fn map_event_error(
+    err: &tokio_stream::wrappers::errors::BroadcastStreamRecvError,
+) -> tonic::Status {
+    match err {
+        tokio_stream::wrappers::errors::BroadcastStreamRecvError::Lagged(e) => {
+            tonic::Status::data_loss(format!("lagged behind: {e}"))
+        }
     }
 }

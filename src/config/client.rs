@@ -9,7 +9,7 @@ use crate::ui::view;
 #[serde(default)]
 pub struct Client {
     /// Address of the server.
-    pub server_addr: std::net::SocketAddr,
+    pub server_addr: String,
     /// UI configuration.
     pub ui: Ui,
 }
@@ -17,7 +17,7 @@ pub struct Client {
 impl Default for Client {
     fn default() -> Self {
         Self {
-            server_addr: super::server::default_addr(),
+            server_addr: format!("https://localhost:{}", super::server::DEFAULT_PORT),
             ui: Ui::default(),
         }
     }

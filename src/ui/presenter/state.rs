@@ -9,12 +9,14 @@ use std::ops::{Index, IndexMut};
 pub use footer::Footer;
 pub use split::Split;
 
-use crate::model::attempt::observer::Total;
 use crate::model::{
     attempt,
     game::category,
     short,
-    timing::{comparison::pace::PacedTime, time},
+    timing::{
+        comparison::{pace::PacedTime, run::TotalType},
+        time,
+    },
 };
 
 pub mod cursor;
@@ -78,16 +80,20 @@ impl State {
     }
 
     /// Sets a total (eg attempt, comparison, sum-of-best).
-    pub fn set_total(&mut self, total: super::observer::Total) {
-        match total {
-            Total::Attempt(a) => {
-                self.footer.total = a;
+    pub fn set_total(&mut self, ty: super::observer::Total, time: Option<time::Time>) {
+        match ty {
+            super::observer::Total::Attempt(pace) => {
+                self.footer.total = PacedTime {
+                    time: time.unwrap_or_default(),
+                    pace,
+                };
             }
-            Total::Comparison(c) => {
-                let _ = self.footer.target.insert(c);
-            }
-            Total::SumOfBest(s) => {
-                let _ = self.footer.sum_of_best.insert(s);
+            super::observer::Total::Comparison(ty) => {
+                let dst = match ty {
+                    TotalType::TotalInPbRun => &mut self.footer.target,
+                    TotalType::SumOfBest => &mut self.footer.sum_of_best,
+                };
+                *dst = time;
             }
         }
     }
@@ -130,22 +136,12 @@ impl State {
     pub fn handle_event(&mut self, ev: attempt::observer::Event) {
         use attempt::observer::Event;
         match ev {
-            Event::Total(time) => self.set_total(time),
-            Event::NumSplits(count) => self.set_split_count(count),
+            Event::Total(ty, time) => self.set_total(ty, time),
             Event::Reset(a) => self.reset(&a),
-            Event::GameCategory(gc) => self.game_category = gc,
             Event::Split(short, ev) => {
                 self.handle_split_event(short, ev);
             }
         }
-    }
-
-    fn set_split_count(&mut self, count: usize) {
-        self.splits.set_split_count(count);
-        self.cursor.resize(count.saturating_sub(1));
-
-        // The resize may have changed the splits' relative positions, so recalculate them.
-        self.splits.refresh_cursors(&self.cursor);
     }
 
     /// Handles an observation for the split with the given shortname.

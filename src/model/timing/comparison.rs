@@ -2,9 +2,11 @@
 
 pub mod pace;
 pub mod provider;
+pub mod run;
 
 pub use pace::{Pace, PacedTime};
 pub use provider::Provider;
+pub use run::Run;
 
 use super::{super::short, aggregate, Time};
 
@@ -17,10 +19,8 @@ use super::{super::short, aggregate, Time};
 pub struct Comparison {
     /// Split comparisons.
     pub splits: short::Map<Split>,
-    /// The precomputed total across all splits in the PB run.
-    pub total: Time,
-    /// The sum of all split PBs.
-    pub sum_of_best: Time,
+    /// Precomputed run data.
+    pub run: Run,
 }
 
 impl Comparison {
@@ -37,7 +37,7 @@ impl Comparison {
     /// available.
     #[must_use]
     pub fn aggregate_for(&self, split: short::Name) -> Option<&aggregate::Set> {
-        self.splits.get(&split).and_then(|x| x.in_run.as_ref())
+        self.splits.get(&split).map(|x| &x.in_pb_run)
     }
 }
 
@@ -62,13 +62,13 @@ impl IntoIterator for Comparison {
 ///   the PB).
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Split {
-    /// The personal best for this split, if any.
+    /// The personal best for this split.
     ///
     /// Any splits that compare quicker than this time get the `PersonalBest`
     /// pace.
-    pub split_pb: Option<Time>,
-    /// Timing information for this split in the comparison run, if any.
-    pub in_run: Option<aggregate::Set>,
+    pub split_pb: Time,
+    /// Timing information for this split in the comparison run.
+    pub in_pb_run: aggregate::Set,
 }
 
 impl Split {
@@ -85,8 +85,8 @@ impl Split {
     /// Gets the aggregate time of scope `scope` for this split in the run
     /// against which we are comparing.
     #[must_use]
-    fn aggregate_in_run(&self, scope: aggregate::Scope) -> Option<Time> {
-        self.in_run.map(|x| x[scope])
+    fn aggregate_in_run(&self, scope: aggregate::Scope) -> Time {
+        self.in_pb_run[scope]
     }
 
     /// Compares `time` against the cumulative time at this split.
@@ -107,6 +107,6 @@ impl Split {
 
     /// Checks whether `split time` is a new personal best.
     fn is_personal_best(&self, split_time: Time) -> bool {
-        self.split_pb.map_or(false, |pb| split_time < pb)
+        split_time < self.split_pb
     }
 }

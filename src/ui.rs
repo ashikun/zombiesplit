@@ -17,7 +17,7 @@ pub use error::{Error, Result};
 pub use presenter::event::Pump;
 pub use view::View;
 
-use crate::model::attempt::action::{Action, Handler};
+use crate::model::attempt::action::Handler;
 
 /// Trait for things that provide UI components such as event pumps and renderers.
 pub trait Manager<'r> {
@@ -76,8 +76,6 @@ impl<'m, E: event::Pump, H: Handler, R: view::gfx::Renderer> Instance<'m, E, H, 
     ///
     /// Returns an error if SDL fails to perform an action.
     pub fn run(&mut self) -> Result<()> {
-        self.presenter.action_handler.handle(Action::Dump);
-
         // Initial draw
         self.view.redraw(&self.presenter.state)?;
 

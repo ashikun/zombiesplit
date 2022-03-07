@@ -23,10 +23,8 @@ use super::{
 /// about the run's progress, and a comparison provider.  The latter feeds into
 /// the session's lifetime.
 pub struct Session<'cmp, 'obs, O> {
-    /// The current run.
-    run: Run,
-    /// Comparison data for the game/category currently being run.
-    comparison: Comparison,
+    /// The state of the session.
+    state: State,
     /// The observer attached to the session (which, itself, may be observable).
     observer: &'obs O,
     /// The function for timestamping outgoing runs.
@@ -44,14 +42,21 @@ pub struct Session<'cmp, 'obs, O> {
 }
 
 impl<'cmp, 'obs, O: Observer> action::Handler for Session<'cmp, 'obs, O> {
-    fn handle(&mut self, action: action::Action) {
+    // This error may change later.
+    type Error = std::convert::Infallible;
+
+    fn dump(&mut self) -> Result<State, Self::Error> {
+        Ok(self.state.clone())
+    }
+
+    fn handle(&mut self, action: action::Action) -> Result<(), Self::Error> {
         match action {
-            action::Action::Dump => self.dump_to_observers(),
-            action::Action::Clear(s) => self.clear_at(s),
-            action::Action::NewRun => self.reset(),
-            action::Action::Pop(s) => self.pop_from(s),
+            action::Action::NewRun(dest) => self.reset(dest),
+            action::Action::Pop(s, action::Pop::One) => self.pop_from(s),
+            action::Action::Pop(s, action::Pop::All) => self.clear_at(s),
             action::Action::Push(s, t) => self.push_to(s, t),
-        }
+        };
+        Ok(())
     }
 }
 
@@ -60,8 +65,10 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
     #[must_use]
     pub fn new(run: Run, observer: &'obs O) -> Self {
         Self {
-            run,
-            comparison: Comparison::default(),
+            state: State {
+                run,
+                comparison: Comparison::default(),
+            },
             observer,
             sink: Box::new(sink::Null),
             timestamper: chrono::Utc::now,
@@ -72,7 +79,7 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
     /// Gets a reference to the current run's metadata.
     #[must_use]
     pub fn metadata(&self) -> &Info {
-        &self.run.metadata
+        &self.state.run.metadata
     }
 
     // TODO(@MattWindsor91): replace these 'set_' functions with a builder.
@@ -103,12 +110,6 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
         self.sink = s;
     }
 
-    /// Dumps a clone of the current run.
-    #[must_use]
-    pub fn dump(&self) -> Run {
-        self.run.clone()
-    }
-
     /// Asks the comparison provider for an updated comparison.
     ///
     /// This should occur when the run is reset, in case the outgoing run has
@@ -117,7 +118,7 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
         // TODO(@MattWindsor91): abort on error?
         match self.comparator.comparison() {
             Ok(Some(c)) => {
-                self.comparison = c;
+                self.state.comparison = c;
                 self.observe_comparison();
             }
             Ok(None) => {}
@@ -127,40 +128,8 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
         }
     }
 
-    /// Dumps initial session information to the observers.
-    ///
-    /// This should only be called once, as it might not be idempotent.
-    fn dump_to_observers(&self) {
-        // TODO(@MattWindsor91): make this idempotent.
-        self.observe_game_category();
-        self.observe_splits();
-        // TODO(@MattWindsor91): this is temporary.
-        self.observe_reset();
-        self.observe_comparison();
-    }
-
-    /// Sends information about each split to the observers.
-    fn observe_splits(&self) {
-        self.observer
-            .observe(Event::NumSplits(self.run.splits.len()));
-        for (index, split) in self.run.splits.iter().enumerate() {
-            self.observer.observe_split(
-                split.info.short,
-                observer::split::Event::Init {
-                    index,
-                    name: split.info.name.clone(),
-                },
-            );
-        }
-    }
-
     fn observe_reset(&self) {
-        self.observer.observe(Event::Reset(self.run.attempt));
-    }
-
-    fn observe_game_category(&self) {
-        self.observer
-            .observe(Event::GameCategory(self.run.metadata.clone()));
+        self.observer.observe(Event::Reset(self.state.run.attempt));
     }
 
     /// Observes all paces and aggregates for each split, notifying all
@@ -169,9 +138,10 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
         // TODO(@MattWindsor91): start from a particular split, to avoid
         // redundancy?
 
-        let mut total = pace::PacedTime::default();
+        let mut total = None;
+        let mut overall_pace = pace::Pace::default();
 
-        for (split, agg) in self.run.splits.aggregates() {
+        for (split, agg) in self.state.run.splits.aggregates() {
             let pace = self.split_pace(split, agg);
             let short = split.info.short;
             self.observer
@@ -179,23 +149,21 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
             self.observer
                 .observe_aggregate_set(short, agg, aggregate::Source::Attempt);
 
-            if total.time < agg.cumulative {
-                total = pace::PacedTime {
-                    pace: pace.overall(),
-                    time: agg.cumulative,
-                }
+            if total.unwrap_or_default() < agg.cumulative {
+                let _ = total.insert(agg.cumulative);
+                overall_pace = pace.overall();
             }
         }
 
         self.observer
-            .observe(Event::Total(observer::Total::Attempt(total)));
+            .observe(Event::Total(observer::Total::Attempt(overall_pace), total));
     }
 
     fn split_pace(&self, split: &super::Split, agg: aggregate::Set) -> pace::SplitInRun {
         if split.num_times() == 0 {
             pace::SplitInRun::Inconclusive
         } else {
-            self.comparison.pace(split.info.short, agg)
+            self.state.comparison.pace(split.info.short, agg)
         }
     }
 
@@ -204,38 +172,46 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
     /// This lets the user interface know, for each splits, which times we are
     /// running against.
     fn observe_comparison(&self) {
-        let Comparison {
-            total, sum_of_best, ..
-        } = self.comparison;
-
-        self.observer
-            .observe(Event::Total(observer::Total::Comparison(total)));
-        self.observer
-            .observe(Event::Total(observer::Total::SumOfBest(sum_of_best)));
+        self.observe_comparison_run();
         self.observe_comparison_splits();
+    }
+
+    /// Observes comparison data for the run as a whole.
+    fn observe_comparison_run(&self) {
+        for (ty, val) in self.state.comparison.run.totals() {
+            self.observer
+                .observe(Event::Total(observer::Total::Comparison(ty), val));
+        }
     }
 
     /// Observes comparison data for each split in the run.
     fn observe_comparison_splits(&self) {
-        for split in self.run.splits.iter() {
+        for split in self.state.run.splits.iter() {
             let short = split.info.short;
-            if let Some(s) = self.comparison.aggregate_for(short) {
+            if let Some(s) = self.state.comparison.aggregate_for(short) {
                 self.observer
                     .observe_aggregate_set(short, *s, aggregate::Source::Comparison);
             }
         }
     }
 
-    fn reset(&mut self) {
-        self.send_run_to_sink();
-        self.run.reset();
+    fn reset(&mut self, dest: action::OldDestination) {
+        self.handle_old_run(dest);
+        self.state.run.reset();
         // Important that this happens AFTER the run is reset, so the new attempt info is sent.
         self.observe_reset();
         self.refresh_comparison();
     }
 
+    fn handle_old_run(&mut self, dest: action::OldDestination) {
+        match dest {
+            action::OldDestination::Save => self.send_run_to_sink(),
+            action::OldDestination::Discard => (),
+        }
+    }
+
     fn send_run_to_sink(&mut self) {
-        if let Some(r) = self.run.as_historic((self.timestamper)()) {
+        if let Some(r) = self.state.run.as_historic((self.timestamper)()) {
             if let Err(e) = self.sink.accept(r) {
                 log::warn!("couldn't save run: {e}");
             }
@@ -243,14 +219,14 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
     }
 
     fn clear_at(&mut self, split: impl split::Locator) {
-        if let Some(s) = self.run.splits.get_mut(split) {
+        if let Some(s) = self.state.run.splits.get_mut(split) {
             s.clear();
             // TODO(@MattWindsor91): observe
         }
     }
 
     fn push_to(&mut self, split: impl split::Locator, time: Time) {
-        if let Some(s) = self.run.splits.get_mut(split) {
+        if let Some(s) = self.state.run.splits.get_mut(split) {
             s.push(time);
             let short = s.info.short;
             self.observer
@@ -260,7 +236,7 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
     }
 
     fn pop_from(&mut self, split: impl split::Locator) {
-        if let Some((short, time)) = self.run.splits.get_mut(split).and_then(|s| {
+        if let Some((short, time)) = self.state.run.splits.get_mut(split).and_then(|s| {
             let short = s.info.short;
             s.pop().map(|time| (short, time))
         }) {
@@ -269,4 +245,15 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
             self.observe_paces_and_aggregates();
         }
     }
+}
+
+/// The state of a session.
+///
+/// The session state contains both a run and its current comparison.
+/// A session's state can be dumped out at any point.
+#[derive(Clone, Debug)]
+pub struct State {
+    pub run: Run,
+    /// Comparison data for the game/category currently being run.
+    pub comparison: Comparison,
 }

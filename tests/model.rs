@@ -17,6 +17,7 @@ use zombiesplit::{
     },
     ui::{presenter, Pump},
 };
+use zombiesplit::model::timing::comparison::run;
 
 /// Tests that a session doesn't send any observations until prompted.
 #[test]
@@ -50,8 +51,8 @@ fn test_session_dump() {
         ));
     }
     obs.assert_received(Event::Reset(attempt_info()));
-    obs.assert_received(Event::Total(observer::Total::Attempt(Default::default())));
-    obs.assert_received(Event::Total(observer::Total::SumOfBest(Default::default())));
+    obs.assert_received(Event::Total(run::Total::Attempt(Default::default())));
+    obs.assert_received(Event::Total(run::Total::SumOfBest(Default::default())));
     obs.assert_empty()
 }
 

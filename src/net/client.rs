@@ -3,20 +3,34 @@
 This provides services that can then be used by a UI (which we assume to be running on the main
 thread in a synchronous context). */
 
-pub mod action;
 mod error;
 
+use super::proto;
 use crate::model::attempt;
+use crate::model::attempt::session::State;
 use error::Result;
-use futures::prelude::*;
+use std::sync::Arc;
 use tokio::runtime;
 
 /// Lifts a zombiesplit client into a synchronous context.
+#[derive(Clone)]
 pub struct Sync<O> {
     /// The asynchronous client.
     inner: Client<O>,
     /// The asynchronous runtime.
-    rt: runtime::Runtime,
+    rt: Arc<runtime::Runtime>,
+}
+
+impl<O: attempt::Observer> attempt::action::Handler for Sync<O> {
+    type Error = error::Error;
+
+    fn dump(&mut self) -> Result<State> {
+        self.rt.block_on(self.inner.dump())
+    }
+
+    fn handle(&mut self, a: attempt::Action) -> Result<()> {
+        self.rt.block_on(self.inner.handle_action(a))
+    }
 }
 
 impl<O: attempt::Observer> Sync<O> {
@@ -25,19 +39,20 @@ impl<O: attempt::Observer> Sync<O> {
     /// # Errors
     ///
     /// Fails if we can't create a TCP connection to `addr`.
-    pub fn new(
-        addr: std::net::SocketAddr,
-        observer: O,
-        receiver: action::Receiver,
-    ) -> Result<Self> {
-        let rt = runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()?;
-        let inner = rt.block_on(Client::new(addr, observer, receiver))?;
+    pub fn new<A: TryInto<tonic::transport::Uri>>(addr: A, observer: O) -> Result<Self>
+    where
+        error::Error: From<<A as TryInto<tonic::transport::Uri>>::Error>,
+    {
+        let rt = Arc::new(
+            runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()?,
+        );
+        let inner = rt.block_on(Client::new(addr, observer))?;
         Ok(Self { inner, rt })
     }
 
-    /// Runs the main loop for the client.
+    /// Runs the observation loop for the client, until the given cancellation channel fires.
     ///
     /// # Errors
     ///
@@ -47,22 +62,19 @@ impl<O: attempt::Observer> Sync<O> {
     /// # Panics
     ///
     /// Can panic if the underlying asynchronous client code panics.
-    pub fn run(&mut self) -> Result<()> {
-        self.rt.block_on(self.inner.run())?;
+    pub fn observe(&mut self, cancel: tokio::sync::oneshot::Receiver<()>) -> Result<()> {
+        self.rt.block_on(self.inner.observe(cancel))?;
         Ok(())
     }
 }
 
 /// A zombiesplit network client.
+#[derive(Clone)]
 pub struct Client<O> {
-    /// Whether the client is running.
-    is_running: bool,
-    /// The I/O stack connecting to the server.
-    io: super::io::Stack<attempt::observer::Event, attempt::Action>,
+    /// The gRPC channel connecting to the server.
+    grpc: proto::zombiesplit_client::ZombiesplitClient<tonic::transport::Channel>,
     /// The observer we use to send events from the server.
     observer: O,
-    /// The receiver we use to pick up actions from the UI code.
-    receiver: action::Receiver,
 }
 
 impl<O: attempt::Observer> Client<O> {
@@ -71,20 +83,20 @@ impl<O: attempt::Observer> Client<O> {
     /// # Errors
     ///
     /// Fails if we can't create a TCP connection to `addr`.
-    pub async fn new(
-        addr: std::net::SocketAddr,
-        observer: O,
-        receiver: action::Receiver,
-    ) -> Result<Self> {
+    pub async fn new<A>(addr: A, observer: O) -> Result<Self>
+    where
+        A: TryInto<tonic::transport::Uri>,
+        error::Error: From<<A as TryInto<tonic::transport::Uri>>::Error>,
+    {
         Ok(Self {
-            is_running: true,
-            io: super::io::build(tokio::net::TcpStream::connect(addr).await?),
+            grpc: proto::zombiesplit_client::ZombiesplitClient::connect(addr.try_into()?).await?,
             observer,
-            receiver,
         })
     }
 
-    /// Runs the main loop for the client.
+    /// Runs an observer loop for the client.
+    ///
+    /// The loop will close when the given one-shot is called.
     ///
     /// # Errors
     ///
@@ -94,33 +106,80 @@ impl<O: attempt::Observer> Client<O> {
     /// # Panics
     ///
     /// Can panic if the underlying select panics.
-    pub async fn run(&mut self) -> Result<()> {
-        while self.is_running {
-            tokio::select! {
-                msg = self.receiver.0.recv() => self.handle_action(msg).await?,
-                msg = self.io.try_next() => self.handle_event(msg?)
+    pub async fn observe(&mut self, mut cancel: tokio::sync::oneshot::Receiver<()>) -> Result<()> {
+        let mut stream = self.event_stream().await?;
+
+        let mut is_running = true;
+        while is_running {
+            is_running = tokio::select! {
+                _ = &mut cancel => false,
+                msg = stream.message() => self.handle_event(msg?)?
             }
         }
 
         Ok(())
     }
 
-    async fn handle_action(&mut self, maybe_action: Option<attempt::Action>) -> Result<()> {
-        if let Some(action) = maybe_action {
-            self.io.send(action).await?;
-        } else {
-            // UI closed its sender channel, so this is the intended end of the client's existence.
-            self.is_running = false;
+    /// Subscribes to an event stream from `gRPC`.
+    async fn event_stream(&mut self) -> Result<tonic::codec::Streaming<proto::Event>> {
+        Ok(self
+            .grpc
+            .observe(proto::ObserveRequest {})
+            .await?
+            .into_inner())
+    }
+
+    /// Asks the server to dump the full session state.
+    ///
+    /// Clients should usually use this once and then subscribe through [observe] to get streaming
+    /// updates.
+    ///
+    /// # Errors
+    ///
+    /// Fails if any part of the dumping process fails (primarily network or transcoding errors).
+    pub async fn dump(&mut self) -> Result<attempt::session::State> {
+        Ok(proto::decode::dump(&self.dump_raw().await?)?)
+    }
+
+    async fn dump_raw(&mut self) -> Result<proto::DumpResponse> {
+        Ok(self.grpc.dump(proto::DumpRequest {}).await?.into_inner())
+    }
+
+    /// Asks the server to perform an action.
+    ///
+    /// # Errors
+    ///
+    /// Fails if any part of the dumping process fails (primarily network or transcoding errors).
+    pub async fn handle_action(&mut self, action: attempt::Action) -> Result<()> {
+        match action {
+            attempt::Action::NewRun(dest) => {
+                self.grpc
+                    .new_attempt(proto::NewAttemptRequest {
+                        save: dest == attempt::action::OldDestination::Save,
+                    })
+                    .await?;
+            }
+            attempt::Action::Push(index, time) => {
+                self.grpc
+                    .push(proto::encode::push_action(index, time)?)
+                    .await?;
+            }
+            attempt::Action::Pop(index, ty) => {
+                self.grpc.pop(proto::encode::pop_action(index, ty)?).await?;
+            }
         }
         Ok(())
     }
 
-    fn handle_event(&mut self, maybe_event: Option<attempt::observer::Event>) {
-        if let Some(event) = maybe_event {
-            self.observer.observe(event);
+    fn handle_event(&mut self, event_if_open: Option<proto::Event>) -> Result<bool> {
+        if let Some(event) = event_if_open {
+            if let Some(e) = proto::decode::event::decode(event)? {
+                self.observer.observe(e);
+            }
+            Ok(true)
         } else {
             log::info!("connection to server closed");
-            self.is_running = false;
+            Ok(false)
         }
     }
 }

@@ -4,7 +4,7 @@ use std::num::ParseIntError;
 use thiserror::Error;
 
 /// An error that occurs when parsing a time.
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Clone, PartialEq, Eq)]
 pub enum Error {
     #[error("field {pos} failed parsing: {err}")]
     FieldParse {

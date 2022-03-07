@@ -21,7 +21,6 @@ use super::{
         load::Loadable,
         short,
         timing::comparison::{self},
-        Time,
     },
 };
 
@@ -178,19 +177,10 @@ fn output_split_pb(
     split: comparison::Split,
 ) -> Result<()> {
     write!(tw, "{short}\t")?;
-    output_time(tw, split.split_pb)?;
+    write!(tw, "{0}", split.split_pb)?;
     write!(tw, "\t")?;
-    output_time(tw, split.in_run.map(|x| x.split))?;
+    write!(tw, "{0}", split.in_pb_run.split)?;
     writeln!(tw)?;
 
-    Ok(())
-}
-
-fn output_time(tw: &mut impl Write, time: Option<Time>) -> Result<()> {
-    if let Some(t) = time {
-        write!(tw, "{t}")?;
-    } else {
-        write!(tw, "--")?;
-    }
     Ok(())
 }

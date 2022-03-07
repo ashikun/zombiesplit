@@ -17,8 +17,7 @@ pub struct Split {
     /// such information.
     pub info: game::Split,
     /// The entered times.
-    /// Invariant: none of the times are zero.
-    times: Vec<Time>,
+    pub times: Vec<Time>,
 }
 
 impl Split {
@@ -67,12 +66,8 @@ impl Split {
     }
 
     /// Pushes a time onto this split.
-    ///
-    /// If the time is zero, it will not be added.
     pub fn push(&mut self, time: Time) {
-        if !time.is_zero() {
-            self.times.push(time);
-        }
+        self.times.push(time);
     }
 
     /// Tries to pop the most recently added time off this split.
