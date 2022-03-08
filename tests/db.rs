@@ -2,6 +2,7 @@
 
 use std::{convert::TryFrom, ops::Add, rc::Rc};
 use tempfile::{tempdir, TempDir};
+use zombiesplit::model::attempt::action::OldDestination;
 use zombiesplit::{
     db::{Db, Reader, Sink},
     model::{
@@ -61,13 +62,14 @@ fn test_sample_session() {
     let db = Rc::new(setup_db(&game, &tdir));
     let handle = db.reader().expect("couldn't open reader");
 
-    let session = init_session(&handle, Sink::new(db));
-    assert_eq!(game.name, session.metadata().game);
+    let mut session = init_session(&handle, Sink::new(db));
+    let dump = session.dump().expect("session shouldn't fail to dump");
+    assert_eq!(game.name, dump.run.metadata.game);
     assert_eq!(
         game.categories
             .get(&short::Name::from(SAMPLE_CATEGORY_NAME))
             .map(|x| x.name.to_owned()),
-        Some(session.metadata().category.clone())
+        Some(dump.run.metadata.category)
     );
 }
 
@@ -104,22 +106,35 @@ fn test_sample_observe_run() {
     let mut session = init_session(&handle, Sink::new(db.clone()));
 
     // This shouldn't insert a run.
-    session.handle(Action::NewRun);
+    session
+        .handle(Action::NewRun(OldDestination::Save))
+        .unwrap();
 
     let time = Time::try_from(8675309).expect("time didn't parse");
 
+    // This also shouldn't.
+    session.set_timestamper(chrono::Utc::now);
+    session.handle(Action::Push(0, time)).unwrap();
+    session
+        .handle(Action::NewRun(OldDestination::Discard))
+        .unwrap();
+
     // This should.
     session.set_timestamper(chrono::Utc::now);
-    session.handle(Action::Push(0, time));
-    session.handle(Action::NewRun);
+    session.handle(Action::Push(0, time)).unwrap();
+    session
+        .handle(Action::NewRun(OldDestination::Save))
+        .unwrap();
 
     // As should this.
     // (We change the timestamp to avoid having the database reject the run as
     // a duplicate.)
     session.set_timestamper(|| chrono::Utc::now().add(chrono::Duration::weeks(1)));
-    session.handle(Action::Push(0, time));
-    session.handle(Action::Push(1, time));
-    session.handle(Action::NewRun);
+    session.handle(Action::Push(0, time)).unwrap();
+    session.handle(Action::Push(1, time)).unwrap();
+    session
+        .handle(Action::NewRun(OldDestination::Save))
+        .unwrap();
 
     let runs = db
         .runs_for(&short_descriptor())
