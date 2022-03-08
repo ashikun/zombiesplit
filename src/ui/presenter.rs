@@ -115,12 +115,12 @@ impl<'h, H: Handler> Presenter<'h, H> {
     }
 
     /// Observes `evt` on this presenter core.
-    pub fn observe(&mut self, ev: session::Event) {
+    pub fn observe(&mut self, ev: &session::Event) {
         // TODO(@MattWindsor91): eventually make it possible for this to be
         // called directly as an observe?  the mutability makes it a bit
         // difficult though.
 
-        self.observe_locally(&ev);
+        self.observe_locally(ev);
         self.state.handle_event(ev);
     }
 
@@ -179,7 +179,7 @@ pub fn observer() -> (Observer, ModelEventPump) {
 impl<H: Handler> event::Pump<H> for ModelEventPump {
     /// Pumps this event forwarder's event queue, pushing each event to `to`.
     fn pump(&mut self, to: &mut Presenter<H>) {
-        self.0.try_iter().for_each(|x| to.observe(x));
+        self.0.try_iter().for_each(|x| to.observe(&x));
     }
 }
 

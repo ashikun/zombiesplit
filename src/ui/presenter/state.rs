@@ -138,19 +138,19 @@ impl State {
     }
 
     /// Handles an event observation.
-    pub fn handle_event(&mut self, ev: session::event::Event) {
+    pub fn handle_event(&mut self, ev: &session::event::Event) {
         use session::event::Event;
         match ev {
-            Event::Total(ty, time) => self.set_total(ty, time),
-            Event::Reset(a) => self.reset(&a),
+            Event::Total(ty, time) => self.set_total(*ty, *time),
+            Event::Reset(a) => self.reset(a),
             Event::Split(short, ev) => {
-                self.handle_split_event(short, ev);
+                self.handle_split_event(*short, ev);
             }
         }
     }
 
     /// Handles an observation for the split with the given shortname.
-    fn handle_split_event(&mut self, short: short::Name, ev: session::event::split::Split) {
+    fn handle_split_event(&mut self, short: short::Name, ev: &session::event::split::Split) {
         self.splits.handle_event(short, ev);
         // The changes to this split could have changed the overall and
         // up-to-cursor totals.

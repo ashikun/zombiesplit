@@ -24,23 +24,30 @@ pub struct Set {
     vec: Vec<Split>,
 }
 
-impl Set {
-    /// Constructs a split state from an attempt dump.
-    #[must_use]
-    pub fn from_dump(dump: &session::State) -> Self {
+/// We can produce a split set from an iterator over split dumps.
+impl FromIterator<session::Split> for Set {
+    fn from_iter<T: IntoIterator<Item = session::Split>>(iter: T) -> Self {
         let mut result = Self::default();
 
-        for (index, split) in dump.run.splits.iter().enumerate() {
+        for (index, split) in iter.into_iter().enumerate() {
             result.short_map.insert(split.info.short, index);
-            result.vec.push(Split::from_dump(split));
+            result.vec.push(Split::from_dump(&split));
         }
 
         result
     }
+}
+
+impl Set {
+    /// Constructs a split state from an attempt dump.
+    #[must_use]
+    pub fn from_dump(dump: &session::State) -> Self {
+        dump.run.splits.iter().cloned().collect()
+    }
 
     /// Handles an event for the split with short name `split`.
-    pub fn handle_event(&mut self, split: short::Name, evt: split::Split) {
-        if let Some(s) = self.lookup_or_create_split(split, &evt) {
+    pub fn handle_event(&mut self, split: short::Name, evt: &split::Split) {
+        if let Some(s) = self.at_short_mut(split) {
             s.handle_event(evt);
         }
     }
@@ -70,15 +77,18 @@ impl Set {
     ///
     /// ```
     /// use zombiesplit::ui::presenter::state::split;
-    /// use zombiesplit::model::session::event::split::Split;
+    /// use zombiesplit::model::{game, session::Split};
     ///
-    /// let mut s = split::Set::default();
+    /// let s = split::Set::default();
     /// assert_eq!(0, s.len());
     ///
-    /// s.handle_event("pp1".into(), Split::Init { index: 0, name: "Palmtree Panic 1".to_string() });
-    /// s.handle_event("sp1".into(), Split::Init { index: 1, name: "Special Stage 1".to_string() });
-    /// s.handle_event("pp2".into(), Split::Init { index: 2, name: "Palmtree Panic 2".to_string() });
-    /// assert_eq!(3, s.len());
+    /// let vec = vec![
+    ///   Split::new(game::Split::new("pp1", "Palmtree Panic 1")),
+    ///   Split::new(game::Split::new("pp2", "Palmtree Panic 2")),
+    ///   Split::new(game::Split::new("pp3", "Palmtree Panic 3")),
+    /// ];
+    /// let s2 = split::Set::from_iter(vec);
+    /// assert_eq!(3, s2.len());
     /// ```
     #[must_use]
     pub fn len(&self) -> usize {
@@ -89,28 +99,6 @@ impl Set {
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.vec.is_empty()
-    }
-
-    fn lookup_or_create_split(
-        &mut self,
-        split: short::Name,
-        evt: &split::Split,
-    ) -> Option<&mut Split> {
-        if let split::Split::Init { index, .. } = evt {
-            self.create_split(split, *index)
-        } else {
-            self.at_short_mut(split)
-        }
-    }
-
-    fn create_split(&mut self, split: short::Name, index: usize) -> Option<&mut Split> {
-        // This shouldn't be needed in theory, because `set_split_count` should be called by the
-        // calling code anyway.
-        if self.vec.len() <= index {
-            self.set_split_count(index + 1);
-        }
-        self.short_map.insert(split, index);
-        self.vec.get_mut(index)
     }
 
     fn at_short_mut(&mut self, split: short::Name) -> Option<&mut Split> {
@@ -209,13 +197,10 @@ impl Split {
     }
 
     /// Handles an observation for this split.
-    pub fn handle_event(&mut self, evt: split::Split) {
+    pub fn handle_event(&mut self, evt: &split::Split) {
         match evt {
-            split::Split::Init { name, .. } => {
-                self.name = name;
-            }
             split::Split::Time(t, time::Time::Aggregate(kind)) => {
-                self.aggregates[kind.source][kind.scope] = t;
+                self.aggregates[kind.source][kind.scope] = *t;
             }
             split::Split::Time(_, time::Time::Pushed) => {
                 self.num_times += 1;
@@ -226,7 +211,7 @@ impl Split {
                 // elsewhere.
             }
             split::Split::Pace(pace) => {
-                self.pace_in_run = pace;
+                self.pace_in_run = *pace;
             }
         }
     }
