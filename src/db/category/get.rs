@@ -109,10 +109,10 @@ impl<'conn> Getter<'conn> {
     /// # Errors
     ///
     /// Propagates any errors from the database.
-    pub fn run<L: Locator>(&mut self, locator: &L) -> Result<session::Run> {
-        Ok(session::Run {
-            metadata: locator.locate(self)?.info,
-            attempt: self.attempt_info(locator)?,
+    pub fn run<L: Locator>(&mut self, locator: &L) -> Result<session::Attempt> {
+        Ok(session::Attempt {
+            category: locator.locate(self)?.info,
+            info: self.attempt_info(locator)?,
             splits: self.splits(locator)?,
         })
     }

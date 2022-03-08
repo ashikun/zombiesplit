@@ -14,10 +14,10 @@ use super::{
 ///
 /// Fails if the counts in the attempt information overflow `usize`s on this machine, or if any of
 /// the times supplied for the splits are ill-formed.
-pub fn decode(run: &dump_response::Attempt) -> Result<session::Run> {
-    Ok(session::Run {
-        metadata: game_category(Missing::AttemptInfo.require(run.game_category.as_ref())?),
-        attempt: run
+pub fn decode(run: &dump_response::Attempt) -> Result<session::Attempt> {
+    Ok(session::Attempt {
+        category: game_category(Missing::AttemptInfo.require(run.game_category.as_ref())?),
+        info: run
             .attempt_info
             .as_ref()
             .map(super::attempt_info)

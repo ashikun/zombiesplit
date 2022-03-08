@@ -14,10 +14,10 @@ use itertools::Itertools;
 /// # Errors
 ///
 /// Fails if any of the indices in the attempt information are too large to store as `u64`.
-pub fn encode(run: &session::Run) -> Result<dump_response::Attempt> {
+pub fn encode(run: &session::Attempt) -> Result<dump_response::Attempt> {
     Ok(dump_response::Attempt {
-        game_category: Some(game_category(&run.metadata)),
-        attempt_info: Some(super::attempt_info(&run.attempt)?),
+        game_category: Some(game_category(&run.category)),
+        attempt_info: Some(super::attempt_info(&run.info)?),
         splits: splits(&run.splits),
     })
 }

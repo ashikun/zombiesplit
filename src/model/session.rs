@@ -1,16 +1,16 @@
-/*! Models relating to an in-progress attempt.
+/*! Models relating to an in-progress zombiesplit session.
 
 This module contains the bulk of the model surface of the zombiesplit server, covering:
 
-- the representation of in-progress runs;
+- attempts, which are in-progress runs;
 - sessions, which manage said runs and expose various API surfaces for handling them;
 - actions, which form the command surface of sessions;
 - observers, which form an observer pattern based API for monitoring changes to a session;
 - sinks, which receive runs after the user resets the session.
 */
 pub mod action;
+pub mod attempt;
 pub mod observer;
-pub mod run;
 pub mod sink;
 pub mod split;
 pub mod state;
@@ -27,8 +27,8 @@ use super::{
 };
 
 pub use action::Action;
+pub use attempt::Attempt;
 pub use observer::Observer;
-pub use run::Run;
 pub use sink::Sink;
 pub use split::Split;
 pub use state::State;
@@ -81,7 +81,7 @@ impl<'cmp, 'obs, O: Observer> action::Handler for Session<'cmp, 'obs, O> {
 impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
     /// Starts a new session with a given set of metadata and starting run.
     #[must_use]
-    pub fn new(run: Run, observer: &'obs O) -> Self {
+    pub fn new(run: Attempt, observer: &'obs O) -> Self {
         Self {
             state: State {
                 run,
@@ -141,7 +141,7 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
     }
 
     fn observe_reset(&self) {
-        self.observer.observe(Event::Reset(self.state.run.attempt));
+        self.observer.observe(Event::Reset(self.state.run.info));
     }
 
     /// Observes all paces and aggregates for each split, notifying all

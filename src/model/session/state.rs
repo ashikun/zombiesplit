@@ -5,7 +5,7 @@
 
 use super::{
     super::super::model::{short, timing},
-    split, Run,
+    split, Attempt,
 };
 
 /// The state of a session.
@@ -14,7 +14,7 @@ use super::{
 /// A session's state can be dumped out at any point.
 #[derive(Clone, Debug)]
 pub struct State {
-    pub run: Run,
+    pub run: Attempt,
     /// Comparison data for the game/category currently being run.
     pub comparison: timing::Comparison,
 }

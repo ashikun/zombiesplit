@@ -10,18 +10,18 @@ use chrono::{DateTime, Utc};
 /// metadata about the run itself (the game, the category, how many attempts
 /// have been made, etc).
 #[derive(Debug, Clone)]
-pub struct Run {
+pub struct Attempt {
     /// Metadata for the game/category currently being run.
-    pub metadata: category::Info,
+    pub category: category::Info,
     // TODO(@MattWindsor91): make this an ADT to prevent resetting of splits
     // without incrementing of attempt information.
     /// Attempt information for this run.
-    pub attempt: category::AttemptInfo,
+    pub info: category::AttemptInfo,
     /// The split data for this run.
     pub splits: Set,
 }
 
-impl Run {
+impl Attempt {
     /// Resets this run and all splits inside it, incrementing the attempt if necessary.
     pub fn reset(&mut self) {
         self.increment_attempt();
@@ -30,7 +30,7 @@ impl Run {
 
     fn increment_attempt(&mut self) {
         if let Some(is_completed) = self.status().to_completeness() {
-            self.attempt.increment(is_completed);
+            self.info.increment(is_completed);
         }
     }
 
@@ -81,7 +81,7 @@ impl Run {
         date: DateTime<Utc>,
     ) -> history::run::FullyTimed<category::ShortDescriptor> {
         history::run::FullyTimed {
-            category_locator: self.metadata.short,
+            category_locator: self.category.short,
             was_completed,
             date,
             timing: self.timing_as_historic(),
