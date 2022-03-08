@@ -8,6 +8,7 @@ use crate::model::timing;
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub enum Event {
+    // TODO(@MattWindsor91): remove this
     /// Initial dump of information about the event.
     Init { index: usize, name: String },
     /// Got a new time for the split.

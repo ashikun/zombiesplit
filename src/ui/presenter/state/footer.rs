@@ -4,32 +4,42 @@ use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::fmt::{Display, Formatter};
 
-use crate::model::timing::comparison::PacedTime;
-use crate::model::timing::{comparison::pace, Time};
+use crate::model::{
+    attempt,
+    timing::{comparison, Time},
+};
 
 /// Presenter state used in the footer widget.
 #[derive(Clone, Default, Debug, Eq, PartialEq)]
 pub struct Footer {
     /// The total time of the run up to the cursor, and its pace.
-    pub at_cursor: pace::PacedTime,
+    pub at_cursor: comparison::pace::PacedTime,
 
     /// The total time of the run, and its pace.
-    pub total: pace::PacedTime,
+    pub total: comparison::pace::PacedTime,
 
-    /// The target time of the run, if any.
-    pub target: Option<Time>,
-
-    /// The target time of the run, if any.
-    pub sum_of_best: Option<Time>,
+    /// Comparison times for this run.
+    pub comparisons: comparison::Run,
 }
 
 impl Footer {
+    /// Constructs a footer from a session state dump.
+    #[must_use]
+    pub fn from_dump(dump: &attempt::session::State) -> Self {
+        Self {
+            at_cursor: comparison::pace::PacedTime::default(),
+            // TODO(@MattWindsor91): fix this
+            total: comparison::pace::PacedTime::default(),
+            comparisons: dump.comparison.run,
+        }
+    }
+
     /// Gets a specific row from the footer programmatically.
     #[must_use]
-    pub fn get(&self, row: RowType) -> Option<Cow<pace::PacedTime>> {
+    pub fn get(&self, row: RowType) -> Option<Cow<comparison::pace::PacedTime>> {
         match row {
-            RowType::Comparison => lift_comparison(&self.target),
-            RowType::SumOfBest => lift_comparison(&self.sum_of_best),
+            RowType::Comparison => lift_comparison(&self.comparisons.total_in_pb_run),
+            RowType::SumOfBest => lift_comparison(&self.comparisons.sum_of_best),
             RowType::UpToCursor => Some(Cow::Borrowed(&self.at_cursor)),
             RowType::Total => Some(Cow::Borrowed(&self.total)),
         }
@@ -37,8 +47,8 @@ impl Footer {
 }
 
 /// Lifts an optional comparison `time` to a copy-on-write paced time.
-fn lift_comparison(time: &Option<Time>) -> Option<Cow<PacedTime>> {
-    time.map(|x| Cow::Owned(pace::PacedTime::inconclusive(x)))
+fn lift_comparison(time: &Option<Time>) -> Option<Cow<comparison::pace::PacedTime>> {
+    time.map(|x| Cow::Owned(comparison::pace::PacedTime::inconclusive(x)))
 }
 
 /// Enumeration of types of row in the totals box.

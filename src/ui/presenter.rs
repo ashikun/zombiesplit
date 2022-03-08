@@ -42,10 +42,10 @@ impl<'h, H: Handler> Presenter<'h, H> {
     /// The presenter can be used as an observer by feeding it events through, for instance, an
     /// `EventForwarder`.
     #[must_use]
-    pub fn new(action_handler: &'h mut H) -> Self {
+    pub fn new(action_handler: &'h mut H, dump: &attempt::session::State) -> Self {
         Self {
             mode: Box::new(mode::Nav),
-            state: initial_state(),
+            state: initial_state(dump),
             action_handler,
         }
     }
@@ -167,8 +167,8 @@ impl<'h, H: Handler> Presenter<'h, H> {
     }
 }
 
-fn initial_state() -> State {
-    let mut s = State::default();
+fn initial_state(dump: &attempt::session::State) -> State {
+    let mut s = State::from_dump(dump);
     s.mode = "Welcome to zombiesplit!".to_string();
     s
 }

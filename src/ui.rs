@@ -58,13 +58,13 @@ impl<'m, E: event::Pump, H: Handler, R: view::gfx::Renderer> Instance<'m, E, H, 
     pub fn new(
         cfg: &'m view::Config,
         manager: &'m impl Manager<'m, Pump = E, Renderer = R>,
-        action_handler: &'m mut H,
+        presenter: presenter::Presenter<'m, H>,
         forwarder: presenter::ModelEventPump,
     ) -> Result<Self> {
         Ok(Self {
             events: manager.event_pump()?,
             view: View::new(manager.renderer()?, &cfg.layout),
-            presenter: presenter::Presenter::new(action_handler),
+            presenter,
             forwarder,
             limiter: sdl::Limiter::new(60)?,
         })

@@ -2,8 +2,10 @@
 
 use crate::model::timing::aggregate::{Scope, Source};
 use std::fmt::Write;
+use crate::ui::presenter::state::editor;
 
 use super::super::{
+    label::Label,
     super::{
         gfx::{
             self, colour, font,
@@ -13,7 +15,6 @@ use super::super::{
         layout::{self, Layoutable},
         presenter::state,
     },
-    label::Label,
     time, Widget,
 };
 
@@ -107,7 +108,7 @@ impl Row {
         }
     }
 
-    fn draw_editor(&self, r: &mut impl Renderer, e: &state::Editor) -> gfx::Result<()> {
+    fn draw_editor(&self, r: &mut impl Renderer, e: &editor::Editor) -> gfx::Result<()> {
         let field = e.field.map(|field| time::FieldColour {
             field,
             colour: colour::Pair {

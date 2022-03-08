@@ -1,8 +1,7 @@
 //! The zombiesplit client.
 
 use clap::Parser;
-use zombiesplit::model::attempt::action::Handler;
-use zombiesplit::{cli, config::Client as Config, net, ui};
+use zombiesplit::{cli, config::Client as Config, model::attempt::action::Handler, net, ui};
 
 fn main() {
     cli::handle_error(run())
@@ -27,7 +26,7 @@ fn run() -> anyhow::Result<()> {
 
     let mut client = net::client::Sync::new(cfg.server_addr, pobs)?;
     // TODO(@MattWindsor91): server info
-    let _state = client.dump()?;
+    let state = client.dump()?;
 
     let (csend, crecv) = tokio::sync::oneshot::channel();
 
@@ -39,7 +38,8 @@ fn run() -> anyhow::Result<()> {
 
     let vconf = cfg.ui.into_view_config()?;
     let sdl = ui::sdl::Manager::new(&vconf)?;
-    let mut ui = ui::Instance::new(&vconf, &sdl, &mut client, ppump)?;
+    let presenter = ui::presenter::Presenter::new(&mut client, &state);
+    let mut ui = ui::Instance::new(&vconf, &sdl, presenter, ppump)?;
     ui.run()?;
 
     csend

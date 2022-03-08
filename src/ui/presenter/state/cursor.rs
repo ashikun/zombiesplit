@@ -12,6 +12,31 @@ pub struct Cursor {
 }
 
 impl Cursor {
+    /// Constructs a new cursor with the given current and maximum position.
+    ///
+    /// If the current position is out of bounds of the maximum position, it will be silently
+    /// clamped.
+    ///
+    /// ```
+    /// use zombiesplit::ui::presenter::state::cursor::{Cursor, Motion};
+    ///
+    /// // The following are equivalent:
+    /// let mut c1 = Cursor::default();
+    /// c1.resize(10);
+    /// c1.move_by(Motion::Down, 5);
+    ///
+    /// let c2 = Cursor::new(5, 10);
+    ///
+    /// assert_eq!(c1, c2);
+    /// ```
+    #[must_use]
+    pub fn new(pos: usize, max: usize) -> Self {
+        Self {
+            pos: pos.min(max),
+            max,
+        }
+    }
+
     /// Gets the current cursor position.
     #[must_use]
     pub fn position(&self) -> usize {
@@ -170,5 +195,19 @@ impl From<Ordering> for SplitPosition {
             Ordering::Equal => Self::Cursor,
             Ordering::Greater => Self::Coming,
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    /// Tests the clamping functionality of `new`.
+    #[test]
+    fn new_should_clamp() {
+        let c = Cursor::new(10, 5);
+        assert_eq!(c.pos, 5);
+        assert_eq!(c.max, 5);
     }
 }

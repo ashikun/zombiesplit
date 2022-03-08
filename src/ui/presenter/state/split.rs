@@ -1,9 +1,12 @@
 ///! Presenter state for individual splits.
 use std::fmt::Display;
 
-use super::cursor::SplitPosition;
+use super::{cursor::SplitPosition, editor::Editor};
 use crate::model::{
-    attempt::observer::{split, time},
+    attempt::{
+        self,
+        observer::{split, time},
+    },
     short,
     timing::{
         aggregate,
@@ -22,6 +25,19 @@ pub struct Set {
 }
 
 impl Set {
+    /// Constructs a split state from an attempt dump.
+    #[must_use]
+    pub fn from_dump(dump: &attempt::session::State) -> Self {
+        let mut result = Self::default();
+
+        for (index, split) in dump.run.splits.iter().enumerate() {
+            result.short_map.insert(split.info.short, index);
+            result.vec.push(Split::from_dump(split));
+        }
+
+        result
+    }
+
     /// Handles an event for the split with short name `split`.
     pub fn handle_event(&mut self, split: short::Name, evt: split::Event) {
         if let Some(s) = self.lookup_or_create_split(split, &evt) {
@@ -135,7 +151,7 @@ pub struct Split {
     /// The last logged cursor-relative position for this split.
     pub position: SplitPosition,
     /// Any editor active on this split.
-    pub editor: Option<super::Editor>,
+    pub editor: Option<Editor>,
 }
 
 impl Split {
@@ -149,11 +165,26 @@ impl Split {
     /// assert_eq!(0, s.num_times);
     /// assert_eq!(zombiesplit::model::timing::comparison::pace::SplitInRun::Inconclusive, s.pace_in_run);
     /// ```
+    #[must_use]
     pub fn new<N: Display>(name: N) -> Self {
         let name = name.to_string();
         Self {
             name,
             ..Self::default()
+        }
+    }
+
+    #[must_use]
+    pub fn from_dump(dump: &attempt::split::Split) -> Self {
+        Self {
+            num_times: dump.times.len(),
+            name: dump.info.name.clone(),
+
+            // TODO(@MattWindsor91): do this.
+            aggregates: Default::default(),
+            pace_in_run: Default::default(),
+            position: Default::default(),
+            editor: None,
         }
     }
 
@@ -203,7 +234,7 @@ impl Split {
     /// Populates this split state with the current state of `editor`.
     pub fn set_editor(&mut self, editor: Option<&super::super::mode::Editor>) {
         self.editor = editor.map(|e| {
-            let mut out = super::Editor {
+            let mut out = Editor {
                 hours: e.time.hours.to_string(),
                 mins: e.time.mins.to_string(),
                 secs: e.time.secs.to_string(),
