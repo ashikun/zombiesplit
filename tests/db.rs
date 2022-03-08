@@ -2,17 +2,18 @@
 
 use std::{convert::TryFrom, ops::Add, rc::Rc};
 use tempfile::{tempdir, TempDir};
-use zombiesplit::model::attempt::action::OldDestination;
+use zombiesplit::model::session::action::OldDestination;
 use zombiesplit::{
     db::{Db, Reader, Sink},
     model::{
-        attempt::{
+        game::{self, category::ShortDescriptor},
+        history,
+        session::{
             self,
             action::{Action, Handler},
             observer,
         },
-        game::{self, category::ShortDescriptor},
-        history, short, Loadable, Time,
+        short, Loadable, Time,
     },
 };
 
@@ -42,7 +43,7 @@ fn short_descriptor() -> ShortDescriptor {
     ShortDescriptor::new(SAMPLE_GAME_NAME, SAMPLE_CATEGORY_NAME)
 }
 
-fn init_session(handle: &Reader, snk: Sink) -> attempt::Session<observer::Null> {
+fn init_session(handle: &Reader, snk: Sink) -> session::Session<observer::Null> {
     let mut insp = handle
         .inspect(&short_descriptor())
         .expect("couldn't open category db");
@@ -64,12 +65,12 @@ fn test_sample_session() {
 
     let mut session = init_session(&handle, Sink::new(db));
     let dump = session.dump().expect("session shouldn't fail to dump");
-    assert_eq!(game.name, dump.run.metadata.game);
+    assert_eq!(game.name, dump.run.category.game);
     assert_eq!(
         game.categories
             .get(&short::Name::from(SAMPLE_CATEGORY_NAME))
             .map(|x| x.name.to_owned()),
-        Some(dump.run.metadata.category)
+        Some(dump.run.category.category)
     );
 }
 
