@@ -10,12 +10,12 @@ This module contains the bulk of the model surface of the zombiesplit server, co
 */
 pub mod action;
 pub mod attempt;
-pub mod observer;
+pub mod event;
 pub mod sink;
 pub mod split;
 pub mod state;
 
-use observer::{split::Observer as SO, time::Observer as TO, Event};
+use event::{split::Observer as SO, time::Observer as TO};
 
 use super::{
     timing::{
@@ -28,7 +28,8 @@ use super::{
 
 pub use action::Action;
 pub use attempt::Attempt;
-pub use observer::Observer;
+pub use event::observer::Observer;
+pub use event::Event;
 pub use sink::Sink;
 pub use split::Split;
 pub use state::State;
@@ -157,7 +158,7 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
             let pace = self.split_pace(split, agg);
             let short = split.info.short;
             self.observer
-                .observe_split(short, observer::split::Event::Pace(pace));
+                .observe_split(short, event::split::Split::Pace(pace));
             self.observer
                 .observe_aggregate_set(short, agg, aggregate::Source::Attempt);
 
@@ -168,7 +169,7 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
         }
 
         self.observer
-            .observe(Event::Total(observer::Total::Attempt(overall_pace), total));
+            .observe(Event::Total(event::Total::Attempt(overall_pace), total));
     }
 
     fn split_pace(&self, split: &Split, agg: aggregate::Set) -> pace::SplitInRun {
@@ -192,7 +193,7 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
     fn observe_comparison_run(&self) {
         for (ty, val) in self.state.comparison.run.totals() {
             self.observer
-                .observe(Event::Total(observer::Total::Comparison(ty), val));
+                .observe(Event::Total(event::Total::Comparison(ty), val));
         }
     }
 
@@ -240,7 +241,7 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
     fn push_to(&mut self, split: impl split::Locator, time: Time) {
         if let Some(short) = self.state.push_to(split, time) {
             self.observer
-                .observe_time(short, time, observer::time::Event::Pushed);
+                .observe_time(short, time, event::time::Time::Pushed);
             self.observe_paces_and_aggregates();
         }
     }
@@ -248,7 +249,7 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
     fn pop_from(&mut self, split: impl split::Locator) {
         if let Some((short, time)) = self.state.pop_from(split) {
             self.observer
-                .observe_time(short, time, observer::time::Event::Popped);
+                .observe_time(short, time, event::time::Time::Popped);
             self.observe_paces_and_aggregates();
         }
     }

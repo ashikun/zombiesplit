@@ -2,7 +2,7 @@
 
 use log::debug;
 
-use super::Observer;
+use crate::model::session::event::observer::Observer;
 
 /// A debug observer.
 ///

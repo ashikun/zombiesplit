@@ -21,7 +21,7 @@ pub use state::State;
 
 use crate::model::{
     game::category::AttemptInfo,
-    session::{self, action::Handler, observer, Action},
+    session::{self, action::Handler, Action},
     short, Time,
 };
 
@@ -115,7 +115,7 @@ impl<'h, H: Handler> Presenter<'h, H> {
     }
 
     /// Observes `evt` on this presenter core.
-    pub fn observe(&mut self, ev: observer::Event) {
+    pub fn observe(&mut self, ev: session::Event) {
         // TODO(@MattWindsor91): eventually make it possible for this to be
         // called directly as an observe?  the mutability makes it a bit
         // difficult though.
@@ -125,17 +125,17 @@ impl<'h, H: Handler> Presenter<'h, H> {
     }
 
     /// Observes `evt` on the presenter.
-    fn observe_locally(&mut self, ev: &observer::Event) {
+    fn observe_locally(&mut self, ev: &session::Event) {
         match ev {
-            observer::Event::Split(short, ev) => self.observe_split(*short, ev),
-            observer::Event::Reset(new_attempt) => self.reset(new_attempt),
+            session::Event::Split(short, ev) => self.observe_split(*short, ev),
+            session::Event::Reset(new_attempt) => self.reset(new_attempt),
             _ => (),
         };
     }
 
     /// Handles the split event `ev` relating to the split `short`.
-    fn observe_split(&mut self, short: short::Name, ev: &observer::split::Event) {
-        if let observer::split::Event::Time(t, observer::time::Event::Popped) = ev {
+    fn observe_split(&mut self, short: short::Name, ev: &session::event::Split) {
+        if let session::event::Split::Time(t, session::event::Time::Popped) = ev {
             self.open_editor(short, *t);
         }
     }
@@ -167,7 +167,7 @@ impl<'h, H: Handler> Presenter<'h, H> {
 }
 
 /// Used to feed events from an `Observer` into a `Presenter`.
-pub struct ModelEventPump(mpsc::Receiver<session::observer::Event>);
+pub struct ModelEventPump(mpsc::Receiver<session::event::Event>);
 
 /// Creates an observer as well as a pump that feeds events from the observer into a presenter.
 #[must_use]
@@ -185,10 +185,10 @@ impl<H: Handler> event::Pump<H> for ModelEventPump {
 
 /// An observer that feeds into a [Presenter].
 #[derive(Clone)]
-pub struct Observer(mpsc::Sender<session::observer::Event>);
+pub struct Observer(mpsc::Sender<session::event::Event>);
 
 impl session::Observer for Observer {
-    fn observe(&self, evt: session::observer::Event) {
+    fn observe(&self, evt: session::event::Event) {
         // TODO(@MattWindsor91): handle errors properly?
         if let Err(e) = self.0.send(evt) {
             log::warn!("error sending event to presenter: {e}");

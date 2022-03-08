@@ -89,15 +89,15 @@ impl State {
     }
 
     /// Sets a total (eg attempt, comparison, sum-of-best).
-    pub fn set_total(&mut self, ty: super::observer::Total, time: Option<time::Time>) {
+    pub fn set_total(&mut self, ty: session::event::Total, time: Option<time::Time>) {
         match ty {
-            super::observer::Total::Attempt(pace) => {
+            session::event::Total::Attempt(pace) => {
                 self.footer.total = PacedTime {
                     time: time.unwrap_or_default(),
                     pace,
                 };
             }
-            super::observer::Total::Comparison(ty) => {
+            session::event::Total::Comparison(ty) => {
                 self.footer.comparisons[ty] = time;
             }
         }
@@ -138,8 +138,8 @@ impl State {
     }
 
     /// Handles an event observation.
-    pub fn handle_event(&mut self, ev: session::observer::Event) {
-        use session::observer::Event;
+    pub fn handle_event(&mut self, ev: session::event::Event) {
+        use session::event::Event;
         match ev {
             Event::Total(ty, time) => self.set_total(ty, time),
             Event::Reset(a) => self.reset(&a),
@@ -150,7 +150,7 @@ impl State {
     }
 
     /// Handles an observation for the split with the given shortname.
-    fn handle_split_event(&mut self, short: short::Name, ev: session::observer::split::Event) {
+    fn handle_split_event(&mut self, short: short::Name, ev: session::event::split::Split) {
         self.splits.handle_event(short, ev);
         // The changes to this split could have changed the overall and
         // up-to-cursor totals.

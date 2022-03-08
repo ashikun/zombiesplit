@@ -43,7 +43,7 @@ impl Split {
     /// ```
     /// use zombiesplit::model::{session::split::Split, game, Time};
     ///
-    /// let mut s = Split::new(game::Split::new(0, "pp1", "Palmtree Panic 1"));
+    /// let mut s = Split::new(game::Split::new("pp1", "Palmtree Panic 1"));
     /// s.push(Time::seconds(9).unwrap());
     /// s.push(Time::seconds(10).unwrap());
     /// assert_eq!(Time::seconds(19).unwrap(), s.total_time());

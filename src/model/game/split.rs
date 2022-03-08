@@ -20,7 +20,7 @@ impl Split {
     /// ```
     /// use zombiesplit::model::game::split;
     ///
-    /// let split = split::Split::new(0, "pp1", "Palmtree Panic 1");
+    /// let split = split::Split::new("pp1", "Palmtree Panic 1");
     /// assert_eq!("pp1", split.short.to_string());
     /// assert_eq!("Palmtree Panic 1", split.name);
     /// ```

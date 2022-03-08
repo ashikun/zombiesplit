@@ -17,7 +17,7 @@ pub struct Handler {
     /// The main sender channel for actions (pointing back towards the server).
     pub message_send: mpsc::Sender<super::Message>,
     /// A broadcast channel head for events, from which we subscribe new event receivers.
-    pub event_broadcast: broadcast::Sender<session::observer::Event>,
+    pub event_broadcast: broadcast::Sender<session::event::Event>,
 }
 
 type Result<T> = std::result::Result<tonic::Response<T>, tonic::Status>;
@@ -127,7 +127,7 @@ impl Handler {
 
 fn map_event_result(
     event: &std::result::Result<
-        session::observer::Event,
+        session::event::Event,
         tokio_stream::wrappers::errors::BroadcastStreamRecvError,
     >,
 ) -> std::result::Result<proto::Event, tonic::Status> {

@@ -1,7 +1,7 @@
 //! Encoding logic for events.
 
 use super::super::{
-    super::super::model::{session::observer, timing::comparison, Time},
+    super::super::model::{session, timing::comparison, Time},
     event, Event,
 };
 
@@ -10,28 +10,28 @@ use super::super::{
 /// # Errors
 ///
 /// Fails with `out_of_range` if any attempt counts cannot be stored as 64-bit integers.
-pub fn encode(event: &observer::Event) -> super::Result<Event> {
+pub fn encode(event: &session::Event) -> super::Result<Event> {
     Ok(Event {
         payload: match event {
-            observer::Event::Total(ty, time) => Some(event::Payload::Total(total(*ty, *time))),
-            observer::Event::Reset(info) => Some(event::Payload::Reset(super::attempt_info(info)?)),
-            observer::Event::Split(_, _) => None,
+            session::Event::Total(ty, time) => Some(event::Payload::Total(total(*ty, *time))),
+            session::Event::Reset(info) => Some(event::Payload::Reset(super::attempt_info(info)?)),
+            session::Event::Split(_, _) => None,
         },
     })
 }
 
 /// Encodes a total event into its protobuf form.
-fn total(ty: observer::Total, time: Option<Time>) -> event::Total {
+fn total(ty: session::event::Total, time: Option<Time>) -> event::Total {
     event::Total {
         r#type: Some(total_type(ty)),
         value: time.map(u32::from),
     }
 }
 
-fn total_type(ty: observer::Total) -> event::total::Type {
+fn total_type(ty: session::event::Total) -> event::total::Type {
     match ty {
-        observer::Total::Attempt(p) => event::total::Type::Attempt(super::pace(p) as i32),
-        observer::Total::Comparison(ty) => {
+        session::event::Total::Attempt(p) => event::total::Type::Attempt(super::pace(p) as i32),
+        session::event::Total::Comparison(ty) => {
             event::total::Type::Comparison(comparison_total_type(ty) as i32)
         }
     }

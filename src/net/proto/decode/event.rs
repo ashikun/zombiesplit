@@ -2,7 +2,7 @@
 
 use super::{
     super::{
-        super::super::model::{session::observer, short, timing},
+        super::super::model::{session, short, timing},
         event, Event,
     },
     error::{Missing, Result},
@@ -15,43 +15,43 @@ use crate::net::proto::decode::error::Unknown;
 ///
 /// Fails if any of the indices inside the event don't fit within `usize` on this machine, or if
 ///
-pub fn decode(e: Event) -> Result<Option<observer::Event>> {
+pub fn decode(e: Event) -> Result<Option<session::Event>> {
     e.payload.map(payload).transpose()
 }
 
-fn payload(e: event::Payload) -> Result<observer::Event> {
+fn payload(e: event::Payload) -> Result<session::Event> {
     Ok(match e {
         event::Payload::Total(t) => total(&t)?,
-        event::Payload::Reset(info) => observer::Event::Reset(super::attempt_info(&info)?),
+        event::Payload::Reset(info) => session::Event::Reset(super::attempt_info(&info)?),
         event::Payload::Split(s) => split(&s)?,
     })
 }
 
-fn total(t: &event::Total) -> Result<observer::Event> {
+fn total(t: &event::Total) -> Result<session::Event> {
     let ty = total_type(Unknown::TotalType.require(t.r#type.as_ref())?)?;
     let value = t.value.map(super::time).transpose()?;
-    Ok(observer::Event::Total(ty, value))
+    Ok(session::Event::Total(ty, value))
 }
 
 /// Decodes an aggregate as a total.
-pub fn total_type(t: &event::total::Type) -> Result<observer::Total> {
+pub fn total_type(t: &event::total::Type) -> Result<session::event::Total> {
     Ok(match t {
         event::total::Type::Attempt(p) => attempt_total_type(*p)?,
         event::total::Type::Comparison(ty) => comparison_total_type(*ty)?,
     })
 }
 
-fn attempt_total_type(pace_num: i32) -> Result<observer::Total> {
+fn attempt_total_type(pace_num: i32) -> Result<session::event::Total> {
     let raw_pace = Unknown::Pace.require(super::super::Pace::from_i32(pace_num))?;
-    Ok(observer::Total::Attempt(super::pace(raw_pace)))
+    Ok(session::event::Total::Attempt(super::pace(raw_pace)))
 }
 
-fn comparison_total_type(type_num: i32) -> Result<observer::Total> {
+fn comparison_total_type(type_num: i32) -> Result<session::event::Total> {
     let raw_type =
         Unknown::ComparisonTotalType.require(event::total::ComparisonType::from_i32(type_num))?;
-    Ok(observer::Total::Comparison(comparison_total_type_inner(
-        raw_type,
-    )))
+    Ok(session::event::Total::Comparison(
+        comparison_total_type_inner(raw_type),
+    ))
 }
 
 fn comparison_total_type_inner(
@@ -64,44 +64,44 @@ fn comparison_total_type_inner(
     }
 }
 
-fn split(s: &event::Split) -> Result<observer::Event> {
+fn split(s: &event::Split) -> Result<session::Event> {
     let sid = short::Name::from(&s.sid);
     let event = match Missing::SplitEvent.require(s.payload.as_ref())? {
         event::split::Payload::Time(t) => split_time(t)?,
         event::split::Payload::Pace(p) => split_pace(*p)?,
     };
-    Ok(observer::Event::Split(sid, event))
+    Ok(session::Event::Split(sid, event))
 }
 
-fn split_time(t: &event::split::Time) -> Result<observer::split::Event> {
+fn split_time(t: &event::split::Time) -> Result<session::event::Split> {
     let time = super::time(t.time)?;
-    Ok(observer::split::Event::Time(
+    Ok(session::event::split::Split::Time(
         time,
         split_time_type(t.r#type()),
     ))
 }
 
-fn split_time_type(ty: event::split::time::Type) -> observer::time::Event {
+fn split_time_type(ty: event::split::time::Type) -> session::event::Time {
     use event::split::time::Type;
     match ty {
-        Type::Pushed => observer::time::Event::Pushed,
-        Type::Popped => observer::time::Event::Popped,
+        Type::Pushed => session::event::Time::Pushed,
+        Type::Popped => session::event::Time::Popped,
         Type::AttemptTotal => {
-            observer::time::Event::Aggregate(timing::aggregate::Kind::ATTEMPT_SPLIT)
+            session::event::Time::Aggregate(timing::aggregate::Kind::ATTEMPT_SPLIT)
         }
         Type::AttemptCumulative => {
-            observer::time::Event::Aggregate(timing::aggregate::Kind::ATTEMPT_CUMULATIVE)
+            session::event::Time::Aggregate(timing::aggregate::Kind::ATTEMPT_CUMULATIVE)
         }
         Type::ComparisonTotal => {
-            observer::time::Event::Aggregate(timing::aggregate::Kind::COMPARISON_SPLIT)
+            session::event::Time::Aggregate(timing::aggregate::Kind::COMPARISON_SPLIT)
         }
         Type::ComparisonCumulative => {
-            observer::time::Event::Aggregate(timing::aggregate::Kind::COMPARISON_CUMULATIVE)
+            session::event::Time::Aggregate(timing::aggregate::Kind::COMPARISON_CUMULATIVE)
         }
     }
 }
 
-fn split_pace(pace_index: i32) -> Result<observer::split::Event> {
+fn split_pace(pace_index: i32) -> Result<session::event::Split> {
     let pace = Unknown::Pace.require(super::super::Pace::from_i32(pace_index))?;
-    Ok(observer::split::Event::Pace(super::split_in_run_pace(pace)))
+    Ok(session::event::Split::Pace(super::split_in_run_pace(pace)))
 }

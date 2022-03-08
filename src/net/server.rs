@@ -10,8 +10,9 @@ use tokio::sync::{broadcast, mpsc, oneshot};
 
 pub use error::{Error, Result};
 
+use crate::model::session::event::observer::{Observable, Observer};
 use crate::model::{
-    session::{observer::Event, sink},
+    session::{event::Event, sink},
     timing::comparison::provider,
 };
 
@@ -21,11 +22,7 @@ use super::super::{
     model::{
         self,
         game::category::ShortDescriptor,
-        session::{
-            self,
-            action::Handler,
-            observer::{Debug, Observable, Observer},
-        },
+        session::{self, action::Handler, event::Debug},
     },
 };
 
@@ -53,18 +50,18 @@ pub struct Manager {
     /// Send/receive pair for broadcasting events from the session to clients.
     /// We hold the receiver here to keep it alive.
     bcast: (
-        broadcast::Sender<session::observer::Event>,
-        broadcast::Receiver<session::observer::Event>,
+        broadcast::Sender<session::event::Event>,
+        broadcast::Receiver<session::event::Event>,
     ),
 
     //
     // Observers
     //
     observers: Vec<Arc<dyn session::Observer>>,
-    obs_mux: session::observer::Mux,
+    obs_mux: session::event::Mux,
 }
 
-struct Broadcast(tokio::sync::broadcast::Sender<session::observer::Event>);
+struct Broadcast(tokio::sync::broadcast::Sender<session::event::Event>);
 impl session::Observer for Broadcast {
     fn observe(&self, evt: Event) {
         if let Err(e) = self.0.send(evt) {
@@ -94,7 +91,7 @@ impl Manager {
             bcast,
             sink: db::Sink::new(db),
             observers: vec![debug_obs, bcast_obs],
-            obs_mux: session::observer::Mux::default(),
+            obs_mux: session::event::Mux::default(),
         };
 
         for obs in &m.observers {
@@ -128,7 +125,7 @@ impl Manager {
     fn session<'a, 'db>(
         &'a self,
         mut insp: Inspector<'db>,
-    ) -> Result<session::Session<'db, 'a, model::session::observer::Mux>> {
+    ) -> Result<session::Session<'db, 'a, model::session::event::Mux>> {
         let mut session = insp.init_session(&self.obs_mux)?;
         session.set_comparison_provider(self.comparison_provider(insp));
         session.set_sink(self.sink());
@@ -195,7 +192,7 @@ async fn run_grpc(addr: std::net::SocketAddr, handler: grpc::Handler) {
 /// The state part of the server.
 struct State<'m> {
     /// The session being wrapped by this server.
-    session: session::Session<'m, 'm, session::observer::Mux>,
+    session: session::Session<'m, 'm, session::event::Mux>,
     /// Receives messages from the server handler.
     message_recv: mpsc::Receiver<Message>,
 }

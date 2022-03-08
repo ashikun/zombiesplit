@@ -11,7 +11,7 @@ use zombiesplit::{
         session::{
             self,
             action::{Action, Handler},
-            observer,
+            event,
         },
         short, Loadable, Time,
     },
@@ -43,12 +43,12 @@ fn short_descriptor() -> ShortDescriptor {
     ShortDescriptor::new(SAMPLE_GAME_NAME, SAMPLE_CATEGORY_NAME)
 }
 
-fn init_session(handle: &Reader, snk: Sink) -> session::Session<observer::Null> {
+fn init_session(handle: &Reader, snk: Sink) -> session::Session<event::observer::Null> {
     let mut insp = handle
         .inspect(&short_descriptor())
         .expect("couldn't open category db");
     let mut ses = insp
-        .init_session(&observer::Null)
+        .init_session(&event::observer::Null)
         .expect("couldn't init session");
     ses.set_sink(Box::new(snk));
     ses

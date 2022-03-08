@@ -1,7 +1,6 @@
 //! Observation multiplexing.
+use crate::model::session::event::observer::{Observable, Observer};
 use std::sync::Weak;
-
-use super::{Observable, Observer};
 
 /// An observation multiplexer.
 ///

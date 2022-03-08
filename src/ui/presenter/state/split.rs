@@ -5,7 +5,7 @@ use super::{cursor::SplitPosition, editor::Editor};
 use crate::model::{
     session::{
         self,
-        observer::{split, time},
+        event::{split, time},
     },
     short,
     timing::{
@@ -39,7 +39,7 @@ impl Set {
     }
 
     /// Handles an event for the split with short name `split`.
-    pub fn handle_event(&mut self, split: short::Name, evt: split::Event) {
+    pub fn handle_event(&mut self, split: short::Name, evt: split::Split) {
         if let Some(s) = self.lookup_or_create_split(split, &evt) {
             s.handle_event(evt);
         }
@@ -70,14 +70,14 @@ impl Set {
     ///
     /// ```
     /// use zombiesplit::ui::presenter::state::split;
-    /// use zombiesplit::model::session::observer::split::Event;
+    /// use zombiesplit::model::session::event::split::Split;
     ///
     /// let mut s = split::Set::default();
     /// assert_eq!(0, s.len());
     ///
-    /// s.handle_event("pp1".into(), Event::Init { index: 0, name: "Palmtree Panic 1".to_string() });
-    /// s.handle_event("sp1".into(), Event::Init { index: 1, name: "Special Stage 1".to_string() });
-    /// s.handle_event("pp2".into(), Event::Init { index: 2, name: "Palmtree Panic 2".to_string() });
+    /// s.handle_event("pp1".into(), Split::Init { index: 0, name: "Palmtree Panic 1".to_string() });
+    /// s.handle_event("sp1".into(), Split::Init { index: 1, name: "Special Stage 1".to_string() });
+    /// s.handle_event("pp2".into(), Split::Init { index: 2, name: "Palmtree Panic 2".to_string() });
     /// assert_eq!(3, s.len());
     /// ```
     #[must_use]
@@ -94,9 +94,9 @@ impl Set {
     fn lookup_or_create_split(
         &mut self,
         split: short::Name,
-        evt: &split::Event,
+        evt: &split::Split,
     ) -> Option<&mut Split> {
-        if let split::Event::Init { index, .. } = evt {
+        if let split::Split::Init { index, .. } = evt {
             self.create_split(split, *index)
         } else {
             self.at_short_mut(split)
@@ -209,23 +209,23 @@ impl Split {
     }
 
     /// Handles an observation for this split.
-    pub fn handle_event(&mut self, evt: split::Event) {
+    pub fn handle_event(&mut self, evt: split::Split) {
         match evt {
-            split::Event::Init { name, .. } => {
+            split::Split::Init { name, .. } => {
                 self.name = name;
             }
-            split::Event::Time(t, time::Event::Aggregate(kind)) => {
+            split::Split::Time(t, time::Time::Aggregate(kind)) => {
                 self.aggregates[kind.source][kind.scope] = t;
             }
-            split::Event::Time(_, time::Event::Pushed) => {
+            split::Split::Time(_, time::Time::Pushed) => {
                 self.num_times += 1;
             }
-            split::Event::Time(_, time::Event::Popped) => {
+            split::Split::Time(_, time::Time::Popped) => {
                 self.num_times -= 1;
                 // Moving the newly popped time to the editor gets handled
                 // elsewhere.
             }
-            split::Event::Pace(pace) => {
+            split::Split::Pace(pace) => {
                 self.pace_in_run = pace;
             }
         }
