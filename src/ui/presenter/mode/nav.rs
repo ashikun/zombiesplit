@@ -1,6 +1,6 @@
 //! The [Nav] struct and its implementations.
 
-use crate::model::attempt::action;
+use crate::model::session::action;
 use crate::model::timing::time;
 use std::fmt::{Display, Formatter};
 

@@ -9,9 +9,8 @@ pub use footer::Footer;
 pub use split::Split;
 
 use crate::model::{
-    attempt,
     game::category,
-    short,
+    session, short,
     timing::{comparison::pace::PacedTime, time},
 };
 
@@ -44,7 +43,7 @@ pub struct State {
 impl State {
     /// Creates a new client-side state from an initial server-side state dump.
     #[must_use]
-    pub fn from_dump(dump: &attempt::State) -> Self {
+    pub fn from_dump(dump: &session::State) -> Self {
         Self {
             cursor: cursor::Cursor::new(0, dump.run.splits.len() - 1),
             attempt: dump.run.attempt,
@@ -139,8 +138,8 @@ impl State {
     }
 
     /// Handles an event observation.
-    pub fn handle_event(&mut self, ev: attempt::observer::Event) {
-        use attempt::observer::Event;
+    pub fn handle_event(&mut self, ev: session::observer::Event) {
+        use session::observer::Event;
         match ev {
             Event::Total(ty, time) => self.set_total(ty, time),
             Event::Reset(a) => self.reset(&a),
@@ -151,7 +150,7 @@ impl State {
     }
 
     /// Handles an observation for the split with the given shortname.
-    fn handle_split_event(&mut self, short: short::Name, ev: attempt::observer::split::Event) {
+    fn handle_split_event(&mut self, short: short::Name, ev: session::observer::split::Event) {
         self.splits.handle_event(short, ev);
         // The changes to this split could have changed the overall and
         // up-to-cursor totals.

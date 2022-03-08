@@ -1,7 +1,7 @@
 //! Encoding logic for events.
 
 use super::super::{
-    super::super::model::{attempt::observer, timing::comparison, Time},
+    super::super::model::{session::observer, timing::comparison, Time},
     event, Event,
 };
 

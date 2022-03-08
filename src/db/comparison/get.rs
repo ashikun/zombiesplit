@@ -5,7 +5,7 @@ use super::{
     sql,
 };
 use crate::model::{
-    attempt, history, short,
+    history, session, short,
     timing::{aggregate, comparison, Comparison, Time},
 };
 use rusqlite::{named_params, Connection, Statement};
@@ -109,7 +109,7 @@ impl<'conn> Getter<'conn> {
     fn splits(
         &mut self,
         gcid: GcID,
-        splits: &attempt::split::Set,
+        splits: &session::split::Set,
         pb_run: Option<WithID<history::run::WithTotals<GcID>>>,
     ) -> Result<short::Map<comparison::Split>> {
         let split_pbs = self.split_pbs(gcid)?;
@@ -122,7 +122,7 @@ impl<'conn> Getter<'conn> {
 }
 
 /// Lifts a split time map to one over aggregates by summing across the splits in `split`.
-fn aggregate(splits: &attempt::split::Set, totals: short::Map<Time>) -> short::Map<aggregate::Set> {
+fn aggregate(splits: &session::split::Set, totals: short::Map<Time>) -> short::Map<aggregate::Set> {
     // TODO(@MattWindsor91): decouple this for testing.
     aggregate::Set::accumulate_pairs(splits.iter().map(move |s| {
         (
@@ -134,7 +134,7 @@ fn aggregate(splits: &attempt::split::Set, totals: short::Map<Time>) -> short::M
 }
 
 fn merge_split_data(
-    splits: &attempt::split::Set,
+    splits: &session::split::Set,
     split_pbs: &short::Map<Time>,
     run_pb_splits: &short::Map<aggregate::Set>,
 ) -> short::Map<comparison::Split> {

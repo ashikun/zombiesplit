@@ -2,7 +2,7 @@
 
 use super::{
     super::{
-        super::super::model::{attempt::observer, short, timing},
+        super::super::model::{session::observer, short, timing},
         event, Event,
     },
     error::{Missing, Result},

@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use log::info;
 
-use crate::{model::attempt::sink, Db};
+use crate::{model::session::sink, Db};
 
 // TODO(@MattWindsor91): can we eliminate this?
 

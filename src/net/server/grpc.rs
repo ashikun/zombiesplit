@@ -1,7 +1,7 @@
 //! `gRPC` glue for the server.
 
 use super::super::{
-    super::model::attempt,
+    super::model::session,
     proto::{self, zombiesplit_server::Zombiesplit},
 };
 use futures::StreamExt;
@@ -17,7 +17,7 @@ pub struct Handler {
     /// The main sender channel for actions (pointing back towards the server).
     pub message_send: mpsc::Sender<super::Message>,
     /// A broadcast channel head for events, from which we subscribe new event receivers.
-    pub event_broadcast: broadcast::Sender<attempt::observer::Event>,
+    pub event_broadcast: broadcast::Sender<session::observer::Event>,
 }
 
 type Result<T> = std::result::Result<tonic::Response<T>, tonic::Status>;
@@ -51,12 +51,12 @@ impl Zombiesplit for Handler {
         request: tonic::Request<proto::NewAttemptRequest>,
     ) -> Result<proto::NewAttemptResponse> {
         let dest = if request.into_inner().save {
-            attempt::action::OldDestination::Save
+            session::action::OldDestination::Save
         } else {
-            attempt::action::OldDestination::Discard
+            session::action::OldDestination::Discard
         };
 
-        self.act(attempt::Action::NewRun(dest)).await?;
+        self.act(session::Action::NewRun(dest)).await?;
         // TODO(@MattWindsor91): report back whether the save occurred.
         Ok(tonic::Response::new(proto::NewAttemptResponse {}))
     }
@@ -94,7 +94,7 @@ impl Handler {
     /// # Errors
     ///
     /// Fails if the underlying send fails.
-    async fn act(&self, action: attempt::Action) -> std::result::Result<(), tonic::Status> {
+    async fn act(&self, action: session::Action) -> std::result::Result<(), tonic::Status> {
         self.message_send
             .send(super::Message::Action(action))
             .await
@@ -127,7 +127,7 @@ impl Handler {
 
 fn map_event_result(
     event: &std::result::Result<
-        attempt::observer::Event,
+        session::observer::Event,
         tokio_stream::wrappers::errors::BroadcastStreamRecvError,
     >,
 ) -> std::result::Result<proto::Event, tonic::Status> {

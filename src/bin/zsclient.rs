@@ -1,7 +1,7 @@
 //! The zombiesplit client.
 
 use clap::Parser;
-use zombiesplit::{cli, config::Client as Config, model::attempt::action::Handler, net, ui};
+use zombiesplit::{cli, config::Client as Config, model::session::action::Handler, net, ui};
 
 fn main() {
     cli::handle_error(run())

@@ -17,7 +17,7 @@ pub use error::{Error, Result};
 pub use presenter::event::Pump;
 pub use view::View;
 
-use crate::model::attempt::action::Handler;
+use crate::model::session::action::Handler;
 
 /// Trait for things that provide UI components such as event pumps and renderers.
 pub trait Manager<'r> {

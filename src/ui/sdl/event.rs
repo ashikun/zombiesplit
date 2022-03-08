@@ -9,7 +9,7 @@ use super::super::{
     },
     view,
 };
-use crate::model::{attempt, timing::time};
+use crate::model::{session, timing::time};
 
 /// Wrapper over SDL event pumps to promote them into `event::Pump` instances.
 pub struct Pump(pub sdl2::EventPump);
@@ -72,7 +72,7 @@ fn from_key(k: sdl2::keyboard::Keycode) -> Option<Event> {
         Keycode::X | Keycode::Delete => Some(Event::modal(Modal::Delete)),
         Keycode::Z => Some(Event::Presenter(presenter::event::Event::Action(
             // TODO(@MattWindsor91): way of discarding runs
-            attempt::Action::NewRun(attempt::action::OldDestination::Save),
+            session::Action::NewRun(session::action::OldDestination::Save),
         ))),
         Keycode::Escape => Some(Event::Presenter(presenter::event::Event::Quit)),
         _ => None,

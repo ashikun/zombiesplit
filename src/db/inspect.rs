@@ -1,6 +1,6 @@
 //! High-level database inspection queries.
 
-use crate::model::{attempt, history, timing};
+use crate::model::{history, session, timing};
 
 use super::{
     category::{self, id::InfoWithID},
@@ -53,11 +53,11 @@ impl<'db> Inspector<'db> {
     /// # Errors
     ///
     /// Propagates any errors from the database.
-    pub fn init_session<'obs, O: attempt::Observer>(
+    pub fn init_session<'obs, O: session::Observer>(
         &mut self,
         obs: &'obs O,
-    ) -> Result<attempt::Session<'db, 'obs, O>> {
-        Ok(attempt::Session::new(self.cat.run(&self.info)?, obs))
+    ) -> Result<session::Session<'db, 'obs, O>> {
+        Ok(session::Session::new(self.cat.run(&self.info)?, obs))
     }
 
     /// Gets the run for this game-category pair.

@@ -2,7 +2,7 @@
 
 use std::ops::{Index, IndexMut};
 
-use crate::model::attempt::split;
+use crate::model::session::split;
 
 use super::{
     super::Time,

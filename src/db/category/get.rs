@@ -8,12 +8,11 @@ use super::{
 use rusqlite::named_params;
 
 use crate::model::{
-    attempt,
     game::{
         category::{AttemptInfo, Info, ShortDescriptor},
         Split,
     },
-    short,
+    session, short,
 };
 
 /// Object for getting category information from the database.
@@ -110,8 +109,8 @@ impl<'conn> Getter<'conn> {
     /// # Errors
     ///
     /// Propagates any errors from the database.
-    pub fn run<L: Locator>(&mut self, locator: &L) -> Result<attempt::Run> {
-        Ok(attempt::Run {
+    pub fn run<L: Locator>(&mut self, locator: &L) -> Result<session::Run> {
+        Ok(session::Run {
             metadata: locator.locate(self)?.info,
             attempt: self.attempt_info(locator)?,
             splits: self.splits(locator)?,
@@ -144,7 +143,7 @@ impl<'conn> Getter<'conn> {
     /// # Errors
     ///
     /// Propagates any errors from the database.
-    pub fn splits<L: Locator>(&mut self, locator: &L) -> Result<attempt::split::Set> {
+    pub fn splits<L: Locator>(&mut self, locator: &L) -> Result<session::split::Set> {
         let game_category = locator.locate_gcid(self)?;
         // TODO(@MattWindsor91): get the segments too.
         self.query_splits

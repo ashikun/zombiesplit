@@ -1,17 +1,37 @@
-//! The [Session] type and related code.
+/*! Models relating to an in-progress attempt.
+
+This module contains the bulk of the model surface of the zombiesplit server, covering:
+
+- the representation of in-progress runs;
+- sessions, which manage said runs and expose various API surfaces for handling them;
+- actions, which form the command surface of sessions;
+- observers, which form an observer pattern based API for monitoring changes to a session;
+- sinks, which receive runs after the user resets the session.
+*/
+pub mod action;
+pub mod observer;
+pub mod run;
+pub mod sink;
+pub mod split;
+pub mod state;
+
+use observer::{split::Observer as SO, time::Observer as TO, Event};
 
 use super::{
-    super::timing::{
-        aggregate,
-        comparison::{pace, provider, Comparison},
-        Time,
+    timing::{
+        aggregate, comparison,
+        comparison::{pace, provider},
+        Comparison,
     },
-    action,
-    observer::{self, split::Observer as SO, time::Observer as TO, Event},
-    sink, split,
-    state::State,
-    Observer, Run,
+    Time,
 };
+
+pub use action::Action;
+pub use observer::Observer;
+pub use run::Run;
+pub use sink::Sink;
+pub use split::Split;
+pub use state::State;
 
 /// A session over run attempts.
 ///
@@ -36,7 +56,7 @@ pub struct Session<'cmp, 'obs, O> {
     /// The sink attached to the session, for emitting saved runs.
     sink: Box<dyn sink::Sink>,
     /// The comparison provider.
-    comparator: Box<dyn provider::Provider + 'cmp>,
+    comparator: Box<dyn comparison::Provider + 'cmp>,
 }
 
 impl<'cmp, 'obs, O: Observer> action::Handler for Session<'cmp, 'obs, O> {
@@ -131,7 +151,7 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
         // redundancy?
 
         let mut total = None;
-        let mut overall_pace = pace::Pace::default();
+        let mut overall_pace = comparison::Pace::default();
 
         for (split, agg) in self.state.run.splits.aggregates() {
             let pace = self.split_pace(split, agg);
@@ -151,7 +171,7 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
             .observe(Event::Total(observer::Total::Attempt(overall_pace), total));
     }
 
-    fn split_pace(&self, split: &super::Split, agg: aggregate::Set) -> pace::SplitInRun {
+    fn split_pace(&self, split: &Split, agg: aggregate::Set) -> pace::SplitInRun {
         if split.num_times() == 0 {
             pace::SplitInRun::Inconclusive
         } else {

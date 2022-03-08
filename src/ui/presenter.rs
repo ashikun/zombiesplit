@@ -8,23 +8,22 @@ system etc.) to operations on the [Session], while translating observations
 of changes made to the [Session] into visual and modal changes to the UI.
 */
 
+pub mod event;
+pub mod mode;
+pub mod state;
+
 use std::sync::mpsc;
 
+pub use event::Event;
 pub use mode::Editor;
 use state::cursor;
 pub use state::State;
 
 use crate::model::{
-    attempt::{self, action::Handler, observer, Action},
     game::category::AttemptInfo,
+    session::{self, action::Handler, observer, Action},
     short, Time,
 };
-
-pub mod event;
-pub mod mode;
-pub mod state;
-
-pub use event::Event;
 
 /// A zombiesplit UI presenter, containing all state and modality.
 pub struct Presenter<'h, H> {
@@ -42,7 +41,7 @@ impl<'h, H: Handler> Presenter<'h, H> {
     /// The presenter can be used as an observer by feeding it events through, for instance, an
     /// `EventForwarder`.
     #[must_use]
-    pub fn new(action_handler: &'h mut H, dump: &attempt::State) -> Self {
+    pub fn new(action_handler: &'h mut H, dump: &session::State) -> Self {
         Self {
             mode: Box::new(mode::Nav),
             state: State::from_dump(dump),
@@ -168,7 +167,7 @@ impl<'h, H: Handler> Presenter<'h, H> {
 }
 
 /// Used to feed events from an `Observer` into a `Presenter`.
-pub struct ModelEventPump(mpsc::Receiver<attempt::observer::Event>);
+pub struct ModelEventPump(mpsc::Receiver<session::observer::Event>);
 
 /// Creates an observer as well as a pump that feeds events from the observer into a presenter.
 #[must_use]
@@ -186,10 +185,10 @@ impl<H: Handler> event::Pump<H> for ModelEventPump {
 
 /// An observer that feeds into a [Presenter].
 #[derive(Clone)]
-pub struct Observer(mpsc::Sender<attempt::observer::Event>);
+pub struct Observer(mpsc::Sender<session::observer::Event>);
 
-impl attempt::Observer for Observer {
-    fn observe(&self, evt: attempt::observer::Event) {
+impl session::Observer for Observer {
+    fn observe(&self, evt: session::observer::Event) {
         // TODO(@MattWindsor91): handle errors properly?
         if let Err(e) = self.0.send(evt) {
             log::warn!("error sending event to presenter: {e}");

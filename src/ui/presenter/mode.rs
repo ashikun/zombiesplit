@@ -8,7 +8,7 @@ pub use nav::Nav;
 use std::fmt::{Display, Formatter};
 
 use super::{event, State};
-use crate::model::attempt::action;
+use crate::model::session::action;
 
 /// Trait for presenter modes.
 ///

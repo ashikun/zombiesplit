@@ -1,6 +1,6 @@
 //! Events understood by the user interface.
 
-use crate::model::attempt;
+use crate::model::session;
 use crate::model::timing::time;
 
 /// A high-level event.
@@ -13,7 +13,7 @@ pub enum Event {
     Modal(Modal),
     /// An event that translates directly into an action on the current attempt.
     /// These are handled globally.
-    Action(attempt::Action),
+    Action(session::Action),
     /// A request to quit the user interface.
     Quit,
 }

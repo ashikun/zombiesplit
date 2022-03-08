@@ -2,7 +2,7 @@
 
 use super::{
     super::{
-        super::super::model::{attempt, game, short, timing},
+        super::super::model::{game, session, short, timing},
         dump_response,
     },
     error::{Missing, Result},
@@ -14,8 +14,8 @@ use super::{
 ///
 /// Fails if the counts in the attempt information overflow `usize`s on this machine, or if any of
 /// the times supplied for the splits are ill-formed.
-pub fn decode(run: &dump_response::Attempt) -> Result<attempt::Run> {
-    Ok(attempt::Run {
+pub fn decode(run: &dump_response::Attempt) -> Result<session::Run> {
+    Ok(session::Run {
         metadata: game_category(Missing::AttemptInfo.require(run.game_category.as_ref())?),
         attempt: run
             .attempt_info
@@ -35,12 +35,12 @@ fn game_category(info: &dump_response::attempt::GameCategory) -> game::category:
     }
 }
 
-fn splits(splits: &[dump_response::attempt::Split]) -> Result<attempt::split::Set> {
+fn splits(splits: &[dump_response::attempt::Split]) -> Result<session::split::Set> {
     splits.iter().map(split).collect()
 }
 
-fn split(split: &dump_response::attempt::Split) -> Result<attempt::split::Split> {
-    Ok(attempt::split::Split {
+fn split(split: &dump_response::attempt::Split) -> Result<session::split::Split> {
+    Ok(session::split::Split {
         info: game::Split {
             short: short::Name::from(&split.sid),
             name: split.name.clone(),

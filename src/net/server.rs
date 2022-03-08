@@ -11,7 +11,7 @@ use tokio::sync::{broadcast, mpsc, oneshot};
 pub use error::{Error, Result};
 
 use crate::model::{
-    attempt::{observer::Event, sink},
+    session::{observer::Event, sink},
     timing::comparison::provider,
 };
 
@@ -20,12 +20,12 @@ use super::super::{
     db::{self, inspect::Inspector},
     model::{
         self,
-        attempt::{
+        game::category::ShortDescriptor,
+        session::{
             self,
             action::Handler,
             observer::{Debug, Observable, Observer},
         },
-        game::category::ShortDescriptor,
     },
 };
 
@@ -53,19 +53,19 @@ pub struct Manager {
     /// Send/receive pair for broadcasting events from the session to clients.
     /// We hold the receiver here to keep it alive.
     bcast: (
-        broadcast::Sender<attempt::observer::Event>,
-        broadcast::Receiver<attempt::observer::Event>,
+        broadcast::Sender<session::observer::Event>,
+        broadcast::Receiver<session::observer::Event>,
     ),
 
     //
     // Observers
     //
-    observers: Vec<Arc<dyn attempt::Observer>>,
-    obs_mux: attempt::observer::Mux,
+    observers: Vec<Arc<dyn session::Observer>>,
+    obs_mux: session::observer::Mux,
 }
 
-struct Broadcast(tokio::sync::broadcast::Sender<attempt::observer::Event>);
-impl attempt::Observer for Broadcast {
+struct Broadcast(tokio::sync::broadcast::Sender<session::observer::Event>);
+impl session::Observer for Broadcast {
     fn observe(&self, evt: Event) {
         if let Err(e) = self.0.send(evt) {
             log::error!("couldn't send observation to clients: {}", e);
@@ -83,10 +83,10 @@ impl Manager {
         let db = std::rc::Rc::new(db::Db::new(&cfg.db.path)?);
         let reader = db.reader()?;
 
-        let debug_obs: Arc<dyn attempt::Observer> = Arc::new(Debug);
+        let debug_obs: Arc<dyn session::Observer> = Arc::new(Debug);
 
         let bcast = tokio::sync::broadcast::channel(BCAST_CAPACITY);
-        let bcast_obs: Arc<dyn attempt::Observer> = Arc::new(Broadcast(bcast.0.clone()));
+        let bcast_obs: Arc<dyn session::Observer> = Arc::new(Broadcast(bcast.0.clone()));
 
         let mut m = Self {
             cfg,
@@ -94,7 +94,7 @@ impl Manager {
             bcast,
             sink: db::Sink::new(db),
             observers: vec![debug_obs, bcast_obs],
-            obs_mux: attempt::observer::Mux::default(),
+            obs_mux: session::observer::Mux::default(),
         };
 
         for obs in &m.observers {
@@ -128,7 +128,7 @@ impl Manager {
     fn session<'a, 'db>(
         &'a self,
         mut insp: Inspector<'db>,
-    ) -> Result<attempt::Session<'db, 'a, model::attempt::observer::Mux>> {
+    ) -> Result<session::Session<'db, 'a, model::session::observer::Mux>> {
         let mut session = insp.init_session(&self.obs_mux)?;
         session.set_comparison_provider(self.comparison_provider(insp));
         session.set_sink(self.sink());
@@ -195,7 +195,7 @@ async fn run_grpc(addr: std::net::SocketAddr, handler: grpc::Handler) {
 /// The state part of the server.
 struct State<'m> {
     /// The session being wrapped by this server.
-    session: attempt::Session<'m, 'm, attempt::observer::Mux>,
+    session: session::Session<'m, 'm, session::observer::Mux>,
     /// Receives messages from the server handler.
     message_recv: mpsc::Receiver<Message>,
 }
@@ -204,9 +204,9 @@ struct State<'m> {
 #[derive(Debug)]
 pub enum Message {
     /// An action to send to the session; no direct reply expected.
-    Action(attempt::Action),
+    Action(session::Action),
     /// A dumping query, which expects a reply through the given oneshot.
-    Dump(oneshot::Sender<attempt::State>),
+    Dump(oneshot::Sender<session::State>),
     /// A query for server information, which expects a reply through the given oneshot.
     ServerInfo(oneshot::Sender<super::dump::Server>),
 }

@@ -2,8 +2,7 @@
 
 use std::fmt::{Display, Formatter};
 
-use crate::model::attempt;
-use crate::model::timing::time;
+use crate::{model::session, model::timing::time};
 
 use super::{
     super::state::{cursor, State},
@@ -54,10 +53,10 @@ impl Mode for Editor {
         result
     }
 
-    fn on_exit(&mut self, state: &mut State) -> Option<attempt::Action> {
+    fn on_exit(&mut self, state: &mut State) -> Option<session::Action> {
         self.commit_field();
         state.set_editor(self.index, None);
-        Some(attempt::Action::Push(
+        Some(session::Action::Push(
             self.index,
             std::mem::take(&mut self.time),
         ))

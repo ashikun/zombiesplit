@@ -5,7 +5,7 @@ use std::borrow::Cow;
 use std::fmt::{Display, Formatter};
 
 use crate::model::{
-    attempt,
+    session,
     timing::{comparison, Time},
 };
 
@@ -25,7 +25,7 @@ pub struct Footer {
 impl Footer {
     /// Constructs a footer from a session state dump.
     #[must_use]
-    pub fn from_dump(dump: &attempt::State) -> Self {
+    pub fn from_dump(dump: &session::State) -> Self {
         Self {
             at_cursor: comparison::pace::PacedTime::default(),
             // TODO(@MattWindsor91): fix this

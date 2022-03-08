@@ -5,7 +5,7 @@ thread in a synchronous context). */
 
 mod error;
 
-use super::{super::model::attempt, proto};
+use super::{super::model::session, proto};
 use error::Result;
 use std::sync::Arc;
 use tokio::runtime;
@@ -19,19 +19,19 @@ pub struct Sync<O> {
     rt: Arc<runtime::Runtime>,
 }
 
-impl<O: attempt::Observer> attempt::action::Handler for Sync<O> {
+impl<O: session::Observer> session::action::Handler for Sync<O> {
     type Error = error::Error;
 
-    fn dump(&mut self) -> Result<attempt::State> {
+    fn dump(&mut self) -> Result<session::State> {
         self.rt.block_on(self.inner.dump())
     }
 
-    fn handle(&mut self, a: attempt::Action) -> Result<()> {
+    fn handle(&mut self, a: session::Action) -> Result<()> {
         self.rt.block_on(self.inner.handle_action(a))
     }
 }
 
-impl<O: attempt::Observer> Sync<O> {
+impl<O: session::Observer> Sync<O> {
     /// Creates a new client listening to the server at `addr` and observing events with `observer`.
     ///
     /// # Errors
@@ -75,7 +75,7 @@ pub struct Client<O> {
     observer: O,
 }
 
-impl<O: attempt::Observer> Client<O> {
+impl<O: session::Observer> Client<O> {
     /// Creates a new client listening to the server at `addr` and observing events with `observer`.
     ///
     /// # Errors
@@ -135,7 +135,7 @@ impl<O: attempt::Observer> Client<O> {
     /// # Errors
     ///
     /// Fails if any part of the dumping process fails (primarily network or transcoding errors).
-    pub async fn dump(&mut self) -> Result<attempt::State> {
+    pub async fn dump(&mut self) -> Result<session::State> {
         Ok(proto::decode::dump(&self.dump_raw().await?)?)
     }
 
@@ -148,21 +148,21 @@ impl<O: attempt::Observer> Client<O> {
     /// # Errors
     ///
     /// Fails if any part of the dumping process fails (primarily network or transcoding errors).
-    pub async fn handle_action(&mut self, action: attempt::Action) -> Result<()> {
+    pub async fn handle_action(&mut self, action: session::Action) -> Result<()> {
         match action {
-            attempt::Action::NewRun(dest) => {
+            session::Action::NewRun(dest) => {
                 self.grpc
                     .new_attempt(proto::NewAttemptRequest {
-                        save: dest == attempt::action::OldDestination::Save,
+                        save: dest == session::action::OldDestination::Save,
                     })
                     .await?;
             }
-            attempt::Action::Push(index, time) => {
+            session::Action::Push(index, time) => {
                 self.grpc
                     .push(proto::encode::push_action(index, time)?)
                     .await?;
             }
-            attempt::Action::Pop(index, ty) => {
+            session::Action::Pop(index, ty) => {
                 self.grpc.pop(proto::encode::pop_action(index, ty)?).await?;
             }
         }

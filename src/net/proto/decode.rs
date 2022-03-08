@@ -5,7 +5,7 @@ pub mod comparison;
 pub mod error;
 pub mod event;
 
-use crate::model::{attempt as a, game::category, timing};
+use crate::model::{game::category, session, timing};
 pub use error::{Error, Missing, Result, Unknown};
 
 /// Decodes a protobuf representation of a dump.
@@ -14,8 +14,8 @@ pub use error::{Error, Missing, Result, Unknown};
 ///
 /// Fails if the attempt counts cannot be stored as `usize`, or if anything is missing from the
 /// dump that we expect to see.
-pub fn dump(dump: &super::DumpResponse) -> Result<a::State> {
-    Ok(a::State {
+pub fn dump(dump: &super::DumpResponse) -> Result<session::State> {
+    Ok(session::State {
         run: attempt::decode(Missing::Attempt.require(dump.attempt.as_ref())?)?,
         comparison: dump
             .comparison
@@ -63,8 +63,8 @@ fn pace(pace: super::Pace) -> timing::comparison::Pace {
 /// # Errors
 ///
 /// Fails if the split index or time are out of bounds.
-pub fn push_action(request: &super::PushRequest) -> Result<a::Action> {
-    Ok(a::Action::Push(
+pub fn push_action(request: &super::PushRequest) -> Result<session::Action> {
+    Ok(session::Action::Push(
         split_index(request.index)?,
         time(request.time)?,
     ))
@@ -75,8 +75,8 @@ pub fn push_action(request: &super::PushRequest) -> Result<a::Action> {
 /// # Errors
 ///
 /// Fails if the split index is out of bounds, or the pop type is malformed.
-pub fn pop_action(request: &super::PopRequest) -> Result<a::Action> {
-    Ok(a::Action::Pop(
+pub fn pop_action(request: &super::PopRequest) -> Result<session::Action> {
+    Ok(session::Action::Pop(
         split_index(request.index)?,
         pop(request.r#type)?,
     ))
@@ -87,11 +87,11 @@ pub fn pop_action(request: &super::PopRequest) -> Result<a::Action> {
 /// # Errors
 ///
 /// Fails with `Missing` if `pop_index` doesn't correspond to a valid pop type.
-fn pop(pop_index: i32) -> Result<a::action::Pop> {
+fn pop(pop_index: i32) -> Result<session::action::Pop> {
     Ok(
         match Unknown::Pop.require(super::Pop::from_i32(pop_index))? {
-            super::Pop::One => a::action::Pop::One,
-            super::Pop::All => a::action::Pop::All,
+            super::Pop::One => session::action::Pop::One,
+            super::Pop::All => session::action::Pop::All,
         },
     )
 }

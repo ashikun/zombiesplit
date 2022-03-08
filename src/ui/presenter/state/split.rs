@@ -3,7 +3,7 @@ use std::fmt::Display;
 
 use super::{cursor::SplitPosition, editor::Editor};
 use crate::model::{
-    attempt::{
+    session::{
         self,
         observer::{split, time},
     },
@@ -27,7 +27,7 @@ pub struct Set {
 impl Set {
     /// Constructs a split state from an attempt dump.
     #[must_use]
-    pub fn from_dump(dump: &attempt::State) -> Self {
+    pub fn from_dump(dump: &session::State) -> Self {
         let mut result = Self::default();
 
         for (index, split) in dump.run.splits.iter().enumerate() {
@@ -70,7 +70,7 @@ impl Set {
     ///
     /// ```
     /// use zombiesplit::ui::presenter::state::split;
-    /// use zombiesplit::model::attempt::observer::split::Event;
+    /// use zombiesplit::model::session::observer::split::Event;
     ///
     /// let mut s = split::Set::default();
     /// assert_eq!(0, s.len());
@@ -175,7 +175,7 @@ impl Split {
     }
 
     #[must_use]
-    pub fn from_dump(dump: &attempt::split::Split) -> Self {
+    pub fn from_dump(dump: &session::split::Split) -> Self {
         Self {
             num_times: dump.times.len(),
             name: dump.info.name.clone(),
