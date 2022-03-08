@@ -1,13 +1,10 @@
 //! The [Session] type and related code.
 
 use super::{
-    super::{
-        game::category::Info,
-        timing::{
-            aggregate,
-            comparison::{pace, provider, Comparison},
-            Time,
-        },
+    super::timing::{
+        aggregate,
+        comparison::{pace, provider, Comparison},
+        Time,
     },
     action,
     observer::{self, split::Observer as SO, time::Observer as TO, Event},
@@ -16,10 +13,9 @@ use super::{
     Observer, Run,
 };
 
-/// Holds all data for an attempt session.
+/// A session over run attempts.
 ///
-/// A session consists of category information, the current run being
-/// attempted, and any comparison data being worked against.
+/// A session holds state in the form of a [State].
 ///
 /// It also has zero or more observers attached that can be sent information
 /// about the run's progress, and a comparison provider.  The latter feeds into
@@ -76,12 +72,6 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
             timestamper: chrono::Utc::now,
             comparator: Box::new(provider::Null),
         }
-    }
-
-    /// Gets a reference to the current run's metadata.
-    #[must_use]
-    pub fn metadata(&self) -> &Info {
-        &self.state.run.metadata
     }
 
     // TODO(@MattWindsor91): replace these 'set_' functions with a builder.
@@ -221,16 +211,14 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
     }
 
     fn clear_at(&mut self, split: impl split::Locator) {
-        if let Some(s) = self.state.run.splits.get_mut(split) {
-            s.clear();
+        if let Some(_s) = self.state.clear_at(split) {
             // TODO(@MattWindsor91): observe
+            self.observe_paces_and_aggregates();
         }
     }
 
     fn push_to(&mut self, split: impl split::Locator, time: Time) {
-        if let Some(s) = self.state.run.splits.get_mut(split) {
-            s.push(time);
-            let short = s.info.short;
+        if let Some(short) = self.state.push_to(split, time) {
             self.observer
                 .observe_time(short, time, observer::time::Event::Pushed);
             self.observe_paces_and_aggregates();
@@ -238,10 +226,7 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
     }
 
     fn pop_from(&mut self, split: impl split::Locator) {
-        if let Some((short, time)) = self.state.run.splits.get_mut(split).and_then(|s| {
-            let short = s.info.short;
-            s.pop().map(|time| (short, time))
-        }) {
+        if let Some((short, time)) = self.state.pop_from(split) {
             self.observer
                 .observe_time(short, time, observer::time::Event::Popped);
             self.observe_paces_and_aggregates();
