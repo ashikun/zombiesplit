@@ -5,9 +5,7 @@ thread in a synchronous context). */
 
 mod error;
 
-use super::proto;
-use crate::model::attempt;
-use crate::model::attempt::session::State;
+use super::{super::model::attempt, proto};
 use error::Result;
 use std::sync::Arc;
 use tokio::runtime;
@@ -24,7 +22,7 @@ pub struct Sync<O> {
 impl<O: attempt::Observer> attempt::action::Handler for Sync<O> {
     type Error = error::Error;
 
-    fn dump(&mut self) -> Result<State> {
+    fn dump(&mut self) -> Result<attempt::State> {
         self.rt.block_on(self.inner.dump())
     }
 
@@ -137,7 +135,7 @@ impl<O: attempt::Observer> Client<O> {
     /// # Errors
     ///
     /// Fails if any part of the dumping process fails (primarily network or transcoding errors).
-    pub async fn dump(&mut self) -> Result<attempt::session::State> {
+    pub async fn dump(&mut self) -> Result<attempt::State> {
         Ok(proto::decode::dump(&self.dump_raw().await?)?)
     }
 

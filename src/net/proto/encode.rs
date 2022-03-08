@@ -5,11 +5,7 @@ pub mod comparison;
 pub mod event;
 
 use super::super::{
-    super::model::{
-        attempt::{action, session},
-        game::category,
-        timing,
-    },
+    super::model::{attempt as a, game::category, timing},
     dump,
 };
 
@@ -38,7 +34,7 @@ fn version(version: &semver::Version) -> super::server_info_response::Version {
 /// # Errors
 ///
 /// Fails with `out_of_range` if the attempt counts cannot be stored as 64-bit integers.
-pub fn dump(dump: &session::State) -> Result<super::DumpResponse> {
+pub fn dump(dump: &a::State) -> Result<super::DumpResponse> {
     Ok(super::DumpResponse {
         attempt: Some(attempt::encode(&dump.run)?),
         comparison: Some(comparison::encode(&dump.comparison)),
@@ -83,7 +79,7 @@ pub fn push_action(index: usize, time: timing::Time) -> Result<super::PushReques
 /// # Errors
 ///
 /// Fails if we can't fit the split index into a 64-bit integer.
-pub fn pop_action(index: usize, ty: action::Pop) -> Result<super::PopRequest> {
+pub fn pop_action(index: usize, ty: a::action::Pop) -> Result<super::PopRequest> {
     Ok(super::PopRequest {
         index: try_from_range(index)?,
         r#type: pop(ty),
@@ -92,10 +88,10 @@ pub fn pop_action(index: usize, ty: action::Pop) -> Result<super::PopRequest> {
 
 /// Encodes `pop_index` as a protobuf pop type.
 /// Fails with `Missing` if `pop_index` doesn't correspond to a valid pop type.
-fn pop(pop: action::Pop) -> i32 {
+fn pop(pop: a::action::Pop) -> i32 {
     (match pop {
-        action::Pop::One => super::Pop::One,
-        action::Pop::All => super::Pop::All,
+        a::action::Pop::One => super::Pop::One,
+        a::action::Pop::All => super::Pop::All,
     }) as i32
 }
 

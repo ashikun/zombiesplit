@@ -27,7 +27,7 @@ pub struct Set {
 impl Set {
     /// Constructs a split state from an attempt dump.
     #[must_use]
-    pub fn from_dump(dump: &attempt::session::State) -> Self {
+    pub fn from_dump(dump: &attempt::State) -> Self {
         let mut result = Self::default();
 
         for (index, split) in dump.run.splits.iter().enumerate() {

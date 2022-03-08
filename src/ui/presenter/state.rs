@@ -44,12 +44,12 @@ pub struct State {
 impl State {
     /// Creates a new client-side state from an initial server-side state dump.
     #[must_use]
-    pub fn from_dump(dump: &attempt::session::State) -> Self {
+    pub fn from_dump(dump: &attempt::State) -> Self {
         Self {
             cursor: cursor::Cursor::new(0, dump.run.splits.len() - 1),
             attempt: dump.run.attempt,
             game_category: dump.run.metadata.clone(),
-            mode: "".to_string(),
+            mode: "Welcome to zombiesplit!".to_string(),
             splits: split::Set::from_dump(dump),
             footer: footer::Footer::from_dump(dump),
         }

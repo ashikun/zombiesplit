@@ -206,7 +206,7 @@ pub enum Message {
     /// An action to send to the session; no direct reply expected.
     Action(attempt::Action),
     /// A dumping query, which expects a reply through the given oneshot.
-    Dump(oneshot::Sender<attempt::session::State>),
+    Dump(oneshot::Sender<attempt::State>),
     /// A query for server information, which expects a reply through the given oneshot.
     ServerInfo(oneshot::Sender<super::dump::Server>),
 }

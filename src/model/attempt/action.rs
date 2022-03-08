@@ -52,7 +52,7 @@ pub trait Handler {
     /// # Errors
     ///
     /// Fails if we can't, for whatever reason, get a dump from the handler.
-    fn dump(&mut self) -> Result<super::session::State, Self::Error>;
+    fn dump(&mut self) -> Result<super::State, Self::Error>;
 
     // TODO(@MattWindsor91): errors?
 

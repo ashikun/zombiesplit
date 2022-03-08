@@ -11,7 +11,9 @@ use super::{
     },
     action,
     observer::{self, split::Observer as SO, time::Observer as TO, Event},
-    sink, split, Observer, Run,
+    sink, split,
+    state::State,
+    Observer, Run,
 };
 
 /// Holds all data for an attempt session.
@@ -245,15 +247,4 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
             self.observe_paces_and_aggregates();
         }
     }
-}
-
-/// The state of a session.
-///
-/// The session state contains both a run and its current comparison.
-/// A session's state can be dumped out at any point.
-#[derive(Clone, Debug)]
-pub struct State {
-    pub run: Run,
-    /// Comparison data for the game/category currently being run.
-    pub comparison: Comparison,
 }

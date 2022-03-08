@@ -14,6 +14,7 @@ pub mod run;
 pub mod session;
 pub mod sink;
 pub mod split;
+pub mod state;
 
 pub use action::Action;
 pub use observer::Observer;
@@ -21,3 +22,4 @@ pub use run::Run;
 pub use session::Session;
 pub use sink::Sink;
 pub use split::Split;
+pub use state::State;
