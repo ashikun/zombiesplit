@@ -18,11 +18,7 @@ pub mod state;
 use event::{split::Observer as SO, time::Observer as TO};
 
 use super::{
-    timing::{
-        aggregate, comparison,
-        comparison::{pace, provider},
-        Comparison,
-    },
+    timing::{aggregate, comparison, comparison::provider, Comparison},
     Time,
 };
 
@@ -142,39 +138,25 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
         self.observer.observe(Event::Reset(self.state.run.info));
     }
 
-    /// Observes all paces and aggregates for each split, notifying all
-    /// observers.
-    fn observe_paces_and_aggregates(&self) {
-        // TODO(@MattWindsor91): start from a particular split, to avoid
-        // redundancy?
-
-        let mut total = None;
-        let mut overall_pace = comparison::Pace::default();
-
-        for (split, agg) in self.state.run.splits.aggregates() {
-            let pace = self.split_pace(split, agg);
-            let short = split.info.short;
+    /// Observes notes for each split, notifying all observers.
+    ///
+    /// The notes will have been recalculated by the state before this is called.
+    fn observe_notes(&self) {
+        // TODO(@MattWindsor91): start from a particular split, to avoid redundancy?
+        for (short, note) in &self.state.notes {
             self.observer
-                .observe_split(short, event::split::Split::Pace(pace));
-            self.observer
-                .observe_aggregate_set(short, agg, aggregate::Source::Attempt);
-
-            if total.unwrap_or_default() < agg.cumulative {
-                let _ = total.insert(agg.cumulative);
-                overall_pace = pace.overall();
-            }
+                .observe_split(*short, event::split::Split::Pace(note.pace));
+            self.observer.observe_aggregate_set(
+                *short,
+                note.aggregates,
+                aggregate::Source::Attempt,
+            );
         }
 
+        let pace = self.state.total.map(|x| x.pace).unwrap_or_default();
+        let time = self.state.total.map(|x| x.time);
         self.observer
-            .observe(Event::Total(event::Total::Attempt(overall_pace), total));
-    }
-
-    fn split_pace(&self, split: &Split, agg: aggregate::Set) -> pace::SplitInRun {
-        if split.num_times() == 0 {
-            pace::SplitInRun::Inconclusive
-        } else {
-            self.state.comparison.pace(split.info.short, agg)
-        }
+            .observe(Event::Total(event::Total::Attempt(pace), time));
     }
 
     /// Observes the contents of a comparison.
@@ -231,7 +213,7 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
     fn clear_at(&mut self, split: impl split::Locator) {
         if let Some(_s) = self.state.clear_at(split) {
             // TODO(@MattWindsor91): observe
-            self.observe_paces_and_aggregates();
+            self.observe_notes();
         }
     }
 
@@ -239,7 +221,7 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
         if let Some(short) = self.state.push_to(split, time) {
             self.observer
                 .observe_time(short, time, event::time::Time::Pushed);
-            self.observe_paces_and_aggregates();
+            self.observe_notes();
         }
     }
 
@@ -247,7 +229,7 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
         if let Some((short, time)) = self.state.pop_from(split) {
             self.observer
                 .observe_time(short, time, event::time::Time::Popped);
-            self.observe_paces_and_aggregates();
+            self.observe_notes();
         }
     }
 }

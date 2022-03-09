@@ -1,4 +1,5 @@
 //! zombiesplit's notion of times.
+use std::cmp::Ordering;
 use std::ops::{Index, IndexMut};
 use std::{
     convert::TryFrom,
@@ -20,9 +21,7 @@ pub mod format;
 pub mod position;
 
 /// A hh:mm:ss:ms timing.
-#[derive(
-    Copy, Clone, SerializeDisplay, DeserializeFromStr, Debug, PartialEq, Eq, PartialOrd, Hash,
-)]
+#[derive(Copy, Clone, SerializeDisplay, DeserializeFromStr, Debug, PartialEq, Eq, Hash)]
 pub struct Time {
     /// Number of hours.
     pub hours: Field,
@@ -45,6 +44,19 @@ impl Default for Time {
             secs: Field::zero(Position::Seconds),
             millis: Field::zero(Position::Milliseconds),
         }
+    }
+}
+
+/// This cannot be autoderived because fields carry their position.
+impl Ord for Time {
+    fn cmp(&self, other: &Self) -> Ordering {
+        u32::from(*self).cmp(&u32::from(*other))
+    }
+}
+
+impl PartialOrd for Time {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
