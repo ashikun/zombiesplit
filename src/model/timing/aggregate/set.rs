@@ -6,7 +6,7 @@ use crate::model::session::split;
 
 use super::{
     super::Time,
-    index::{Scope, Source},
+    index::{Kind, Scope, Source},
 };
 
 /// A full set of aggregate times for one split, organised by source.
@@ -38,6 +38,22 @@ impl IndexMut<Source> for Full {
             Source::Attempt => &mut self.attempt,
             Source::Comparison => &mut self.comparison,
         }
+    }
+}
+
+/// [Full] sets can be indexed by [Kind], yielding the time.
+impl Index<Kind> for Full {
+    type Output = Time;
+
+    fn index(&self, index: Kind) -> &Self::Output {
+        &self[index.source][index.scope]
+    }
+}
+
+/// [Full] sets can be mutably indexed by [Kind], yielding time.
+impl IndexMut<Kind> for Full {
+    fn index_mut(&mut self, index: Kind) -> &mut Self::Output {
+        &mut self[index.source][index.scope]
     }
 }
 
