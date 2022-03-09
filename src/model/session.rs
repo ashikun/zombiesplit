@@ -84,10 +84,7 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
     #[must_use]
     pub fn new(run: Attempt, observer: &'obs O) -> Self {
         Self {
-            state: State {
-                run,
-                comparison: Comparison::default(),
-            },
+            state: State::new(run, Comparison::default()),
             observer,
             sink: Box::new(sink::Null),
             timestamper: chrono::Utc::now,

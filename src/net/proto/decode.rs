@@ -15,15 +15,15 @@ pub use error::{Error, Missing, Result, Unknown};
 /// Fails if the attempt counts cannot be stored as `usize`, or if anything is missing from the
 /// dump that we expect to see.
 pub fn dump(dump: &super::DumpResponse) -> Result<session::State> {
-    Ok(session::State {
-        run: attempt::decode(Missing::Attempt.require(dump.attempt.as_ref())?)?,
-        comparison: dump
-            .comparison
+    // TODO(@MattWindsor91): carry aggregates through protobufs.
+    Ok(session::State::new(
+        attempt::decode(Missing::Attempt.require(dump.attempt.as_ref())?)?,
+        dump.comparison
             .as_ref()
             .map(comparison::decode)
             .transpose()?
             .unwrap_or_default(),
-    })
+    ))
 }
 
 /// Decodes a protobuf representation of attempt information into its model form.

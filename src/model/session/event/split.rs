@@ -8,7 +8,7 @@ use crate::model::timing;
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub enum Split {
-    /// Got a new time for the split.
+    /// Got a new time pushed to, or popped from, for the split.
     Time(model::Time, super::Time),
     /// Got a new pace note for the split.
     Pace(timing::comparison::pace::SplitInRun),

@@ -9,7 +9,7 @@ use crate::model::{
         event::{split, time},
     },
     short,
-    timing::{aggregate, comparison::pace, Time},
+    timing::{aggregate, comparison::pace},
 };
 
 /// A set of split state data.
