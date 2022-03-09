@@ -62,6 +62,18 @@ fn pace(pace: timing::comparison::Pace) -> super::Pace {
     }
 }
 
+fn split_in_run_pace(pace: timing::comparison::pace::SplitInRun) -> super::Pace {
+    use timing::comparison::pace::SplitInRun;
+    match pace {
+        SplitInRun::Inconclusive => super::Pace::None,
+        SplitInRun::BehindAndLosing => super::Pace::Behind,
+        SplitInRun::BehindAndGaining => super::Pace::BehindButGaining,
+        SplitInRun::AheadAndLosing => super::Pace::AheadButLosing,
+        SplitInRun::AheadAndGaining => super::Pace::Ahead,
+        SplitInRun::SplitPersonalBest => super::Pace::PersonalBest,
+    }
+}
+
 /// Encodes a push action.
 ///
 /// # Errors
