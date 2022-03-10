@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 ///! Presenter state for individual splits.
 use std::fmt::Display;
 
@@ -21,6 +22,7 @@ pub struct Set {
 }
 
 /// We can produce a split set from an iterator over split dumps.
+/// This split set does not have cumulatives calculated.
 impl FromIterator<session::Split> for Set {
     fn from_iter<T: IntoIterator<Item = session::Split>>(iter: T) -> Self {
         let mut result = Self::default();
@@ -30,7 +32,6 @@ impl FromIterator<session::Split> for Set {
             result.vec.push(Split::from_dump(index, &split));
         }
 
-        result.recalculate_cumulatives(0, timing::aggregate::Source::Attempt);
         result
     }
 }
@@ -41,6 +42,7 @@ impl Set {
     pub fn from_dump(dump: &session::State) -> Self {
         let mut result: Self = dump.run.splits.iter().cloned().collect();
         result.update_with_comparison(&dump.comparison);
+        result.update_with_notes(&dump.notes);
         result
     }
 
@@ -122,30 +124,22 @@ impl Set {
         self.vec.get(index)
     }
 
-    /// Recalculates the cumulative totals for this split set from the given index.
-    fn recalculate_cumulatives(&mut self, from: usize, source: timing::aggregate::Source) {
-        // TODO(@MattWindsor91): use this in the session too.
-        let mut cumulative = from
-            .checked_sub(1)
-            .and_then(|i| {
-                self.at_index(i)
-                    .map(|x| x.aggregates[source][timing::aggregate::Scope::Cumulative])
-            })
-            .unwrap_or_default();
-
-        for split in self.vec.iter_mut().skip(from) {
-            cumulative += split.aggregates[source][timing::aggregate::Scope::Split];
-            split.aggregates[source][timing::aggregate::Scope::Cumulative] = cumulative;
-        }
-    }
-
     /// Adds information from a comparison to this split.
     fn update_with_comparison(&mut self, cmp: &timing::Comparison) {
         // TODO(@MattWindsor91): dedupe with existing comparison propagating logic
         for (sid, split_cmp) in &cmp.splits {
             if let Some(split) = self.at_short_mut(*sid) {
                 split.aggregates[timing::aggregate::Source::Comparison] = split_cmp.in_pb_run;
-                // TODO(@MattWindsor91): paces
+            }
+        }
+    }
+
+    /// Adds information from the session notes to this split.
+    fn update_with_notes(&mut self, notes: &HashMap<short::Name, session::state::SplitNote>) {
+        for (sid, note) in notes {
+            if let Some(split) = self.at_short_mut(*sid) {
+                split.aggregates[timing::aggregate::Source::Attempt] = note.aggregates;
+                split.pace_in_run = note.pace;
             }
         }
     }
