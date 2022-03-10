@@ -115,6 +115,12 @@ impl State {
         self.splits.at_index(index)
     }
 
+    // Tries to get the split at shortname `short` in the split set.
+    #[must_use]
+    pub fn split_at_short(&self, short: short::Name) -> Option<&self::Split> {
+        self.splits.at_short(short)
+    }
+
     /// Recalculates the state's footer totals.
     ///
     /// This generally needs to be done if the cursor has moved, or the split

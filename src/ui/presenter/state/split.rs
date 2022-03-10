@@ -2,14 +2,12 @@
 use std::fmt::Display;
 
 use super::{cursor::SplitPosition, editor::Editor};
-use crate::model::timing::Comparison;
 use crate::model::{
     session::{
         self,
         event::{split, time},
     },
-    short,
-    timing::{aggregate, comparison::pace},
+    short, timing,
 };
 
 /// A set of split state data.
@@ -32,7 +30,7 @@ impl FromIterator<session::Split> for Set {
             result.vec.push(Split::from_dump(index, &split));
         }
 
-        result.recalculate_cumulatives(0, aggregate::Source::Attempt);
+        result.recalculate_cumulatives(0, timing::aggregate::Source::Attempt);
         result
     }
 }
@@ -102,6 +100,12 @@ impl Set {
         self.vec.is_empty()
     }
 
+    // Tries to get the split at `split`.
+    #[must_use]
+    pub fn at_short(&self, split: short::Name) -> Option<&Split> {
+        self.index_of(split).and_then(|x| self.vec.get(x))
+    }
+
     fn at_short_mut(&mut self, split: short::Name) -> Option<&mut Split> {
         self.index_of(split).and_then(|x| self.vec.get_mut(x))
     }
@@ -119,28 +123,28 @@ impl Set {
     }
 
     /// Recalculates the cumulative totals for this split set from the given index.
-    fn recalculate_cumulatives(&mut self, from: usize, source: aggregate::Source) {
+    fn recalculate_cumulatives(&mut self, from: usize, source: timing::aggregate::Source) {
         // TODO(@MattWindsor91): use this in the session too.
         let mut cumulative = from
             .checked_sub(1)
             .and_then(|i| {
                 self.at_index(i)
-                    .map(|x| x.aggregates[source][aggregate::Scope::Cumulative])
+                    .map(|x| x.aggregates[source][timing::aggregate::Scope::Cumulative])
             })
             .unwrap_or_default();
 
         for split in self.vec.iter_mut().skip(from) {
-            cumulative += split.aggregates[source][aggregate::Scope::Split];
-            split.aggregates[source][aggregate::Scope::Cumulative] = cumulative;
+            cumulative += split.aggregates[source][timing::aggregate::Scope::Split];
+            split.aggregates[source][timing::aggregate::Scope::Cumulative] = cumulative;
         }
     }
 
     /// Adds information from a comparison to this split.
-    fn update_with_comparison(&mut self, cmp: &Comparison) {
+    fn update_with_comparison(&mut self, cmp: &timing::Comparison) {
         // TODO(@MattWindsor91): dedupe with existing comparison propagating logic
         for (sid, split_cmp) in &cmp.splits {
             if let Some(split) = self.at_short_mut(*sid) {
-                split.aggregates[aggregate::Source::Comparison] = split_cmp.in_pb_run;
+                split.aggregates[timing::aggregate::Source::Comparison] = split_cmp.in_pb_run;
                 // TODO(@MattWindsor91): paces
             }
         }
@@ -150,14 +154,14 @@ impl Set {
 /// Presenter state about one split.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Split {
-    /// The number of times that have been logged on this split.
-    pub num_times: usize,
+    /// The times that have been logged on this split.
+    pub times: Vec<timing::Time>,
     /// The display name of the split.
     pub name: String,
     /// The aggregate times logged for this split.
-    pub aggregates: aggregate::Full,
+    pub aggregates: timing::aggregate::Full,
     /// The pace of this split in the run-so-far.
-    pub pace_in_run: pace::SplitInRun,
+    pub pace_in_run: timing::comparison::pace::SplitInRun,
     /// The last logged cursor-relative position for this split.
     pub position: SplitPosition,
     /// Any editor active on this split.
@@ -190,13 +194,13 @@ impl Split {
     #[must_use]
     pub fn from_dump(index: usize, dump: &session::split::Split) -> Self {
         Self {
-            num_times: dump.times.len(),
+            times: dump.times.clone(),
             name: dump.info.name.clone(),
 
             // We can only fill in the run-level aggregates here.
             // Comparison-level aggregates get filled in elsewhere.
             aggregates: aggregate_from_attempt_dump(dump),
-            pace_in_run: pace::SplitInRun::default(),
+            pace_in_run: timing::comparison::pace::SplitInRun::default(),
             position: SplitPosition::new(index, 0),
             editor: None,
         }
@@ -207,16 +211,16 @@ impl Split {
     /// This clears the aggregates, pacing information, and time count; it
     /// doesn't reset metadata.
     pub fn reset(&mut self) {
-        self.num_times = 0;
-        self.aggregates = aggregate::Full::default();
-        self.pace_in_run = pace::SplitInRun::default();
+        self.times.clear();
+        self.aggregates = timing::aggregate::Full::default();
+        self.pace_in_run = timing::comparison::pace::SplitInRun::default();
     }
 
     /// Gets the cumulative time at this split along with its pace note.
     #[must_use]
-    pub fn paced_cumulative(&self) -> pace::PacedTime {
-        let time = self.aggregates[aggregate::Source::Attempt][aggregate::Scope::Cumulative];
-        pace::PacedTime {
+    pub fn paced_cumulative(&self) -> timing::comparison::pace::PacedTime {
+        let time = self.aggregates[timing::aggregate::Kind::ATTEMPT_CUMULATIVE];
+        timing::comparison::pace::PacedTime {
             pace: self.pace_in_run.overall(),
             time,
         }
@@ -228,11 +232,11 @@ impl Split {
             split::Split::Time(t, time::Time::Aggregate(kind)) => {
                 self.aggregates[*kind] = *t;
             }
-            split::Split::Time(_, time::Time::Pushed) => {
-                self.num_times += 1;
+            split::Split::Time(t, time::Time::Pushed) => {
+                self.times.push(*t);
             }
             split::Split::Time(_, time::Time::Popped) => {
-                self.num_times -= 1;
+                self.times.pop();
                 // Moving the newly popped time to the editor gets handled
                 // elsewhere.
             }
@@ -264,8 +268,8 @@ impl Split {
     }
 }
 
-fn aggregate_from_attempt_dump(split: &session::split::Split) -> aggregate::Full {
-    let mut agg = aggregate::Full::default();
-    agg[aggregate::Kind::ATTEMPT_SPLIT] = split.times.iter().copied().sum();
+fn aggregate_from_attempt_dump(split: &session::split::Split) -> timing::aggregate::Full {
+    let mut agg = timing::aggregate::Full::default();
+    agg[timing::aggregate::Kind::ATTEMPT_SPLIT] = split.times.iter().copied().sum();
     agg
 }

@@ -1,11 +1,10 @@
 //! Sub-widget for rendering a split row.
 
 use crate::model::timing::aggregate::{Scope, Source};
-use std::fmt::Write;
 use crate::ui::presenter::state::editor;
+use std::fmt::Write;
 
 use super::super::{
-    label::Label,
     super::{
         gfx::{
             self, colour, font,
@@ -15,6 +14,7 @@ use super::super::{
         layout::{self, Layoutable},
         presenter::state,
     },
+    label::Label,
     time, Widget,
 };
 
@@ -150,7 +150,7 @@ impl Row {
         let mut w = Writer::new(r)
             .with_pos(self.attempt_count_top_left)
             .with_font(font::Id::Small.coloured(colour::fg::Id::Normal)); // for now
-        write!(w, "{}x", state.num_times)?;
+        write!(w, "{}x", state.times.len())?;
         Ok(())
     }
 }
@@ -171,10 +171,10 @@ const ATTEMPT_COUNT_LENGTH: i32 = 3; // #xx
 /// Currently, this is always the comparison if there are no times logged
 /// for the attempt, and the attempt otherwise.
 fn aggregate_source(state: &state::Split) -> Source {
-    if 0 < state.num_times {
-        Source::Attempt
-    } else {
+    if state.times.is_empty() {
         Source::Comparison
+    } else {
+        Source::Attempt
     }
 }
 

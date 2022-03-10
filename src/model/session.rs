@@ -24,8 +24,7 @@ use super::{
 
 pub use action::Action;
 pub use attempt::Attempt;
-pub use event::observer::Observer;
-pub use event::Event;
+pub use event::{observer::Observer, Event};
 pub use sink::Sink;
 pub use split::Split;
 pub use state::State;

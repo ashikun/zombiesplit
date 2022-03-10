@@ -19,6 +19,7 @@ pub use mode::Editor;
 use state::cursor;
 pub use state::State;
 
+use crate::model::short::Name;
 use crate::model::{
     game::category::AttemptInfo,
     session::{self, action::Handler, Action},
@@ -135,9 +136,18 @@ impl<'h, H: Handler> Presenter<'h, H> {
 
     /// Handles the split event `ev` relating to the split `short`.
     fn observe_split(&mut self, short: short::Name, ev: &session::event::Split) {
-        if let session::event::Split::Time(t, session::event::Time::Popped) = ev {
-            self.open_editor(short, *t);
+        if let session::event::Split::Time(_, session::event::Time::Popped) = ev {
+            if let Some(t) = self.last_time_at(short) {
+                self.open_editor(short, t);
+            }
         }
+    }
+
+    fn last_time_at(&mut self, short: Name) -> Option<Time> {
+        self.state
+            .split_at_short(short)
+            .and_then(|s| s.times.last())
+            .copied()
     }
 
     /// Opens a new split editor at the short named `short`, and preloads it

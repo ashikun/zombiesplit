@@ -139,10 +139,7 @@ impl State {
             .notes
             .iter()
             .max_by_key(|(_, note)| note.aggregates.cumulative)
-            .map(|(_, n)| timing::comparison::PacedTime {
-                pace: n.pace.overall(),
-                time: n.aggregates.cumulative,
-            });
+            .map(|(_, n)| n.paced_cumulative());
     }
 }
 
@@ -158,4 +155,15 @@ pub struct SplitNote {
     pub aggregates: timing::aggregate::Set,
     /// Pace note for this split.
     pub pace: timing::comparison::pace::SplitInRun,
+}
+
+impl SplitNote {
+    /// Extracts the cumulative of this note, alongside its overall-run pace.
+    #[must_use]
+    pub fn paced_cumulative(&self) -> timing::comparison::PacedTime {
+        timing::comparison::PacedTime {
+            pace: self.pace.overall(),
+            time: self.aggregates.cumulative,
+        }
+    }
 }
