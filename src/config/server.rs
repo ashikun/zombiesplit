@@ -32,7 +32,9 @@ impl Server {
     /// Fails if we can't load any of the files needed for the configuration, or there is a problem
     /// deserialising the configuration.
     pub fn load(custom_path: Option<std::path::PathBuf>) -> Result<Self, config::ConfigError> {
-        super::util::base_config("server", custom_path)?.try_into()
+        super::util::base_config("server", custom_path)
+            .build()?
+            .try_deserialize()
     }
 }
 

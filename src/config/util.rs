@@ -1,19 +1,16 @@
 //! Path and miscellaneous other utilities for configuration.
 
-use config::Config;
+use config::ConfigBuilder;
 use std::path::PathBuf;
 
 /// Gets the base config from folding in the user's custom file and the standard file (if any).
 pub(super) fn base_config(
     name: &str,
     custom_path: Option<std::path::PathBuf>,
-) -> Result<config::Config> {
-    let mut s = config::Config::new();
-
-    merge_file(&mut s, "global", name, global_config_path(name), false)?;
-    merge_file(&mut s, "user", name, custom_path, true)?;
-
-    Ok(s)
+) -> ConfigBuilder<config::builder::DefaultState> {
+    let s = config::ConfigBuilder::default();
+    let s = merge_file(s, "global", name, global_config_path(name), false);
+    merge_file(s, "user", name, custom_path, true)
 }
 
 /// Gets the path for the configuration file with name `name`.
@@ -34,18 +31,16 @@ pub fn dir() -> Option<directories::ProjectDirs> {
 }
 
 fn merge_file(
-    s: &mut Config,
+    s: ConfigBuilder<config::builder::DefaultState>,
     scope: &str,
     name: &str,
     path: Option<PathBuf>,
     is_required: bool,
-) -> Result<()> {
+) -> ConfigBuilder<config::builder::DefaultState> {
     if let Some(path) = path {
         log::info!("Using {scope} {name} config file: {path:?}");
-        s.merge(config::File::from(path).required(is_required))?;
+        s.add_source(config::File::from(path).required(is_required))
+    } else {
+        s
     }
-
-    Ok(())
 }
-
-type Result<T> = std::result::Result<T, config::ConfigError>;
