@@ -57,6 +57,7 @@ fn split_payload(event: &session::event::Split) -> event::split::Payload {
     match event {
         Split::Time(time, ty) => Payload::Time(split_time(*ty, *time)),
         Split::Pace(pace) => Payload::Pace(super::split_in_run_pace(*pace) as i32),
+        Split::Popped(ty) => Payload::Pop(super::pop(*ty)),
     }
 }
 
@@ -71,7 +72,6 @@ fn split_time_type(ty: session::event::Time) -> event::split::time::Type {
     use {event::split::time::Type, session::event::Time, timing::aggregate::Kind};
     match ty {
         Time::Pushed => Type::Pushed,
-        Time::Popped => Type::Popped,
         Time::Aggregate(Kind::ATTEMPT_SPLIT) => Type::AttemptTotal,
         Time::Aggregate(Kind::ATTEMPT_CUMULATIVE) => Type::AttemptCumulative,
         Time::Aggregate(Kind::COMPARISON_SPLIT) => Type::ComparisonTotal,

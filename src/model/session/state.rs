@@ -59,39 +59,34 @@ impl State {
         split: impl split::Locator,
         time: timing::Time,
     ) -> Option<short::Name> {
-        self.get_split_mut(split)
-            .map(|s| {
-                s.push(time);
-                s.info.short
-            })
-            .map(|result| {
-                self.recalculate_indirect_fields();
-                result
-            })
+        self.act_on_split(split, |s| s.push(time))
     }
 
     /// Tries to locate the given split and, if found, pops the most recent time from it.
     ///
-    /// Returns the short-name of the split and popped time if fully successful.
-    pub fn pop_from(&mut self, split: impl split::Locator) -> Option<(short::Name, timing::Time)> {
-        self.get_split_mut(split)
-            .and_then(|s| {
-                let short = s.info.short;
-                s.pop().map(|time| (short, time))
-            })
-            .map(|result| {
-                self.recalculate_indirect_fields();
-                result
-            })
+    /// Returns the short-name of the split if fully successful.
+    pub fn pop_from(&mut self, split: impl split::Locator) -> Option<short::Name> {
+        self.act_on_split(split, |s| {
+            let _ = s.pop();
+        })
     }
 
     /// Tries to locate the given split and, if found, clears all times from it.
     ///
     /// Returns the short-name of the split if successful.
     pub fn clear_at(&mut self, split: impl split::Locator) -> Option<short::Name> {
+        self.act_on_split(split, split::Split::clear)
+    }
+
+    /// Common pattern of various actions on splits.
+    fn act_on_split(
+        &mut self,
+        split: impl split::Locator,
+        f: impl FnOnce(&mut split::Split),
+    ) -> Option<short::Name> {
         self.get_split_mut(split)
             .map(|s| {
-                s.clear();
+                f(s);
                 s.info.short
             })
             .map(|result| {

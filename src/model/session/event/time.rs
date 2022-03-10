@@ -8,9 +8,6 @@ use serde::{Deserialize, Serialize};
 pub enum Time {
     /// This time was just added to the split.
     Pushed,
-    /// This time was just removed from the split.
-    /// The UI may choose to load this time into a split editor.
-    Popped,
     /// This is a new aggregate time for this split.
     Aggregate(timing::aggregate::Kind),
 }

@@ -69,6 +69,7 @@ fn split(s: &event::Split) -> Result<session::Event> {
     let event = match Missing::SplitEvent.require(s.payload.as_ref())? {
         event::split::Payload::Time(t) => split_time(t)?,
         event::split::Payload::Pace(p) => split_pace(*p)?,
+        event::split::Payload::Pop(p) => split_pop(*p)?,
     };
     Ok(session::Event::Split(sid, event))
 }
@@ -85,7 +86,6 @@ fn split_time_type(ty: event::split::time::Type) -> session::event::Time {
     use event::split::time::Type;
     match ty {
         Type::Pushed => session::event::Time::Pushed,
-        Type::Popped => session::event::Time::Popped,
         Type::AttemptTotal => {
             session::event::Time::Aggregate(timing::aggregate::Kind::ATTEMPT_SPLIT)
         }
@@ -104,4 +104,8 @@ fn split_time_type(ty: event::split::time::Type) -> session::event::Time {
 fn split_pace(pace_index: i32) -> Result<session::event::Split> {
     let pace = Unknown::Pace.require(super::super::Pace::from_i32(pace_index))?;
     Ok(session::event::Split::Pace(super::split_in_run_pace(pace)))
+}
+
+fn split_pop(pop_index: i32) -> Result<session::event::Split> {
+    Ok(session::event::Split::Popped(super::pop(pop_index)?))
 }

@@ -210,8 +210,9 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
     }
 
     fn clear_at(&mut self, split: impl split::Locator) {
-        if let Some(_s) = self.state.clear_at(split) {
-            // TODO(@MattWindsor91): observe
+        if let Some(short) = self.state.clear_at(split) {
+            self.observer
+                .observe_split(short, event::split::Split::Popped(action::Pop::All));
             self.observe_notes();
         }
     }
@@ -225,9 +226,9 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
     }
 
     fn pop_from(&mut self, split: impl split::Locator) {
-        if let Some((short, time)) = self.state.pop_from(split) {
+        if let Some(short) = self.state.pop_from(split) {
             self.observer
-                .observe_time(short, time, event::time::Time::Popped);
+                .observe_split(short, event::split::Split::Popped(action::Pop::One));
             self.observe_notes();
         }
     }

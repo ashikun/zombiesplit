@@ -136,7 +136,8 @@ impl<'h, H: Handler> Presenter<'h, H> {
 
     /// Handles the split event `ev` relating to the split `short`.
     fn observe_split(&mut self, short: short::Name, ev: &session::event::Split) {
-        if let session::event::Split::Time(_, session::event::Time::Popped) = ev {
+        // This implements a true 'pop' type semantics whereby pops of one time open an editor.
+        if let session::event::Split::Popped(session::action::Pop::One) = ev {
             if let Some(t) = self.last_time_at(short) {
                 self.open_editor(short, t);
             }

@@ -176,7 +176,7 @@ impl Split {
     ///
     /// let s = state::Split::new("Palmtree Panic 1");
     /// assert_eq!("Palmtree Panic 1", s.name);
-    /// assert_eq!(0, s.num_times);
+    /// assert!(s.times.is_empty());
     /// assert_eq!(zombiesplit::model::timing::comparison::pace::SplitInRun::Inconclusive, s.pace_in_run);
     /// ```
     #[must_use]
@@ -235,8 +235,13 @@ impl Split {
             split::Split::Time(t, time::Time::Pushed) => {
                 self.times.push(*t);
             }
-            split::Split::Time(_, time::Time::Popped) => {
+            split::Split::Popped(session::action::Pop::One) => {
                 self.times.pop();
+                // Moving the newly popped time to the editor gets handled
+                // elsewhere.
+            }
+            split::Split::Popped(session::action::Pop::All) => {
+                self.times.clear();
                 // Moving the newly popped time to the editor gets handled
                 // elsewhere.
             }

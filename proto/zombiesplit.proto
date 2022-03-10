@@ -153,7 +153,6 @@ message Event {
       // Enumeration of types of time event.
       enum Type {
         PUSHED = 0;                // This time was just added to the split.
-        POPPED = 1;                // This time was just removed from the split.
         ATTEMPT_TOTAL = 2;         // This is the new attempt total for the split.
         COMPARISON_TOTAL = 3;      // This is the new comparison total for the split.
         ATTEMPT_CUMULATIVE = 4;    // This is the new attempt total for the split.
@@ -167,8 +166,9 @@ message Event {
 
     // Payload of the event.
     oneof payload {
-      Time time = 2;  // Something happened to the split time.
+      Time time = 2;  // A new split time has been logged.
       Pace pace = 3;  // The split has been re-paced.
+      Pop pop = 4;    // The split has been popped.
     }
   }
 
