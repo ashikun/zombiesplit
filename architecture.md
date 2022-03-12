@@ -10,8 +10,10 @@ The top-level split is as follows:
 
 - the _model_;
 - the _database code_, which sits on top of the model;
-- the _netcode_ (client and server), which sits on top of the model and database;
-- various _user interfaces_, which sit on top of the model and database.
+- the _netcode_ (client and server), which sits on top of the model and
+  database;
+- various _user interfaces_, which sit on top of the model, netcode, and 
+  database.
 
 ## Model
 
@@ -22,9 +24,13 @@ level:
 - the game model, which tracks all games/categories/related data that a
   `zombiesplit` instance has been taught about; 
 - the historical model, which tracks all saved run data; and
-- the attempt model, which tracks the run currently being processed.
+- the session model, which tracks the run currently being processed.
 
 ### Timing model
+
+The timing model contains various building blocks for representing times,
+comparisons between times, and aggregates (various computed summing operations
+on times).
 
 ### Game model
 
@@ -35,31 +41,32 @@ This is a fairly thin representation of the underlying database relations.
 Like the game model, the historical model is a fairly thin representation of the
 underlying database relations.
 
-### Attempt model
+### Session model
 
-The attempt model is a 'fat' model (that is, most of the business logic of
+The session model is a 'fat' model (that is, most of the business logic of
 `zombiesplit` forms methods on the model instead of being separated into higher
 layers).
 
-An in-flight attempt is contained in an attempt _session_, which exposes
-protocols for sending _actions_ and subscribing to _events_ (an observer
-pattern).  These form the backbone of the client/server protocol in the netcode.
+An in-flight attempt, along with other parts of session _state_, is contained in a _session_, which exposes protocols
+for sending _actions_ and subscribing to _events_ (an observer pattern). These form the backbone of the client/server
+protocol in the netcode.
 
 ## Database
 
 SQLite.
 
-Any feed-forward from the attempt model to the database is implemented as a
-special kind of attempt observer.
+The session can both pull data from the database (as both comparisons and initial game/category data) and push data to
+the database (newly-saved historic runs).
 
 ## Netcode
 
 `zombiesplit` has a client/server architecture, with multiple clients able to
-connect simultaneously to one server.  At time of writing, the protocol is
-an insecure TCP binary protocol that is a length-delimited CBOR encoding of
-the underlying action/event protocol.
+connect simultaneously to one server.  This protocol is a `gRPC` encoding of
+the action/event API, with the protocol buffers description at
+`proto/zombiesplit.proto`.
 
-We use `tokio` for both ends, and so the netcode is asynchronous Rust.
+This protocol is _not yet stable_; revisions of zombiesplit may change the
+protobuf at will.  You have been warned.
 
 ### Client
 

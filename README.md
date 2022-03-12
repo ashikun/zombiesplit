@@ -5,8 +5,8 @@ The value proposition over, say, [livesplit](https://livesplit.org), is that
 zombiesplit is cross-platform by design and focused on making manual IGT runs
 easy to handle.  Other design decisions of note include:
 
-- nerdy client-server architecture (one client implemented so far, plans to
-  make a streamdeck plugin as another);
+- nerdy client-server architecture using gRPC (one client implemented so far, 
+  plans to make a streamdeck plugin as another);
 - modal split editor for those of us with way too much vi muscle memory;
 - extensive use of SQLite as a backing store, because why not.
 
@@ -95,9 +95,8 @@ $ zsclient
 
 to run the client.
 
-`zsclient` has a semi-modal, vi-style user interface.  It has three modes:
+`zsclient` has a semi-modal, vi-style user interface.  It has two modes:
 
-- inactive (run not underway);
 - normal;
 - time editor (which can itself be focusing on a field).
 
