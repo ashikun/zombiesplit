@@ -38,16 +38,9 @@ fn split(split: &dump_response::comparison::Split) -> Result<timing::comparison:
         in_pb_run: split
             .in_pb_run
             .as_ref()
-            .map(aggregate)
+            .map(super::aggregate)
             .transpose()?
             .unwrap_or_default(),
         split_pb: super::time(split.split_pb)?,
-    })
-}
-
-fn aggregate(agg: &dump_response::comparison::split::Aggregate) -> Result<timing::aggregate::Set> {
-    Ok(timing::aggregate::Set {
-        split: super::time(agg.split)?,
-        cumulative: super::time(agg.cumulative)?,
     })
 }

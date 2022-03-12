@@ -6,6 +6,7 @@ thread in a synchronous context). */
 mod error;
 
 use super::{super::model::session, proto};
+use crate::net::proto::decode;
 use error::Result;
 use std::sync::Arc;
 use tokio::runtime;
@@ -136,7 +137,7 @@ impl<O: session::Observer> Client<O> {
     ///
     /// Fails if any part of the dumping process fails (primarily network or transcoding errors).
     pub async fn dump(&mut self) -> Result<session::State> {
-        Ok(proto::decode::dump(&self.dump_raw().await?)?)
+        Ok(decode::dump::dump(&self.dump_raw().await?)?)
     }
 
     async fn dump_raw(&mut self) -> Result<proto::DumpResponse> {
@@ -159,11 +160,13 @@ impl<O: session::Observer> Client<O> {
             }
             session::Action::Push(index, time) => {
                 self.grpc
-                    .push(proto::encode::push_action(index, time)?)
+                    .push(proto::encode::action::push(index, time)?)
                     .await?;
             }
             session::Action::Pop(index, ty) => {
-                self.grpc.pop(proto::encode::pop_action(index, ty)?).await?;
+                self.grpc
+                    .pop(proto::encode::action::pop(index, ty)?)
+                    .await?;
             }
         }
         Ok(())

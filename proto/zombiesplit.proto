@@ -105,12 +105,6 @@ message DumpResponse {
   message Comparison {
     // Split comparison message.
     message Split {
-      // Split aggregate information message.
-      message Aggregate {
-        uint32 split = 1;      // Timing for this split only.
-        uint32 cumulative = 2; // Precomputed cumulative timing.
-      }
-
       /// The personal best for this split, if any.
       ///
       /// Any splits that compare quicker than this time get the `PersonalBest`
@@ -132,8 +126,18 @@ message DumpResponse {
     Run run = 2;                   // Pre-computed run-wide totals.
   }
 
-  Attempt attempt = 1;       // Dump of the current run state.
-  Comparison comparison = 2; // Dump of the current comparison information.
+  // Pre-computed split attempt notes.
+  message SplitNote {
+    Aggregate aggregate = 1; // Computed aggregate for the split.
+    Pace pace = 2;           // Computed pace for the split.
+  }
+
+
+  Attempt attempt = 1;              // The attempt state.
+  Comparison comparison = 2;        // The most recent comparison.
+  map<string, SplitNote> notes = 3; // The most recently pre-computed split notes.
+  Pace pace = 4;                    // The most recently pre-computed total pace.
+  optional uint32 total = 5;        // The most recently pre-computed total time.
 }
 
 //
@@ -267,4 +271,10 @@ enum Pace {
 enum Pop {
   ONE = 0; // Pop the most recent time from this split.
   ALL = 1; // Pop all times from the split.
+}
+
+// Split aggregate information message.
+message Aggregate {
+  uint32 split = 1;      // Timing for this split only.
+  uint32 cumulative = 2; // Precomputed cumulative timing.
 }

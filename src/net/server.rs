@@ -205,7 +205,7 @@ pub enum Message {
     /// A dumping query, which expects a reply through the given oneshot.
     Dump(oneshot::Sender<session::State>),
     /// A query for server information, which expects a reply through the given oneshot.
-    ServerInfo(oneshot::Sender<super::dump::Server>),
+    ServerInfo(oneshot::Sender<super::metadata::Server>),
 }
 
 impl<'m> State<'m> {
@@ -230,8 +230,8 @@ impl<'m> State<'m> {
     }
 }
 
-fn info() -> super::dump::Server {
-    super::dump::Server {
+fn info() -> super::metadata::Server {
+    super::metadata::Server {
         ident: SERVER_IDENT.to_string(),
         version: SERVER_VERSION,
     }

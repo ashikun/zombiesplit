@@ -1,30 +1,14 @@
 //! Helpers for decoding protobuf representations of zombiesplit models.
 
+pub mod action;
 pub mod attempt;
 pub mod comparison;
+pub mod dump;
 pub mod error;
 pub mod event;
 
-use crate::model::{game::category, session, timing};
+use super::super::super::model::{game::category, session, timing};
 pub use error::{Error, Missing, Result, Unknown};
-
-/// Decodes a protobuf representation of a dump.
-///
-/// # Errors
-///
-/// Fails if the attempt counts cannot be stored as `usize`, or if anything is missing from the
-/// dump that we expect to see.
-pub fn dump(dump: &super::DumpResponse) -> Result<session::State> {
-    // TODO(@MattWindsor91): carry aggregates through protobufs.
-    Ok(session::State::new(
-        attempt::decode(Missing::Attempt.require(dump.attempt.as_ref())?)?,
-        dump.comparison
-            .as_ref()
-            .map(comparison::decode)
-            .transpose()?
-            .unwrap_or_default(),
-    ))
-}
 
 /// Decodes a protobuf representation of attempt information into its model form.
 ///
@@ -38,6 +22,12 @@ pub fn attempt_info(attempt: &super::AttemptInfo) -> Result<category::AttemptInf
     })
 }
 
+fn split_in_run_pace_from_index(index: i32) -> Result<timing::comparison::pace::SplitInRun> {
+    Unknown::Pace
+        .require(super::Pace::from_i32(index))
+        .map(split_in_run_pace)
+}
+
 fn split_in_run_pace(pace: super::Pace) -> timing::comparison::pace::SplitInRun {
     match pace {
         super::Pace::None => timing::comparison::pace::SplitInRun::Inconclusive,
@@ -49,6 +39,12 @@ fn split_in_run_pace(pace: super::Pace) -> timing::comparison::pace::SplitInRun 
     }
 }
 
+fn pace_from_index(index: i32) -> Result<timing::comparison::Pace> {
+    Unknown::Pace
+        .require(super::Pace::from_i32(index))
+        .map(pace)
+}
+
 fn pace(pace: super::Pace) -> timing::comparison::Pace {
     match pace {
         super::Pace::None => timing::comparison::Pace::Inconclusive,
@@ -56,30 +52,6 @@ fn pace(pace: super::Pace) -> timing::comparison::Pace {
         super::Pace::Ahead | super::Pace::AheadButLosing => timing::comparison::Pace::Ahead,
         super::Pace::PersonalBest => timing::comparison::Pace::PersonalBest,
     }
-}
-
-/// Decodes a push action.
-///
-/// # Errors
-///
-/// Fails if the split index or time are out of bounds.
-pub fn push_action(request: &super::PushRequest) -> Result<session::Action> {
-    Ok(session::Action::Push(
-        split_index(request.index)?,
-        time(request.time)?,
-    ))
-}
-
-/// Decodes a pop action.
-///
-/// # Errors
-///
-/// Fails if the split index is out of bounds, or the pop type is malformed.
-pub fn pop_action(request: &super::PopRequest) -> Result<session::Action> {
-    Ok(session::Action::Pop(
-        split_index(request.index)?,
-        pop(request.r#type)?,
-    ))
 }
 
 /// Tries to interpret `pop_index` as a protobuf pop type, and decode it into the model form.
@@ -105,6 +77,19 @@ fn pop(pop_index: i32) -> Result<session::action::Pop> {
 /// Fails with `out_of_range` if the index is too large (which may happen on eg. 32-bit systems).
 pub fn split_index(index: u64) -> Result<usize> {
     Ok(usize::try_from(index)?)
+}
+
+/// Decodes an aggregate set.
+///
+/// # Errors
+///
+/// Fails with `out_of_range` if any of the timestamps are too large to represent a valid time, and
+/// `invalid_argument` if there are any other errors in decoding the time.
+pub fn aggregate(agg: &super::Aggregate) -> Result<timing::aggregate::Set> {
+    Ok(timing::aggregate::Set {
+        split: time(agg.split)?,
+        cumulative: time(agg.cumulative)?,
+    })
 }
 
 /// Decodes a timestamp into a time.

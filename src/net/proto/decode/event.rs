@@ -42,8 +42,7 @@ pub fn total_type(t: &event::total::Type) -> Result<session::event::Total> {
 }
 
 fn attempt_total_type(pace_num: i32) -> Result<session::event::Total> {
-    let raw_pace = Unknown::Pace.require(super::super::Pace::from_i32(pace_num))?;
-    Ok(session::event::Total::Attempt(super::pace(raw_pace)))
+    super::pace_from_index(pace_num).map(session::event::Total::Attempt)
 }
 
 fn comparison_total_type(type_num: i32) -> Result<session::event::Total> {
@@ -102,8 +101,7 @@ fn split_time_type(ty: event::split::time::Type) -> session::event::Time {
 }
 
 fn split_pace(pace_index: i32) -> Result<session::event::Split> {
-    let pace = Unknown::Pace.require(super::super::Pace::from_i32(pace_index))?;
-    Ok(session::event::Split::Pace(super::split_in_run_pace(pace)))
+    super::split_in_run_pace_from_index(pace_index).map(session::event::Split::Pace)
 }
 
 fn split_pop(pop_index: i32) -> Result<session::event::Split> {

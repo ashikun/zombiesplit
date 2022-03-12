@@ -1,12 +1,14 @@
 //! Helpers for encoding zombiesplit models to protobuf equivalents.
 
+pub mod action;
 pub mod attempt;
 pub mod comparison;
+pub mod dump;
 pub mod event;
 
 use super::super::{
     super::model::{game::category, session, timing},
-    dump,
+    metadata,
 };
 
 /// Encodes a server info dump into a protobuf response.
@@ -14,7 +16,7 @@ use super::super::{
 /// # Errors
 ///
 /// None as of yet, but this may change in future.
-pub fn server_info(server: &dump::Server) -> Result<super::ServerInfoResponse> {
+pub fn server_info(server: &metadata::Server) -> Result<super::ServerInfoResponse> {
     Ok(super::ServerInfoResponse {
         ident: server.ident.clone(),
         version: Some(version(&server.version)),
@@ -27,18 +29,6 @@ fn version(version: &semver::Version) -> super::server_info_response::Version {
         minor: version.minor,
         patch: version.patch,
     }
-}
-
-/// Encodes a dump into a protobuf response.
-///
-/// # Errors
-///
-/// Fails with `out_of_range` if the attempt counts cannot be stored as 64-bit integers.
-pub fn dump(dump: &session::State) -> Result<super::DumpResponse> {
-    Ok(super::DumpResponse {
-        attempt: Some(attempt::encode(&dump.run)?),
-        comparison: Some(comparison::encode(&dump.comparison)),
-    })
 }
 
 /// Encodes attempt information into its protobuf form.
@@ -63,39 +53,15 @@ fn pace(pace: timing::comparison::Pace) -> super::Pace {
 }
 
 fn split_in_run_pace(pace: timing::comparison::pace::SplitInRun) -> super::Pace {
-    use timing::comparison::pace::SplitInRun;
+    use {super::Pace, timing::comparison::pace::SplitInRun};
     match pace {
-        SplitInRun::Inconclusive => super::Pace::None,
-        SplitInRun::BehindAndLosing => super::Pace::Behind,
-        SplitInRun::BehindAndGaining => super::Pace::BehindButGaining,
-        SplitInRun::AheadAndLosing => super::Pace::AheadButLosing,
-        SplitInRun::AheadAndGaining => super::Pace::Ahead,
-        SplitInRun::SplitPersonalBest => super::Pace::PersonalBest,
+        SplitInRun::Inconclusive => Pace::None,
+        SplitInRun::BehindAndLosing => Pace::Behind,
+        SplitInRun::BehindAndGaining => Pace::BehindButGaining,
+        SplitInRun::AheadAndLosing => Pace::AheadButLosing,
+        SplitInRun::AheadAndGaining => Pace::Ahead,
+        SplitInRun::SplitPersonalBest => Pace::PersonalBest,
     }
-}
-
-/// Encodes a push action.
-///
-/// # Errors
-///
-/// Fails if we can't fit the split index into a 64-bit integer.
-pub fn push_action(index: usize, time: timing::Time) -> Result<super::PushRequest> {
-    Ok(super::PushRequest {
-        index: try_from_range(index)?,
-        time: u32::from(time),
-    })
-}
-
-/// Encodes a pop action.
-///
-/// # Errors
-///
-/// Fails if we can't fit the split index into a 64-bit integer.
-pub fn pop_action(index: usize, ty: session::action::Pop) -> Result<super::PopRequest> {
-    Ok(super::PopRequest {
-        index: try_from_range(index)?,
-        r#type: pop(ty),
-    })
 }
 
 /// Encodes `pop_index` as a protobuf pop type.
@@ -111,6 +77,13 @@ fn try_from_range<E: ToString, X, Y: TryFrom<X, Error = E>>(
     x: X,
 ) -> std::result::Result<Y, tonic::Status> {
     Y::try_from(x).map_err(|e| tonic::Status::out_of_range(e.to_string()))
+}
+
+fn aggregate(agg: &timing::aggregate::Set) -> super::Aggregate {
+    super::Aggregate {
+        split: u32::from(agg.split),
+        cumulative: u32::from(agg.cumulative),
+    }
 }
 
 /// Shorthand for encoding errors.

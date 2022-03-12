@@ -32,14 +32,7 @@ fn splits(
 
 fn split(split: &timing::comparison::Split) -> dump_response::comparison::Split {
     dump_response::comparison::Split {
-        in_pb_run: Some(aggregate(&split.in_pb_run)),
+        in_pb_run: Some(super::aggregate(&split.in_pb_run)),
         split_pb: u32::from(split.split_pb),
-    }
-}
-
-fn aggregate(agg: &timing::aggregate::Set) -> dump_response::comparison::split::Aggregate {
-    dump_response::comparison::split::Aggregate {
-        split: u32::from(agg.split),
-        cumulative: u32::from(agg.cumulative),
     }
 }

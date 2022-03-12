@@ -4,6 +4,7 @@ use super::super::{
     super::model::session,
     proto::{self, zombiesplit_server::Zombiesplit},
 };
+use crate::net::proto::{decode, encode};
 use futures::StreamExt;
 use std::pin::Pin;
 use tokio::sync::{broadcast, mpsc, oneshot};
@@ -42,7 +43,7 @@ impl Zombiesplit for Handler {
         &self,
         _request: tonic::Request<proto::DumpRequest>,
     ) -> Result<proto::DumpResponse> {
-        self.query("dump", super::Message::Dump, proto::encode::dump)
+        self.query("dump", super::Message::Dump, encode::dump::encode)
             .await
     }
 
@@ -65,13 +66,13 @@ impl Zombiesplit for Handler {
         &self,
         request: tonic::Request<proto::PushRequest>,
     ) -> Result<proto::PushResponse> {
-        self.act(proto::decode::push_action(&request.into_inner())?)
+        self.act(decode::action::push(&request.into_inner())?)
             .await?;
         Ok(tonic::Response::new(proto::PushResponse {}))
     }
 
     async fn pop(&self, request: tonic::Request<proto::PopRequest>) -> Result<proto::PopResponse> {
-        self.act(proto::decode::pop_action(&request.into_inner())?)
+        self.act(decode::action::pop(&request.into_inner())?)
             .await?;
         Ok(tonic::Response::new(proto::PopResponse {}))
     }
