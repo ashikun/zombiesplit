@@ -1,13 +1,17 @@
 //! The Mode trait and associated functionality.
 
 pub mod editor;
+pub mod event;
 pub mod nav;
+pub mod quitting;
 
 pub use editor::Editor;
+pub use event::Event;
 pub use nav::Nav;
-use std::fmt::{Display, Formatter};
+pub use quitting::Quitting;
+use std::fmt::Display;
 
-use super::{event, State};
+use super::State;
 use crate::model::session::action;
 
 /// Trait for presenter modes.
@@ -38,7 +42,7 @@ pub trait Mode: Display {
     /// modifications can be batched until then.
     ///
     /// Note that the presenter also handles some events at the global level.
-    fn on_event(&mut self, ctx: EventContext) -> EventResult;
+    fn on_event(&mut self, ctx: event::Context) -> event::Outcome;
 
     /// Called when the mode is about to be swapped out.
     ///
@@ -47,66 +51,8 @@ pub trait Mode: Display {
     /// application of this mode's efforts to the model.
     fn on_exit(&mut self, state: &mut State) -> Option<action::Action>;
 
-    /// Is zombiesplit running while this mode is active?
+    /// Is the client running while this mode is active?
     fn is_running(&self) -> bool {
         true
-    }
-}
-
-/// Mode for when we are quitting.
-pub struct Quitting;
-
-impl Display for Quitting {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str("quit")
-    }
-}
-
-impl Mode for Quitting {
-    fn on_entry(&mut self, _state: &mut State) {}
-
-    fn on_event(&mut self, _ctx: EventContext) -> EventResult {
-        EventResult::Handled
-    }
-
-    fn on_exit(&mut self, _state: &mut State) -> Option<action::Action> {
-        unreachable!("should not be able to exit out of the Quitting state")
-    }
-
-    fn is_running(&self) -> bool {
-        false
-    }
-}
-
-/// Context passed to `on_event` in a presenter mode.
-#[derive(Debug)]
-pub struct EventContext<'p> {
-    /// The event being handled.
-    pub event: event::Modal,
-    /// The visual state, which may need to be modified to reflect the event.
-    pub state: &'p mut super::State,
-}
-
-/// Enum of results of handling an event in a mode.
-pub enum EventResult {
-    /// The event was handled internally.
-    Handled,
-    /// The event raised an action to be applied to the attempt model.
-    Action(action::Action),
-    /// The event caused a transition to another mode.
-    Transition(Box<dyn Mode>),
-}
-
-impl EventResult {
-    /// Shorthand for creating a transition.
-    #[must_use]
-    pub fn transition(to: impl Mode + 'static) -> Self {
-        Self::Transition(Box::new(to))
-    }
-
-    /// Shorthand for creating a pop.
-    #[must_use]
-    pub fn pop(index: usize, ty: action::Pop) -> Self {
-        Self::Action(action::Action::Pop(index, ty))
     }
 }

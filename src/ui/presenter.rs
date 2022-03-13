@@ -16,11 +16,9 @@ use std::sync::mpsc;
 
 pub use event::Event;
 pub use mode::Editor;
-use state::cursor;
 pub use state::State;
 
-use crate::model::short::Name;
-use crate::model::{
+use super::super::model::{
     game::category::AttemptInfo,
     session::{self, action::Handler, Action},
     short, Time,
@@ -92,15 +90,15 @@ impl<'h, H: Handler> Presenter<'h, H> {
         }
     }
 
-    fn handle_modal_event(&mut self, event: event::Modal) -> Option<Action> {
-        let ctx = mode::EventContext {
+    fn handle_modal_event(&mut self, event: mode::Event) -> Option<Action> {
+        let ctx = mode::event::Context {
             event,
             state: &mut self.state,
         };
         match self.mode.on_event(ctx) {
-            mode::EventResult::Transition(new_mode) => self.transition_with_exit(new_mode),
-            mode::EventResult::Action(a) => Some(a),
-            mode::EventResult::Handled => None,
+            mode::event::Outcome::Transition(new_mode) => self.transition_with_exit(new_mode),
+            mode::event::Outcome::Action(a) => Some(a),
+            mode::event::Outcome::Handled => None,
         }
     }
 
@@ -144,9 +142,9 @@ impl<'h, H: Handler> Presenter<'h, H> {
         }
     }
 
-    fn last_time_at(&mut self, short: Name) -> Option<Time> {
+    fn last_time_at(&mut self, sid: short::Name) -> Option<Time> {
         self.state
-            .split_at_short(short)
+            .split_at_short(sid)
             .and_then(|s| s.times.last())
             .copied()
     }

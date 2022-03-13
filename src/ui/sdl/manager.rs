@@ -51,7 +51,10 @@ impl<'r, 'c> super::super::Manager<'r> for Manager<'c> {
     ///
     /// Fails if we can't get access to the event pump.
     fn event_pump(&self) -> Result<event::Pump> {
-        self.sdl.event_pump().map(event::Pump).map_err(Error::Init)
+        self.sdl
+            .event_pump()
+            .map(event::Pump::new)
+            .map_err(Error::Init)
     }
 
     /// Spawns a renderer targeting the SDL window.

@@ -1,7 +1,6 @@
 //! Events understood by the user interface.
 
-use crate::model::session;
-use crate::model::timing::time;
+use super::{super::super::model::session, mode};
 
 /// A high-level event.
 ///
@@ -10,7 +9,7 @@ use crate::model::timing::time;
 #[non_exhaustive]
 pub enum Event {
     /// An event that should be interpreted by the current mode.
-    Modal(Modal),
+    Modal(mode::Event),
     /// An event that translates directly into an action on the current attempt.
     /// These are handled globally.
     Action(session::Action),
@@ -24,36 +23,14 @@ impl Event {
     /// Shorthand for producing a field event.
     #[must_use]
     pub fn digit(digit: u8) -> Self {
-        Self::Modal(Modal::Edit(Edit::Add(digit)))
+        Self::Modal(mode::Event::Edit(mode::event::Edit::Add(digit)))
     }
-}
 
-/// A mode-specific event.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[non_exhaustive]
-pub enum Modal {
-    /// Undo something (the exact thing depends on the mode).
-    Undo,
-    /// Delete something completely (the exact thing depends on the mode).
-    Delete,
-    /// Commits whatever action is currently pending without moving the cursor.
-    Commit,
-    /// Perform an event on the currently open editor.
-    Edit(Edit),
-    /// Start editing a field at a particular position.
-    EnterField(time::Position),
-    /// Move the cursor.
-    Cursor(super::cursor::Motion),
-}
-
-/// An edit event.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[non_exhaustive]
-pub enum Edit {
-    /// Add the given digit to the current editor.
-    Add(u8),
-    /// Remove the last item (for instance, a digit) from the current editor.
-    Remove,
+    /// Shorthand for producing a modal decision event.
+    #[must_use]
+    pub fn decision(value: bool) -> Self {
+        Self::Modal(mode::Event::Decision(value))
+    }
 }
 
 /// Trait for things that can produce events to be passed to the presenter.

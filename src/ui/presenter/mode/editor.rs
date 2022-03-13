@@ -2,13 +2,14 @@
 
 use std::fmt::{Display, Formatter};
 
-use crate::{model::session, model::timing::time};
-
 use super::{
-    super::state::{cursor, State},
-    event::{Edit, Modal},
+    super::{
+        super::super::model::{session, timing::time},
+        state::{cursor, State},
+    },
+    event,
     nav::Nav,
-    EventResult, Mode,
+    Mode,
 };
 
 /// A split editor.
@@ -38,14 +39,14 @@ impl Mode for Editor {
         state.set_editor(self.index, Some(self));
     }
 
-    fn on_event(&mut self, ctx: super::EventContext) -> EventResult {
+    fn on_event(&mut self, ctx: event::Context) -> event::Outcome {
         let result = match ctx.event {
-            Modal::Undo => self.undo(),
-            Modal::Delete => self.delete(),
-            Modal::Edit(d) => self.edit(d),
-            Modal::EnterField(f) => self.enter_field(f),
-            Modal::Cursor(c) => move_cursor(c, ctx.state),
-            _ => EventResult::Handled,
+            event::Event::Undo => self.undo(),
+            event::Event::Delete => self.delete(),
+            event::Event::Edit(d) => self.edit(d),
+            event::Event::EnterField(f) => self.enter_field(f),
+            event::Event::Cursor(c) => move_cursor(c, ctx.state),
+            _ => event::Outcome::Handled,
         };
         // TODO(@MattWindsor91): this is suboptimal; we should only modify the
         // specific parts changed by the event.
@@ -76,28 +77,28 @@ impl Editor {
 
     /// Enters the named field, committing any edits on any current field.
     #[must_use]
-    pub fn enter_field(&mut self, field: time::Position) -> EventResult {
+    pub fn enter_field(&mut self, field: time::Position) -> event::Outcome {
         self.commit_field();
         self.field = Some(Field::new(field));
-        EventResult::Handled
+        event::Outcome::Handled
     }
 
-    fn edit(&mut self, e: Edit) -> EventResult {
+    fn edit(&mut self, e: event::Edit) -> event::Outcome {
         if let Some(f) = self.field.as_mut() {
             f.edit(e);
         }
-        EventResult::Handled
+        event::Outcome::Handled
     }
 
-    fn undo(&mut self) -> EventResult {
+    fn undo(&mut self) -> event::Outcome {
         // Try clearing the field first, then, otherwise, clear the time.
         if self.field.take().is_none() {
             self.time = time::Time::default();
         }
-        EventResult::Handled
+        event::Outcome::Handled
     }
 
-    fn delete(&mut self) -> EventResult {
+    fn delete(&mut self) -> event::Outcome {
         self.field = None;
         self.time = time::Time::default();
         Nav::transition()
@@ -113,7 +114,7 @@ impl Editor {
 }
 
 /// Moves a cursor using the given motion, exiting the editor.
-fn move_cursor(motion: cursor::Motion, state: &mut State) -> EventResult {
+fn move_cursor(motion: cursor::Motion, state: &mut State) -> event::Outcome {
     state.move_cursor_by(motion, 1);
     Nav::transition()
 }
@@ -142,28 +143,23 @@ impl Field {
         self.position
     }
 
-    pub fn edit(&mut self, e: Edit) -> bool {
+    fn edit(&mut self, e: event::Edit) {
         match e {
-            Edit::Add(x) => self.add(x),
-            Edit::Remove => self.remove(),
+            event::Edit::Add(x) => self.add(x),
+            event::Edit::Remove => self.remove(),
         }
     }
 
     /// Adds a digit to the editor.
-    #[must_use]
-    pub fn add(&mut self, digit: u8) -> bool {
-        if self.max_digits() <= self.string.len() {
-            false
-        } else {
+    fn add(&mut self, digit: u8) {
+        if self.string.len() < self.max_digits() {
             self.string.push_str(&digit.to_string());
-            true
         }
     }
 
     /// Removes a digit from the editor.
-    #[must_use]
-    pub fn remove(&mut self) -> bool {
-        self.string.pop().is_some()
+    fn remove(&mut self) {
+        let _ = self.string.pop();
     }
 
     /// Commits this editor's changes to `time`.

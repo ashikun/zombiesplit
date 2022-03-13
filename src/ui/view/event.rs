@@ -5,6 +5,7 @@ the window that require handling at the view level. */
 use super::gfx::metrics::Size;
 
 /// A view event.
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Event {
     /// The window has resized to the given dimensions.
     Resize(Size),

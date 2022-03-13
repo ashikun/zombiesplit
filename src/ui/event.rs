@@ -9,6 +9,8 @@ User interface events take the form of either:
 We assume that both events come from a `Pump`, which is the effective top level
 driver for the user interface. */
 
+use super::presenter;
+
 /// The event pump.
 pub trait Pump {
     /// Pumps all current events available into a vector.
@@ -16,23 +18,24 @@ pub trait Pump {
 }
 
 /// A view or presenter event.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Event {
     /// A view event.
     View(super::view::Event),
     /// A presenter event.
-    Presenter(super::presenter::Event),
+    Presenter(presenter::Event),
 }
 
 impl Event {
     /// Shorthand for producing a digit.
     #[must_use]
     pub fn digit(digit: u8) -> Self {
-        Self::Presenter(super::presenter::event::Event::digit(digit))
+        Self::Presenter(presenter::event::Event::digit(digit))
     }
 
     /// Shorthand for constructing a modal event.
     #[must_use]
-    pub fn modal(m: super::presenter::event::Modal) -> Event {
-        Event::Presenter(super::presenter::event::Event::Modal(m))
+    pub fn modal(m: presenter::mode::Event) -> Event {
+        Event::Presenter(presenter::event::Event::Modal(m))
     }
 }

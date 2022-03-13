@@ -1,14 +1,14 @@
 //! The [Nav] struct and its implementations.
 
-use crate::model::session::action;
-use crate::model::timing::time;
 use std::fmt::{Display, Formatter};
 
 use super::{
-    super::state::{cursor, State},
+    super::{
+        super::super::model::{session::action, timing::time},
+        state::{cursor, State},
+    },
     editor::Editor,
-    event::Modal,
-    EventContext, EventResult, Mode,
+    event, Mode,
 };
 
 /// Mode for when we are navigating splits.
@@ -23,13 +23,13 @@ impl Display for Nav {
 impl Mode for Nav {
     fn on_entry(&mut self, _state: &mut State) {}
 
-    fn on_event(&mut self, EventContext { event, state, .. }: EventContext) -> EventResult {
+    fn on_event(&mut self, event::Context { event, state, .. }: event::Context) -> event::Outcome {
         match event {
-            Modal::Cursor(c) => move_cursor(c, state),
-            Modal::EnterField(f) => enter_field(state.cursor_position(), f),
-            Modal::Undo => EventResult::pop(state.cursor_position(), action::Pop::One),
-            Modal::Delete => EventResult::pop(state.cursor_position(), action::Pop::All),
-            _ => EventResult::Handled,
+            event::Event::Cursor(c) => move_cursor(c, state),
+            event::Event::EnterField(f) => enter_field(state.cursor_position(), f),
+            event::Event::Undo => event::Outcome::pop(state.cursor_position(), action::Pop::One),
+            event::Event::Delete => event::Outcome::pop(state.cursor_position(), action::Pop::All),
+            _ => event::Outcome::Handled,
         }
     }
 
@@ -42,20 +42,20 @@ impl Mode for Nav {
 impl Nav {
     /// Creates a transition to a navigation.
     #[must_use]
-    pub fn transition() -> EventResult {
-        EventResult::transition(Self {})
+    pub fn transition() -> event::Outcome {
+        event::Outcome::transition(Self {})
     }
 }
 
 /// Moves the state cursor according to `c`, if possible.
-fn move_cursor(motion: cursor::Motion, state: &mut super::super::State) -> EventResult {
+fn move_cursor(motion: cursor::Motion, state: &mut super::super::State) -> event::Outcome {
     // TODO(@MattWindsor91): cursor multiplier
     state.move_cursor_by(motion, 1);
-    EventResult::Handled
+    event::Outcome::Handled
 }
 
 /// Constructs an editor entering the given index and field.
-fn enter_field(index: usize, field: time::Position) -> EventResult {
+fn enter_field(index: usize, field: time::Position) -> event::Outcome {
     let editor = Editor::new(index, Some(field));
-    EventResult::transition(editor)
+    event::Outcome::transition(editor)
 }
