@@ -13,8 +13,8 @@ use super::super::{
 use sdl2::keyboard::Keycode;
 use std::collections::HashMap;
 
-/// Type alias for keymaps.
-pub type Keymap = HashMap<Keycode, Event>;
+/// An SDL2 keymap.
+pub struct Keymap(HashMap<Keycode, Event>);
 
 /// Wrapper over SDL event pumps to promote them into `event::Pump` instances.
 pub struct Pump {
@@ -30,7 +30,7 @@ impl Pump {
     pub fn new(pump: sdl2::EventPump) -> Self {
         Self {
             pump,
-            keymap: default_keymap(),
+            keymap: Keymap::default(),
         }
     }
 }
@@ -58,51 +58,40 @@ fn from_sdl(e: &sdl2::event::Event, keymap: &Keymap) -> Option<Event> {
         sdl2::event::Event::Quit { .. } => Some(Event::Presenter(presenter::Event::Quit)),
         sdl2::event::Event::KeyDown {
             keycode: Some(k), ..
-        } => keymap.get(k).copied(),
+        } => keymap.get(*k),
         _ => None,
     }
 }
 
-/*
-fn from_key(k: sdl2::keyboard::Keycode) -> Option<Event> {
-
-    use crate::ui::presenter::mode;
-    use sdl2::keyboard::Keycode;
-    if let Some(digit) = key_to_digit(k) {
-        Some(Event::digit(digit))
-    } else {
-        match k {
-            // Editing
-            // Time fields
-            // We don't allow entering hours yet, but this may change.
-            // Cursor motions
-            Keycode::J | Keycode::Down | Keycode::Space | Keycode::Return => {
-                Some(Event::modal(Modal::Cursor(cursor::Motion::Down)))
-            }
-            Keycode::K | Keycode::Up => Some(Event::modal(Modal::Cursor(cursor::Motion::Up))),
-            // Top-level commands
-            Keycode::H | Keycode::Left => Some(Event::modal(Modal::Undo)),
-            Keycode::L | Keycode::Right => Some(Event::modal(Modal::Commit)),
-            Keycode::X | Keycode::Delete => Some(Event::modal(Modal::Delete)),
-
-        }
+impl Default for Keymap {
+    fn default() -> Self {
+        let mut result = Keymap(HashMap::new());
+        result.extend(DIGITS.iter().copied().map(|(k, d)| (k, Event::digit(d))));
+        result.extend(
+            POSITION_KEYS
+                .iter()
+                .copied()
+                .map(|(k, p)| (k, Event::modal(mode::Event::EnterField(p)))),
+        );
+        result.add_modal_keys(VI_MODAL_KEYS);
+        result.add_modal_keys(ARROW_MODAL_KEYS);
+        result.extend(SPECIAL_KEYS.iter().copied());
+        result
     }
 }
- */
 
-fn default_keymap() -> HashMap<sdl2::keyboard::Keycode, Event> {
-    let mut result = HashMap::new();
-    result.extend(DIGITS.iter().copied().map(|(k, d)| (k, Event::digit(d))));
-    result.extend(
-        POSITION_KEYS
-            .iter()
-            .copied()
-            .map(|(k, p)| (k, Event::modal(mode::Event::EnterField(p)))),
-    );
-    add_modal_keys(&mut result, VI_MODAL_KEYS);
-    add_modal_keys(&mut result, ARROW_MODAL_KEYS);
-    result.extend(SPECIAL_KEYS.iter().copied());
-    result
+impl Keymap {
+    fn get(&self, key: sdl2::keyboard::Keycode) -> Option<Event> {
+        self.0.get(&key).copied()
+    }
+
+    fn extend(&mut self, src: impl IntoIterator<Item = (Keycode, Event)>) {
+        self.0.extend(src);
+    }
+
+    fn add_modal_keys<'a>(&mut self, src: impl IntoIterator<Item = &'a (Keycode, mode::Event)>) {
+        self.extend(src.into_iter().copied().map(|(k, e)| (k, Event::modal(e))));
+    }
 }
 
 /// Mapping from digit keycodes to their corresponding digits.
@@ -138,10 +127,6 @@ const POSITION_KEYS: &[(Keycode, time::Position)] = &[
     // M is reserved for minutes.
     (Keycode::Period, time::Position::Milliseconds),
 ];
-
-fn add_modal_keys<'a>(dst: &mut Keymap, src: impl IntoIterator<Item = &'a (Keycode, mode::Event)>) {
-    dst.extend(src.into_iter().copied().map(|(k, e)| (k, Event::modal(e))));
-}
 
 /// Mapping from vi-style keys to their default bindings.
 const VI_MODAL_KEYS: &[(Keycode, mode::Event)] = &[
