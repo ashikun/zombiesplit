@@ -155,3 +155,41 @@ const ARROW_MODAL_KEYS: &[(Keycode, mode::Event)] = &[
     (Keycode::Backspace, mode::Event::Edit(Edit::Remove)),
     (Keycode::Delete, mode::Event::Delete),
 ];
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    /// Checks a couple of vi keys in the default keymap to make sure the map is being populated
+    /// correctly.
+    #[test]
+    fn default_keymap_vi() {
+        let kmap = Keymap::default();
+
+        assert_key(&kmap, Keycode::H, Event::modal(mode::Event::Undo));
+        assert_key(&kmap, Keycode::J, Event::motion(cursor::Motion::Down));
+        assert_key(&kmap, Keycode::K, Event::motion(cursor::Motion::Up));
+        assert_key(&kmap, Keycode::L, Event::modal(mode::Event::Commit));
+    }
+
+    fn assert_key(kmap: &Keymap, key: Keycode, evt: Event) {
+        assert_eq!(Some(evt), kmap.get(key));
+    }
+
+    /// Checks that a representative SDL key-down event gets handled correctly.
+    #[test]
+    fn from_sdl_default_keymap() {
+        let event = sdl2::event::Event::KeyDown {
+            timestamp: 0,
+            window_id: 0,
+            keycode: Some(Keycode::Escape),
+            scancode: None,
+            keymod: sdl2::keyboard::Mod::empty(),
+            repeat: false,
+        };
+        assert_eq!(
+            Some(Event::Presenter(presenter::Event::Quit)),
+            from_sdl(&event, &Keymap::default())
+        );
+    }
+}

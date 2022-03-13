@@ -38,4 +38,10 @@ impl Event {
     pub fn modal(m: presenter::mode::Event) -> Event {
         Event::Presenter(presenter::event::Event::Modal(m))
     }
+
+    /// Shorthand for constructing a cursor motion event.
+    #[must_use]
+    pub fn motion(m: presenter::state::cursor::Motion) -> Event {
+        Event::Presenter(presenter::event::Event::motion(m))
+    }
 }

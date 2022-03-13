@@ -31,6 +31,12 @@ impl Event {
     pub fn decision(value: bool) -> Self {
         Self::Modal(mode::Event::Decision(value))
     }
+
+    /// Shorthand for producing a cursor motion event.
+    #[must_use]
+    pub fn motion(m: super::state::cursor::Motion) -> Event {
+        Self::Modal(mode::Event::Cursor(m))
+    }
 }
 
 /// Trait for things that can produce events to be passed to the presenter.
