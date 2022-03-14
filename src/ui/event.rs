@@ -29,19 +29,19 @@ pub enum Event {
 impl Event {
     /// Shorthand for producing a digit.
     #[must_use]
-    pub fn digit(digit: u8) -> Self {
+    pub const fn digit(digit: u8) -> Self {
         Self::Presenter(presenter::event::Event::digit(digit))
     }
 
     /// Shorthand for constructing a modal event.
     #[must_use]
-    pub fn modal(m: presenter::mode::Event) -> Event {
+    pub const fn modal(m: presenter::mode::Event) -> Event {
         Event::Presenter(presenter::event::Event::Modal(m))
     }
 
     /// Shorthand for constructing a cursor motion event.
     #[must_use]
-    pub fn motion(m: presenter::state::cursor::Motion) -> Event {
+    pub const fn motion(m: presenter::state::cursor::Motion) -> Event {
         Event::Presenter(presenter::event::Event::motion(m))
     }
 }

@@ -55,7 +55,9 @@ fn from_sdl(e: &sdl2::event::Event, keymap: &Keymap) -> Option<Event> {
             w: *w,
             h: *h,
         }))),
-        sdl2::event::Event::Quit { .. } => Some(Event::Presenter(presenter::Event::Quit)),
+        sdl2::event::Event::Quit { .. } => {
+            Some(Event::Presenter(presenter::Event::Quit { force: true }))
+        }
         sdl2::event::Event::KeyDown {
             keycode: Some(k), ..
         } => keymap.get(*k),
@@ -109,13 +111,18 @@ const DIGITS: &[(Keycode, u8)] = &[
 ];
 
 const SPECIAL_KEYS: &[(Keycode, Event)] = &[
+    (Keycode::Y, Event::modal(mode::Event::Decision(true))),
+    (Keycode::N, Event::modal(mode::Event::Decision(false))),
     (
         Keycode::Z,
         Event::Presenter(presenter::Event::Action(session::Action::NewRun(
             session::action::OldDestination::Save,
         ))),
     ),
-    (Keycode::Escape, Event::Presenter(presenter::Event::Quit)),
+    (
+        Keycode::Escape,
+        Event::Presenter(presenter::Event::Quit { force: false }),
+    ),
 ];
 
 /// Mapping from position keycodes to their positions.
@@ -188,7 +195,7 @@ mod test {
             repeat: false,
         };
         assert_eq!(
-            Some(Event::Presenter(presenter::Event::Quit)),
+            Some(Event::Presenter(presenter::Event::Quit { force: false })),
             from_sdl(&event, &Keymap::default())
         );
     }

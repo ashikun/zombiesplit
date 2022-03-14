@@ -26,6 +26,12 @@ pub enum Outcome {
     Transition(Box<dyn Mode>),
 }
 
+impl Default for Outcome {
+    fn default() -> Self {
+        Outcome::Handled
+    }
+}
+
 impl Outcome {
     /// Shorthand for creating a transition.
     #[must_use]

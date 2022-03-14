@@ -1,10 +1,12 @@
 //! The Mode trait and associated functionality.
 
+pub mod decision;
 pub mod editor;
 pub mod event;
 pub mod nav;
 pub mod quitting;
 
+pub use decision::Decision;
 pub use editor::Editor;
 pub use event::Event;
 pub use nav::Nav;

@@ -14,7 +14,8 @@ pub enum Event {
     /// These are handled globally.
     Action(session::Action),
     /// A request to quit the user interface.
-    Quit,
+    /// If `force` is false, the presenter will ask the user first.
+    Quit { force: bool },
 }
 
 impl Event {
@@ -22,19 +23,19 @@ impl Event {
 
     /// Shorthand for producing a field event.
     #[must_use]
-    pub fn digit(digit: u8) -> Self {
+    pub const fn digit(digit: u8) -> Self {
         Self::Modal(mode::Event::Edit(mode::event::Edit::Add(digit)))
     }
 
     /// Shorthand for producing a modal decision event.
     #[must_use]
-    pub fn decision(value: bool) -> Self {
+    pub const fn decision(value: bool) -> Self {
         Self::Modal(mode::Event::Decision(value))
     }
 
     /// Shorthand for producing a cursor motion event.
     #[must_use]
-    pub fn motion(m: super::state::cursor::Motion) -> Event {
+    pub const fn motion(m: super::state::cursor::Motion) -> Event {
         Self::Modal(mode::Event::Cursor(m))
     }
 }
