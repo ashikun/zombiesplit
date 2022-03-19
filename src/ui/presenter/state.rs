@@ -130,7 +130,7 @@ impl State {
     }
 
     /// Sets the editor at `index` to `editor`.
-    pub fn set_editor(&mut self, index: usize, editor: Option<&super::Editor>) {
+    pub fn set_editor(&mut self, index: usize, editor: Option<&super::mode::Editor>) {
         self.splits.set_editor(index, editor);
     }
 

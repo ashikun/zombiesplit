@@ -1,7 +1,7 @@
 //! Mapping between SDL events and presenter events.
 
 use super::super::{
-    super::model::{session, timing::time},
+    super::model::timing::time,
     event::{self, Event},
     presenter::{
         self,
@@ -114,15 +114,10 @@ const SPECIAL_KEYS: &[(Keycode, Event)] = &[
     (Keycode::Y, Event::modal(mode::Event::Decision(true))),
     (Keycode::N, Event::modal(mode::Event::Decision(false))),
     (
-        Keycode::Z,
-        Event::Presenter(presenter::Event::Action(session::Action::NewRun(
-            session::action::OldDestination::Save,
-        ))),
-    ),
-    (
         Keycode::Escape,
         Event::Presenter(presenter::Event::Quit { force: false }),
     ),
+    (Keycode::Z, Event::Presenter(presenter::Event::Reset)),
 ];
 
 /// Mapping from position keycodes to their positions.

@@ -1,6 +1,6 @@
 //! Events understood by the user interface.
 
-use super::{super::super::model::session, mode};
+use super::mode;
 
 /// A high-level event.
 ///
@@ -10,9 +10,8 @@ use super::{super::super::model::session, mode};
 pub enum Event {
     /// An event that should be interpreted by the current mode.
     Modal(mode::Event),
-    /// An event that translates directly into an action on the current attempt.
-    /// These are handled globally.
-    Action(session::Action),
+    /// A request to reset the session.
+    Reset,
     /// A request to quit the user interface.
     /// If `force` is false, the presenter will ask the user first.
     Quit { force: bool },

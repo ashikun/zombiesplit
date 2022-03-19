@@ -188,7 +188,7 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
 
     fn reset(&mut self, dest: action::OldDestination) {
         self.handle_old_run(dest);
-        self.state.run.reset();
+        self.state.run.reset(dest);
         // Important that this happens AFTER the run is reset, so the new attempt info is sent.
         self.observe_reset();
         self.refresh_comparison();

@@ -14,7 +14,6 @@ pub mod observer;
 pub mod state;
 
 pub use event::Event;
-pub use mode::Editor;
 pub use state::State;
 
 use super::super::model::{
@@ -64,9 +63,9 @@ impl<'h, H: Handler> Presenter<'h, H> {
     /// Any other events are handled directly.
     pub fn handle_event(&mut self, e: &event::Event) {
         match e {
-            event::Event::Action(a) => self.forward_action(*a),
             event::Event::Modal(m) => self.handle_modal_event(*m),
             event::Event::Quit { force } => self.quit(*force),
+            event::Event::Reset => self.reset(),
         };
         // This is slightly inefficient, as we don't always change the mode when an event happens.
         self.update_mode_line();
@@ -118,10 +117,19 @@ impl<'h, H: Handler> Presenter<'h, H> {
         }
     }
 
-    fn reset(&mut self, new_attempt: &AttemptInfo) {
-        // Don't call exit the previous mode's exit hook; it may modify the run
-        // in ways we don't want to happen.
-        self.state.reset(new_attempt);
+    /// Starts the process of resetting.
+    fn reset(&mut self) {
+        use session::action::OldDestination;
+        self.transition(|_| {
+            // TODO(@MattWindsor91): only ask if we want to discard if we have splits
+            let discard_outcome = reset_outcome(OldDestination::Discard);
+            let save_outcome = reset_outcome(OldDestination::Save);
+            Box::new(mode::Decision::new(
+                &"Save this run?",
+                save_outcome,
+                discard_outcome,
+            ))
+        });
     }
 
     /// Observes `evt` on this presenter core.
@@ -138,7 +146,7 @@ impl<'h, H: Handler> Presenter<'h, H> {
     fn observe_locally(&mut self, ev: &session::Event) {
         match ev {
             session::Event::Split(short, ev) => self.observe_split(*short, ev),
-            session::Event::Reset(new_attempt) => self.reset(new_attempt),
+            session::Event::Reset(new_attempt) => self.observe_reset(new_attempt),
             _ => (),
         };
     }
@@ -164,11 +172,17 @@ impl<'h, H: Handler> Presenter<'h, H> {
     /// with the time `time`.
     fn open_editor(&mut self, short: short::Name, time: Time) {
         if let Some(index) = self.state.index_of_split(short) {
-            let mut editor = Box::new(Editor::new(index, None));
+            let mut editor = Box::new(mode::Editor::new(index, None));
             editor.time = time;
             let new_mode = editor;
             self.transition(|_| new_mode);
         }
+    }
+
+    fn observe_reset(&mut self, new_attempt: &AttemptInfo) {
+        // Don't call exit the previous mode's exit hook; it may modify the run
+        // in ways we don't want to happen.
+        self.state.reset(new_attempt);
     }
 
     /// Transitions from one mode to another, determined in terms of the old mode.
@@ -182,6 +196,13 @@ impl<'h, H: Handler> Presenter<'h, H> {
         self.mode = (new_mode_fn)(tmp);
         self.mode.on_entry(&mut self.state);
         self.forward_actions(actions);
+    }
+}
+
+fn reset_outcome(dest: session::action::OldDestination) -> mode::event::Outcome {
+    mode::event::Outcome {
+        actions: vec![session::Action::NewRun(dest)],
+        next_mode: Some(Box::new(mode::Nav)),
     }
 }
 

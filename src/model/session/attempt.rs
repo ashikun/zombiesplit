@@ -23,8 +23,10 @@ pub struct Attempt {
 
 impl Attempt {
     /// Resets this run and all splits inside it, incrementing the attempt if necessary.
-    pub fn reset(&mut self) {
-        self.increment_attempt();
+    pub fn reset(&mut self, dest: super::action::OldDestination) {
+        if matches!(dest, super::action::OldDestination::Save) {
+            self.increment_attempt();
+        }
         self.splits.reset();
     }
 

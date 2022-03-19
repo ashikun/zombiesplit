@@ -68,7 +68,7 @@ impl Set {
     }
 
     /// Sets the editor at `position` to `editor`, removing all other open editors.
-    pub fn set_editor(&mut self, position: usize, editor: Option<&super::super::Editor>) {
+    pub fn set_editor(&mut self, position: usize, editor: Option<&super::super::mode::Editor>) {
         if let Some(s) = self.vec.get_mut(position) {
             s.set_editor(editor);
         }
