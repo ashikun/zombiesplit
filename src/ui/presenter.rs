@@ -86,10 +86,7 @@ impl<'h, H: Handler> Presenter<'h, H> {
         let mode::event::Outcome { actions, next_mode } = self.mode.on_event(ctx);
         self.forward_actions(actions);
         if let Some(new_mode) = next_mode {
-            let actions = self.mode.on_exit(&mut self.state);
-            self.mode = new_mode;
-            self.mode.on_entry(&mut self.state);
-            self.forward_actions(actions);
+            self.transition(new_mode);
         }
     }
 
@@ -173,15 +170,16 @@ impl<'h, H: Handler> Presenter<'h, H> {
         if let Some(index) = self.state.index_of_split(short) {
             let mut editor = Box::new(Editor::new(index, None));
             editor.time = time;
-            let new_mode = editor;
-            let actions = self.mode.on_exit(&mut self.state);
-            self.mode = new_mode;
-            self.mode.on_entry(&mut self.state);
-            self.forward_actions(actions);
+            self.transition(editor);
         }
     }
 
-    // Performs a transition where the new mode depends on the existing one, calling the entry hook only.
+    /// Transitions from one mode to the other.
+    fn transition(&mut self, new_mode: Box<dyn mode::Mode>) {
+        self.transition_recursively(|_| new_mode);
+    }
+
+    /// Performs a transition where the new mode depends on the existing one, calling the entry hook only.
     fn transition_recursively(
         &mut self,
         new_mode_fn: impl FnOnce(Box<dyn mode::Mode>) -> Box<dyn mode::Mode>,
