@@ -34,6 +34,20 @@ impl Decision {
             when_no: Some(when_no),
         }
     }
+
+    /// Constructs a new decision mode with the given mode transitions.
+    #[must_use]
+    pub fn transition(
+        question: &impl ToString,
+        when_yes: Box<dyn Mode>,
+        when_no: Box<dyn Mode>,
+    ) -> Self {
+        Self::new(
+            question,
+            event::Outcome::boxed_transition(when_yes),
+            event::Outcome::boxed_transition(when_no),
+        )
+    }
 }
 
 impl Display for Decision {
@@ -57,5 +71,9 @@ impl Mode for Decision {
 
     fn on_exit(&mut self, _state: &mut State) -> Vec<session::Action> {
         vec![]
+    }
+
+    fn mode_type(&self) -> super::Type {
+        super::Type::Dialog
     }
 }

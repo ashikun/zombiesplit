@@ -54,8 +54,21 @@ pub trait Mode: Display {
     /// application of this mode's efforts to the model.
     fn on_exit(&mut self, state: &mut State) -> Vec<action::Action>;
 
-    /// Is the client running while this mode is active?
-    fn is_running(&self) -> bool {
-        true
+    /// The high-level type of the mode.
+    fn mode_type(&self) -> Type {
+        Type::Normal
     }
+}
+
+/// High-level types of modes.
+///
+/// These are used to determine certain patterns of behaviour at the presenter level.
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+pub enum Type {
+    /// A normal mode.
+    Normal,
+    /// The presenter should quit when it gets to this mode.
+    Quitting,
+    /// This is a dialog overlaid on top of another mode, and so should not accept most events.
+    Dialog,
 }

@@ -23,7 +23,7 @@ impl Mode for Quitting {
         unreachable!("should not be able to exit out of the Quitting state")
     }
 
-    fn is_running(&self) -> bool {
-        false
+    fn mode_type(&self) -> super::Type {
+        super::Type::Quitting
     }
 }

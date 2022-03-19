@@ -51,7 +51,7 @@ impl<'h, H: Handler> Presenter<'h, H> {
     /// Gets whether the UI should be running.
     #[must_use]
     pub fn is_running(&self) -> bool {
-        self.mode.is_running()
+        !matches!(self.mode.mode_type(), mode::Type::Quitting)
     }
 
     /// Handles an event `e`.
@@ -105,21 +105,19 @@ impl<'h, H: Handler> Presenter<'h, H> {
 
     /// Starts the process of quitting (or asking the user if they want to quit).
     fn quit(&mut self, force: bool) {
-        let hard_quit: Box<dyn mode::Mode> = Box::new(mode::Quitting);
-        // TODO(@MattWindsor91): fix nesting of quits within quits
-        let next_state = move |s| {
-            if force {
-                hard_quit
-            } else {
-                Box::new(mode::Decision::new(
-                    &"Quit?",
-                    mode::event::Outcome::boxed_transition(hard_quit),
-                    mode::event::Outcome::boxed_transition(s),
-                ))
-            }
-        };
+        if let mode::Type::Normal = self.mode.mode_type() {
+            let hard_quit: Box<dyn mode::Mode> = Box::new(mode::Quitting);
+            // TODO(@MattWindsor91): fix nesting of quits within quits
+            let next_state = move |s| {
+                if force {
+                    hard_quit
+                } else {
+                    soft_quit(hard_quit, s)
+                }
+            };
 
-        self.transition_recursively(next_state);
+            self.transition_recursively(next_state);
+        }
     }
 
     fn reset(&mut self, new_attempt: &AttemptInfo) {
@@ -224,4 +222,8 @@ impl session::Observer for Observer {
             log::warn!("error sending event to presenter: {e}");
         }
     }
+}
+
+fn soft_quit(quitter: Box<dyn mode::Mode>, old_state: Box<dyn mode::Mode>) -> Box<dyn mode::Mode> {
+    Box::new(mode::Decision::transition(&"Quit?", quitter, old_state))
 }
