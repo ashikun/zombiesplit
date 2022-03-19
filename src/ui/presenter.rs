@@ -122,12 +122,10 @@ impl<'h, H: Handler> Presenter<'h, H> {
         use session::action::OldDestination;
         self.transition(|_| {
             // TODO(@MattWindsor91): only ask if we want to discard if we have splits
-            let discard_outcome = reset_outcome(OldDestination::Discard);
-            let save_outcome = reset_outcome(OldDestination::Save);
             Box::new(mode::Decision::new(
                 &"Save this run?",
-                save_outcome,
-                discard_outcome,
+                reset_outcome(OldDestination::Save),
+                reset_outcome(OldDestination::Discard),
             ))
         });
     }
