@@ -10,9 +10,8 @@ of changes made to the [Session] into visual and modal changes to the UI.
 
 pub mod event;
 pub mod mode;
+pub mod observer;
 pub mod state;
-
-use std::sync::mpsc;
 
 pub use event::Event;
 pub use mode::Editor;
@@ -86,7 +85,7 @@ impl<'h, H: Handler> Presenter<'h, H> {
         let mode::event::Outcome { actions, next_mode } = self.mode.on_event(ctx);
         self.forward_actions(actions);
         if let Some(new_mode) = next_mode {
-            self.transition(new_mode);
+            self.transition(|_| new_mode);
         }
     }
 
@@ -107,7 +106,6 @@ impl<'h, H: Handler> Presenter<'h, H> {
     fn quit(&mut self, force: bool) {
         if let mode::Type::Normal = self.mode.mode_type() {
             let hard_quit: Box<dyn mode::Mode> = Box::new(mode::Quitting);
-            // TODO(@MattWindsor91): fix nesting of quits within quits
             let next_state = move |s| {
                 if force {
                     hard_quit
@@ -116,7 +114,7 @@ impl<'h, H: Handler> Presenter<'h, H> {
                 }
             };
 
-            self.transition_recursively(next_state);
+            self.transition(next_state);
         }
     }
 
@@ -168,20 +166,13 @@ impl<'h, H: Handler> Presenter<'h, H> {
         if let Some(index) = self.state.index_of_split(short) {
             let mut editor = Box::new(Editor::new(index, None));
             editor.time = time;
-            self.transition(editor);
+            let new_mode = editor;
+            self.transition(|_| new_mode);
         }
     }
 
-    /// Transitions from one mode to the other.
-    fn transition(&mut self, new_mode: Box<dyn mode::Mode>) {
-        self.transition_recursively(|_| new_mode);
-    }
-
-    /// Performs a transition where the new mode depends on the existing one, calling the entry hook only.
-    fn transition_recursively(
-        &mut self,
-        new_mode_fn: impl FnOnce(Box<dyn mode::Mode>) -> Box<dyn mode::Mode>,
-    ) {
+    /// Transitions from one mode to another, determined in terms of the old mode.
+    fn transition(&mut self, new_mode_fn: impl FnOnce(Box<dyn mode::Mode>) -> Box<dyn mode::Mode>) {
         // We can't use 'transition' here because we need to call on_exit before doing this swap
         let actions = self.mode.on_exit(&mut self.state);
 
@@ -191,36 +182,6 @@ impl<'h, H: Handler> Presenter<'h, H> {
         self.mode = (new_mode_fn)(tmp);
         self.mode.on_entry(&mut self.state);
         self.forward_actions(actions);
-    }
-}
-
-/// Used to feed events from an `Observer` into a `Presenter`.
-pub struct ModelEventPump(mpsc::Receiver<session::event::Event>);
-
-/// Creates an observer as well as a pump that feeds events from the observer into a presenter.
-#[must_use]
-pub fn observer() -> (Observer, ModelEventPump) {
-    let (send, recv) = mpsc::channel();
-    (Observer(send), ModelEventPump(recv))
-}
-
-impl<H: Handler> event::Pump<H> for ModelEventPump {
-    /// Pumps this event forwarder's event queue, pushing each event to `to`.
-    fn pump(&mut self, to: &mut Presenter<H>) {
-        self.0.try_iter().for_each(|x| to.observe(&x));
-    }
-}
-
-/// An observer that feeds into a [Presenter].
-#[derive(Clone)]
-pub struct Observer(mpsc::Sender<session::event::Event>);
-
-impl session::Observer for Observer {
-    fn observe(&self, evt: session::event::Event) {
-        // TODO(@MattWindsor91): handle errors properly?
-        if let Err(e) = self.0.send(evt) {
-            log::warn!("error sending event to presenter: {e}");
-        }
     }
 }
 

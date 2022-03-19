@@ -22,7 +22,7 @@ fn run() -> anyhow::Result<()> {
     let args = Args::parse();
     let cfg = Config::load(args.config)?;
 
-    let (pobs, ppump) = ui::presenter::observer();
+    let (pobs, ppump) = ui::presenter::observer::make();
 
     let mut client = net::client::Sync::new(cfg.server_addr, pobs)?;
     // TODO(@MattWindsor91): server info

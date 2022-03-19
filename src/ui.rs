@@ -14,7 +14,6 @@ pub mod sdl;
 pub mod view;
 
 pub use error::{Error, Result};
-pub use presenter::event::Pump;
 pub use view::View;
 
 use crate::model::session::action::Handler;
@@ -44,7 +43,7 @@ pub struct Instance<'h, E, H, R> {
     events: E,
     view: view::View<'h, R>,
     presenter: presenter::Presenter<'h, H>,
-    forwarder: presenter::ModelEventPump,
+    forwarder: presenter::observer::Pump,
     // TODO(@MattWindsor91): decouple the SDL use here
     limiter: sdl::Limiter,
 }
@@ -59,7 +58,7 @@ impl<'m, E: event::Pump, H: Handler, R: view::gfx::Renderer> Instance<'m, E, H, 
         cfg: &'m view::Config,
         manager: &'m impl Manager<'m, Pump = E, Renderer = R>,
         presenter: presenter::Presenter<'m, H>,
-        forwarder: presenter::ModelEventPump,
+        forwarder: presenter::observer::Pump,
     ) -> Result<Self> {
         Ok(Self {
             events: manager.event_pump()?,
