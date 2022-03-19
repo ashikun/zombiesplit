@@ -2,15 +2,14 @@
 
 use std::{convert::TryFrom, ops::Add, rc::Rc};
 use tempfile::{tempdir, TempDir};
-use zombiesplit::model::session::action::OldDestination;
 use zombiesplit::{
-    db::{Db, Reader, Sink},
+    db::{self, Db, Reader, Sink},
     model::{
         game::{self, category::ShortDescriptor},
         history,
         session::{
             self,
-            action::{Action, Handler},
+            action::{Action, Handler, OldDestination},
             event,
         },
         short, Loadable, Time,
@@ -115,27 +114,34 @@ fn test_sample_observe_run() {
 
     // This also shouldn't.
     session.set_timestamper(chrono::Utc::now);
-    session.handle(Action::Push(0, time)).unwrap();
-    session
-        .handle(Action::NewRun(OldDestination::Discard))
-        .unwrap();
+    inject_session_actions(
+        &mut session,
+        vec![Action::Push(0, time)],
+        OldDestination::Discard,
+    );
 
     // This should.
     session.set_timestamper(chrono::Utc::now);
-    session.handle(Action::Push(0, time)).unwrap();
-    session
-        .handle(Action::NewRun(OldDestination::Save))
-        .unwrap();
+    inject_session_actions(
+        &mut session,
+        vec![Action::Push(0, time)],
+        OldDestination::Save,
+    );
 
     // As should this.
     // (We change the timestamp to avoid having the database reject the run as
     // a duplicate.)
     session.set_timestamper(|| chrono::Utc::now().add(chrono::Duration::weeks(1)));
-    session.handle(Action::Push(0, time)).unwrap();
-    session.handle(Action::Push(1, time)).unwrap();
-    session
-        .handle(Action::NewRun(OldDestination::Save))
-        .unwrap();
+    inject_session_actions(
+        &mut session,
+        vec![Action::Push(0, time), Action::Push(1, time)],
+        OldDestination::Save,
+    );
+
+    let rd = db.reader().expect("couldn't get reader");
+    let mut insp = rd
+        .inspect(&short_descriptor())
+        .expect("couldn't get inspector");
 
     let runs = db
         .runs_for(&short_descriptor())
@@ -147,5 +153,27 @@ fn test_sample_observe_run() {
     let run = &runs[1];
     assert_eq!(run.timing.total, time + time);
 
-    // TODO(MattWindsor91): check run specifics
+    assert!(
+        runs[0].date < runs[1].date,
+        "the timestamper should have given these different times"
+    );
+
+    for (i, run) in runs.iter().enumerate() {
+        let s_run = insp
+            .run_at_index(i, db::inspect::Summary)
+            .expect("Unexpected error getting index")
+            .expect("Unexpected omission getting index");
+        assert_eq!(run, &s_run);
+    }
+}
+
+fn inject_session_actions(
+    session: &mut session::Session<event::observer::Null>,
+    actions: Vec<Action>,
+    dest: OldDestination,
+) {
+    for action in actions {
+        session.handle(action).unwrap()
+    }
+    session.handle(Action::NewRun(dest)).unwrap();
 }

@@ -23,7 +23,17 @@ enum Command {
     Init,
     /// Lists all game/category pairs
     Categories,
-    // Lists all runs stored for a category
+    /// Gets the run at a particular index in a game/category
+    RunAt {
+        /// The game/category to query
+        target: ShortDescriptor,
+        /// The index to query (starting from 0)
+        index: usize,
+        /// The level of timing information to get
+        #[clap(short, long, default_value_t)]
+        level: Level,
+    },
+    /// Lists all runs stored for a category
     Runs {
         /// The game/category to query
         target: ShortDescriptor,
@@ -65,6 +75,11 @@ fn run() -> anyhow::Result<()> {
         Command::AddGame { path } => zombie::add_game(&mut db, path)?,
         Command::AddRun { path } => zombie::add_run(&mut db, path)?,
         Command::Categories => zombie::list_game_categories(&db)?,
+        Command::RunAt {
+            target,
+            index,
+            level,
+        } => zombie::run_at_index(&db, &target, index, level)?,
         Command::Runs { target } => zombie::list_runs(&db, &target)?,
         Command::SplitPbs { target } => zombie::split_pbs(&db, &target)?,
         Command::Pb { target, level } => zombie::run_pb(&db, &target, level)?,

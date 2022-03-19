@@ -7,8 +7,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::model::timing::comparison::provider::Provider;
-use crate::model::timing::Comparison;
 use tabwriter::TabWriter;
 use thiserror::Error;
 
@@ -17,10 +15,10 @@ use super::{
     model::{
         self,
         game::category::ShortDescriptor,
-        history::{self, timing::Timing},
+        history::{self, run::ForLevel, timing::Timing},
         load::Loadable,
         short,
-        timing::comparison::{self},
+        timing::comparison::{self, provider::Provider, Comparison},
     },
 };
 
@@ -69,7 +67,7 @@ pub fn list_game_categories(db: &Db) -> Result<()> {
 /// # Errors
 ///
 /// Returns any database errors occurring during the listing.
-pub fn list_runs<L: Locator>(db: &Db, loc: &L) -> Result<()> {
+pub fn list_runs(db: &Db, loc: &impl Locator) -> Result<()> {
     // TODO(@MattWindsor91): decouple this from Zombie?
     use colored::Colorize;
 
@@ -113,27 +111,58 @@ fn emit_split_pbs(c: Comparison) -> Result<()> {
     Ok(())
 }
 
-/// Gets the run for the given game/category locator.
+/// Gets the run at the given index for the given game/category locator.
 ///
 /// # Errors
 ///
 /// Returns any database errors occurring during the listing.
-pub fn run_pb<L: Locator>(db: &Db, loc: &L, level: history::timing::Level) -> Result<()> {
+pub fn run_at_index(
+    db: &Db,
+    loc: &impl Locator,
+    index: usize,
+    level: history::timing::Level,
+) -> Result<()> {
     let handle = db.reader()?;
     let mut insp = handle.inspect(loc)?;
-    if let Some(pb) = insp.run_pb(level)? {
+    if let Some(run) = insp.run_at_index(index, &level)? {
         // TODO(@MattWindsor91): decouple
-        println!("PB is {} on {}", pb.timing.total(), pb.date);
-
-        if let history::timing::ForLevel::Totals(totals) = pb.timing {
-            // TODO(@MattWindsor91): order by position
-            for (split, total) in totals.totals {
-                println!("{split}: {total}");
-            }
-        }
+        output_run(run);
     }
 
     Ok(())
+}
+
+/// Gets the PB run for the given game/category locator.
+///
+/// # Errors
+///
+/// Returns any database errors occurring during the listing.
+pub fn run_pb(db: &Db, loc: &impl Locator, level: history::timing::Level) -> Result<()> {
+    let handle = db.reader()?;
+    let mut insp = handle.inspect(loc)?;
+    if let Some(pb) = insp.run_pb(&level)? {
+        // TODO(@MattWindsor91): decouple
+        output_run(pb);
+    }
+
+    Ok(())
+}
+
+fn output_run(run: ForLevel<super::db::category::GcID>) {
+    let status = if run.was_completed {
+        "complete"
+    } else {
+        "incomplete"
+    };
+
+    println!("{} on {} ({})", run.timing.total(), run.date, status);
+
+    if let history::timing::ForLevel::Totals(totals) = run.timing {
+        // TODO(@MattWindsor91): order by position
+        for (split, total) in totals.totals {
+            println!("{split}: {total}");
+        }
+    }
 }
 
 fn ensure_toml<P: AsRef<Path>>(path: P) -> PathBuf {

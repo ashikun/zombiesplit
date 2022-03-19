@@ -9,7 +9,7 @@ use super::{super::error::Result, Getter};
 use crate::model::game::category::{Info, ShortDescriptor};
 
 /// A game-category ID.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct GcID(pub i64);
 
 impl ToSql for GcID {

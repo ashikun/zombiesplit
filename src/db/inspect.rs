@@ -1,8 +1,7 @@
 //! High-level database inspection queries.
 
-use crate::model::{history, session, timing};
-
 use super::{
+    super::model::{history, session, timing},
     category::{self, id::InfoWithID},
     comparison, run,
     util::WithID,
@@ -57,39 +56,48 @@ impl<'db> Inspector<'db> {
         &mut self,
         obs: &'obs O,
     ) -> Result<session::Session<'db, 'obs, O>> {
+        // TODO(@MattWindsor91): remove this?
         Ok(session::Session::new(self.cat.run(&self.info)?, obs))
     }
 
-    /// Gets the run for this game-category pair.
+    /// Gets the run at the given index (ordered by timestamp) for this game-category pair.
+    ///
+    /// Indices start at zero.
     ///
     /// # Errors
     ///
     /// Returns any database errors occurring during the listing.
-    pub fn run_pb(
+    pub fn run_at_index<L: TimingLevel>(
         &mut self,
-        level: history::timing::Level,
-    ) -> Result<Option<history::run::ForLevel<category::GcID>>> {
-        self.comparison
-            .run_pb(self.info.id)?
-            .map(|x| self.add_timing(x, level))
-            .transpose()
+        index: usize,
+        level: &L,
+    ) -> Result<Option<history::run::Run<category::GcID, L::Output>>> {
+        let run = self.run.run_at(self.info.id, index)?;
+        self.lift_run(run, level)
     }
 
-    fn add_timing(
+    /// Gets the personal-best run for this game-category pair.
+    ///
+    /// # Errors
+    ///
+    /// Returns any database errors occurring during the listing.
+    pub fn run_pb<L: TimingLevel>(
         &mut self,
-        run: WithID<history::run::Summary<category::GcID>>,
-        level: history::timing::Level,
-    ) -> Result<history::run::ForLevel<category::GcID>> {
-        match level {
-            history::timing::Level::Summary => {
-                Ok(run.item.map_timing(history::timing::ForLevel::from))
-            }
-            history::timing::Level::Totals => Ok(self
-                .add_split_totals(run)?
-                .item
-                .map_timing(history::timing::ForLevel::from)),
-            history::timing::Level::Full => todo!("full timing not yet implemented"),
-        }
+        level: &L,
+    ) -> Result<Option<history::run::Run<category::GcID, L::Output>>> {
+        let run = self.comparison.run_pb(self.info.id)?;
+        self.lift_run(run, level)
+    }
+
+    fn lift_run<L: TimingLevel>(
+        &mut self,
+        raw_run: Option<WithID<history::run::Summary<category::GcID>>>,
+        level: &L,
+    ) -> Result<Option<history::run::Run<category::GcID, L::Output>>> {
+        raw_run
+            .map(|x| level.add_timing(self, x))
+            .transpose()
+            .map(|x| x.map(|x| x.item))
     }
 
     /// Adds split totals to an existing run.
@@ -103,5 +111,63 @@ impl<'db> Inspector<'db> {
     ) -> Result<WithID<history::run::WithTotals<category::GcID>>> {
         let totals = self.run.split_totals_for(run.id)?;
         Ok(run.map_item(|i| i.with_timing(totals)))
+    }
+}
+
+/// Trait implemented by types providing timing levels for run fetching.
+///
+/// This generalises `history::timing::Level` by making it possible to get a precise output type
+/// we get from adding the typing information.
+pub trait TimingLevel {
+    /// Type of resulting timing information.
+    type Output;
+
+    /// Adds timing to a summary run using the services provided by `inspector`.
+    ///
+    /// # Errors
+    ///
+    /// May fail if there is a problem getting additional information from the database to populate
+    /// the new timing information.
+    fn add_timing(
+        &self,
+        inspector: &mut Inspector,
+        run: WithID<history::run::Summary<category::GcID>>,
+    ) -> Result<WithID<history::run::Run<category::GcID, Self::Output>>>;
+}
+
+/// Timing level for summaries.
+///
+/// This signals to the inspector that no extra timing information is required.
+pub struct Summary;
+
+impl TimingLevel for Summary {
+    type Output = history::timing::Summary;
+
+    fn add_timing(
+        &self,
+        _inspector: &mut Inspector,
+        run: WithID<history::run::Summary<category::GcID>>,
+    ) -> Result<WithID<history::run::Summary<category::GcID>>> {
+        Ok(run)
+    }
+}
+
+impl TimingLevel for history::timing::Level {
+    type Output = history::timing::ForLevel;
+
+    fn add_timing(
+        &self,
+        inspector: &mut Inspector,
+        run: WithID<history::run::Summary<category::GcID>>,
+    ) -> Result<WithID<history::run::ForLevel<category::GcID>>> {
+        match self {
+            history::timing::Level::Summary => {
+                Ok(run.map_item(|i| i.map_timing(history::timing::ForLevel::from)))
+            }
+            history::timing::Level::Totals => Ok(inspector
+                .add_split_totals(run)?
+                .map_item(|i| i.map_timing(history::timing::ForLevel::from))),
+            history::timing::Level::Full => todo!("full timing not yet implemented"),
+        }
     }
 }

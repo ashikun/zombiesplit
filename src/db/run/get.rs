@@ -13,6 +13,8 @@ use super::super::{
 
 /// Object for finding historic runs of interest in the database.
 pub struct Getter<'conn> {
+    /// Query used for getting a run by its number.
+    query_run_at_index: Statement<'conn>,
     /// Query used for summarising all runs logged on a game-category.
     query_all_runs: Statement<'conn>,
     /// Query used for finding all split totals for a run.
@@ -27,9 +29,28 @@ impl<'conn> Getter<'conn> {
     /// Errors if the database can't prepare a query.
     pub fn new(conn: &'conn Connection) -> Result<Self> {
         Ok(Self {
+            query_run_at_index: conn.prepare(SQL_RUN_AT_INDEX)?,
             query_all_runs: conn.prepare(SQL_ALL_RUNS)?,
             query_splits_for_run: conn.prepare(SQL_SPLITS_FOR_RUN)?,
         })
+    }
+
+    /// Gets the run at index `index` within the game-category at database ID `id`.
+    ///
+    /// # Errors
+    ///
+    /// Errors if the run can't be converted from a database row.
+    pub fn run_at(
+        &mut self,
+        id: GcID,
+        index: usize,
+    ) -> Result<Option<WithID<history::run::Summary<GcID>>>> {
+        self.query_run_at_index
+            .query_and_then(named_params![":game_category": id, ":index": index], |r| {
+                WithID::from_row(id, r)
+            })?
+            .next()
+            .transpose()
     }
 
     /// Gets summaries for each run on a given game-category ID.
@@ -106,6 +127,26 @@ impl WithID<history::run::Summary<GcID>> {
         })
     }
 }
+
+const SQL_RUN_AT_INDEX: &str = "
+SELECT run_id
+     , is_completed
+     , run.timestamp AS date
+     , SUM(time_ms)  AS total
+     , (CASE
+        WHEN is_completed = 1
+        THEN (RANK() OVER (PARTITION BY game_category_id, is_completed ORDER BY SUM(time_ms)))
+        ELSE NULL
+        END
+       ) AS rank
+  FROM run
+       INNER JOIN run_split      USING (run_id)
+       INNER JOIN run_split_time USING (run_split_id)
+ WHERE game_category_id = :game_category
+ GROUP BY run_id
+ ORDER BY run.timestamp
+ LIMIT 1
+OFFSET :index;";
 
 const SQL_ALL_RUNS: &str = "
 SELECT run_id
