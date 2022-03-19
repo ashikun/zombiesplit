@@ -64,12 +64,11 @@ impl<'h, H: Handler> Presenter<'h, H> {
     ///
     /// Any other events are handled directly.
     pub fn handle_event(&mut self, e: &event::Event) {
-        if let Some(a) = self.handle_local_event(e) {
-            // TODO(@MattWindsor91): handle this properly
-            if let Err(e) = self.action_handler.handle(a) {
-                log::error!("error handling action: {}", e.to_string());
-            }
-        }
+        match e {
+            event::Event::Action(a) => self.forward_action(*a),
+            event::Event::Modal(m) => self.handle_modal_event(*m),
+            event::Event::Quit { force } => self.quit(*force),
+        };
         // This is slightly inefficient, as we don't always change the mode when an event happens.
         self.update_mode_line();
     }
@@ -79,28 +78,36 @@ impl<'h, H: Handler> Presenter<'h, H> {
         self.state.mode = self.mode.to_string();
     }
 
-    fn handle_local_event(&mut self, e: &event::Event) -> Option<Action> {
-        match e {
-            event::Event::Action(a) => Some(*a),
-            event::Event::Modal(m) => self.handle_modal_event(*m),
-            event::Event::Quit { force } => self.quit(*force),
-        }
-    }
-
-    fn handle_modal_event(&mut self, event: mode::Event) -> Option<Action> {
+    fn handle_modal_event(&mut self, event: mode::Event) {
         let ctx = mode::event::Context {
             event,
             state: &mut self.state,
         };
-        match self.mode.on_event(ctx) {
-            mode::event::Outcome::Transition(new_mode) => self.transition_with_exit(new_mode),
-            mode::event::Outcome::Action(a) => Some(a),
-            mode::event::Outcome::Handled => None,
+        let mode::event::Outcome { actions, next_mode } = self.mode.on_event(ctx);
+        self.forward_actions(actions);
+        if let Some(new_mode) = next_mode {
+            let actions = self.mode.on_exit(&mut self.state);
+            self.mode = new_mode;
+            self.mode.on_entry(&mut self.state);
+            self.forward_actions(actions);
+        }
+    }
+
+    fn forward_actions(&mut self, xs: impl IntoIterator<Item = Action>) {
+        for x in xs {
+            self.forward_action(x);
+        }
+    }
+
+    fn forward_action(&mut self, x: Action) {
+        // TODO(@MattWindsor91): handle this properly
+        if let Err(e) = self.action_handler.handle(x) {
+            log::error!("error handling action: {}", e.to_string());
         }
     }
 
     /// Starts the process of quitting (or asking the user if they want to quit).
-    fn quit(&mut self, force: bool) -> Option<Action> {
+    fn quit(&mut self, force: bool) {
         let hard_quit: Box<dyn mode::Mode> = Box::new(mode::Quitting);
         // TODO(@MattWindsor91): fix nesting of quits within quits
         let next_state = move |s| {
@@ -109,14 +116,13 @@ impl<'h, H: Handler> Presenter<'h, H> {
             } else {
                 Box::new(mode::Decision::new(
                     &"Quit?",
-                    mode::event::Outcome::Transition(hard_quit),
-                    mode::event::Outcome::Transition(s),
+                    mode::event::Outcome::boxed_transition(hard_quit),
+                    mode::event::Outcome::boxed_transition(s),
                 ))
             }
         };
 
         self.transition_recursively(next_state);
-        None
     }
 
     fn reset(&mut self, new_attempt: &AttemptInfo) {
@@ -167,17 +173,12 @@ impl<'h, H: Handler> Presenter<'h, H> {
         if let Some(index) = self.state.index_of_split(short) {
             let mut editor = Box::new(Editor::new(index, None));
             editor.time = time;
-            self.transition_with_exit(editor);
+            let new_mode = editor;
+            let actions = self.mode.on_exit(&mut self.state);
+            self.mode = new_mode;
+            self.mode.on_entry(&mut self.state);
+            self.forward_actions(actions);
         }
-    }
-
-    /// Performs a full clean transition between two modes.
-    ///
-    /// This calls both exit and entry hooks.
-    fn transition_with_exit(&mut self, new_mode: Box<dyn mode::Mode>) -> Option<Action> {
-        let follow_on = self.mode.on_exit(&mut self.state);
-        self.transition(new_mode);
-        follow_on
     }
 
     // Performs a transition where the new mode depends on the existing one, calling the entry hook only.
@@ -185,16 +186,15 @@ impl<'h, H: Handler> Presenter<'h, H> {
         &mut self,
         new_mode_fn: impl FnOnce(Box<dyn mode::Mode>) -> Box<dyn mode::Mode>,
     ) {
+        // We can't use 'transition' here because we need to call on_exit before doing this swap
+        let actions = self.mode.on_exit(&mut self.state);
+
         // TODO(@MattWindsor91): surely there must be a better way of doing this
         let mut tmp: Box<dyn mode::Mode> = Box::new(mode::Quitting);
         std::mem::swap(&mut tmp, &mut self.mode);
-        self.transition((new_mode_fn)(tmp));
-    }
-
-    /// Performs a transition between two modes, calling the entry hook only.
-    fn transition(&mut self, new_mode: Box<dyn mode::Mode>) {
-        self.mode = new_mode;
+        self.mode = (new_mode_fn)(tmp);
         self.mode.on_entry(&mut self.state);
+        self.forward_actions(actions);
     }
 }
 

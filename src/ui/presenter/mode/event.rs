@@ -16,33 +16,44 @@ pub struct Context<'p> {
     pub state: &'p mut super::State,
 }
 
-/// Enum of results of handling an event in a mode.
-pub enum Outcome {
-    /// The event was handled internally.
-    Handled,
-    /// The event raised an action to be applied to the attempt model.
-    Action(action::Action),
-    /// The event caused a transition to another mode.
-    Transition(Box<dyn Mode>),
-}
-
-impl Default for Outcome {
-    fn default() -> Self {
-        Outcome::Handled
-    }
+/// The result of handling an event in a mode.
+#[derive(Default)]
+pub struct Outcome {
+    /// Any actions to send to the session.
+    pub actions: Vec<action::Action>,
+    /// Any new mode to transition into.
+    pub next_mode: Option<Box<dyn Mode>>,
 }
 
 impl Outcome {
     /// Shorthand for creating a transition.
     #[must_use]
     pub fn transition(to: impl Mode + 'static) -> Self {
-        Self::Transition(Box::new(to))
+        Self::boxed_transition(Box::new(to))
+    }
+
+    /// Shorthand for creating a boxed transition.
+    #[must_use]
+    pub fn boxed_transition(to: Box<dyn Mode>) -> Self {
+        Outcome {
+            actions: vec![],
+            next_mode: Some(to),
+        }
+    }
+
+    /// Shorthand for creating a single action.
+    #[must_use]
+    pub fn action(a: action::Action) -> Self {
+        Outcome {
+            actions: vec![a],
+            next_mode: None,
+        }
     }
 
     /// Shorthand for creating a pop.
     #[must_use]
     pub fn pop(index: usize, ty: action::Pop) -> Self {
-        Self::Action(action::Action::Pop(index, ty))
+        Self::action(action::Action::Pop(index, ty))
     }
 }
 

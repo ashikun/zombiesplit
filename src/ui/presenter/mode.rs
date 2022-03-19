@@ -6,12 +6,13 @@ pub mod event;
 pub mod nav;
 pub mod quitting;
 
+use std::fmt::Display;
+
 pub use decision::Decision;
 pub use editor::Editor;
 pub use event::Event;
 pub use nav::Nav;
 pub use quitting::Quitting;
-use std::fmt::Display;
 
 use super::State;
 use crate::model::session::action;
@@ -49,9 +50,9 @@ pub trait Mode: Display {
     /// Called when the mode is about to be swapped out.
     ///
     /// The [Mode] can perform any last-minute adjustments to the visual
-    /// `state`, and optionally return a follow-on [Action] representing the
+    /// `state`, and optionally return follow-on [Action]s representing the
     /// application of this mode's efforts to the model.
-    fn on_exit(&mut self, state: &mut State) -> Option<action::Action>;
+    fn on_exit(&mut self, state: &mut State) -> Vec<action::Action>;
 
     /// Is the client running while this mode is active?
     fn is_running(&self) -> bool {

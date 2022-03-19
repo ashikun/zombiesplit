@@ -46,7 +46,7 @@ impl Mode for Editor {
             event::Event::Edit(d) => self.edit(d),
             event::Event::EnterField(f) => self.enter_field(f),
             event::Event::Cursor(c) => move_cursor(c, ctx.state),
-            _ => event::Outcome::Handled,
+            _ => event::Outcome::default(),
         };
         // TODO(@MattWindsor91): this is suboptimal; we should only modify the
         // specific parts changed by the event.
@@ -54,13 +54,13 @@ impl Mode for Editor {
         result
     }
 
-    fn on_exit(&mut self, state: &mut State) -> Option<session::Action> {
+    fn on_exit(&mut self, state: &mut State) -> Vec<session::Action> {
         self.commit_field();
         state.set_editor(self.index, None);
-        Some(session::Action::Push(
+        vec![session::Action::Push(
             self.index,
             std::mem::take(&mut self.time),
-        ))
+        )]
     }
 }
 
@@ -80,14 +80,14 @@ impl Editor {
     pub fn enter_field(&mut self, field: time::Position) -> event::Outcome {
         self.commit_field();
         self.field = Some(Field::new(field));
-        event::Outcome::Handled
+        event::Outcome::default()
     }
 
     fn edit(&mut self, e: event::Edit) -> event::Outcome {
         if let Some(f) = self.field.as_mut() {
             f.edit(e);
         }
-        event::Outcome::Handled
+        event::Outcome::default()
     }
 
     fn undo(&mut self) -> event::Outcome {
@@ -95,7 +95,7 @@ impl Editor {
         if self.field.take().is_none() {
             self.time = time::Time::default();
         }
-        event::Outcome::Handled
+        event::Outcome::default()
     }
 
     fn delete(&mut self) -> event::Outcome {

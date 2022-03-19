@@ -16,10 +16,10 @@ impl Mode for Quitting {
     fn on_entry(&mut self, _state: &mut State) {}
 
     fn on_event(&mut self, _ctx: event::Context) -> event::Outcome {
-        event::Outcome::Handled
+        event::Outcome::default()
     }
 
-    fn on_exit(&mut self, _state: &mut State) -> Option<session::Action> {
+    fn on_exit(&mut self, _state: &mut State) -> Vec<session::Action> {
         unreachable!("should not be able to exit out of the Quitting state")
     }
 

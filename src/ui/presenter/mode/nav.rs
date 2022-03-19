@@ -29,13 +29,13 @@ impl Mode for Nav {
             event::Event::EnterField(f) => enter_field(state.cursor_position(), f),
             event::Event::Undo => event::Outcome::pop(state.cursor_position(), action::Pop::One),
             event::Event::Delete => event::Outcome::pop(state.cursor_position(), action::Pop::All),
-            _ => event::Outcome::Handled,
+            _ => event::Outcome::default(),
         }
     }
 
-    fn on_exit(&mut self, _state: &mut crate::ui::presenter::State) -> Option<action::Action> {
+    fn on_exit(&mut self, _state: &mut crate::ui::presenter::State) -> Vec<action::Action> {
         // Don't clear the cursor, it'll probably be used by the new state.
-        None
+        vec![]
     }
 }
 
@@ -51,7 +51,7 @@ impl Nav {
 fn move_cursor(motion: cursor::Motion, state: &mut super::super::State) -> event::Outcome {
     // TODO(@MattWindsor91): cursor multiplier
     state.move_cursor_by(motion, 1);
-    event::Outcome::Handled
+    event::Outcome::default()
 }
 
 /// Constructs an editor entering the given index and field.

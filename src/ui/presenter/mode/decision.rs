@@ -51,11 +51,11 @@ impl Mode for Decision {
         match ctx.event {
             event::Event::Decision(true) => self.when_yes.take().unwrap_or_default(),
             event::Event::Decision(false) => self.when_no.take().unwrap_or_default(),
-            _ => event::Outcome::Handled,
+            _ => event::Outcome::default(),
         }
     }
 
-    fn on_exit(&mut self, _state: &mut State) -> Option<session::Action> {
-        None
+    fn on_exit(&mut self, _state: &mut State) -> Vec<session::Action> {
+        vec![]
     }
 }
