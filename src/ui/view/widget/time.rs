@@ -1,25 +1,24 @@
 //! Structures common to time displaying widgets.
 
-use super::{
-    super::gfx::{
-        colour, font,
-        metrics::{Anchor, Length, Rect, Size},
-        Renderer, Result, Writer,
-    },
-    layout,
-};
-use crate::model::timing::time::{self, format::Component};
-use crate::ui::view::layout::Context;
 use std::{
     fmt::{Display, Write},
     ops::Index,
+};
+use ugly::metrics;
+
+use super::{
+    super::{
+        super::super::model::timing::time::{self, format::Component},
+        gfx::{colour, font, Renderer},
+    },
+    layout,
 };
 
 /// Layout information for a general time widget.
 #[derive(Debug, Default, Clone)]
 pub struct Layout {
     /// Bounding box of the layout.
-    bounds: Rect,
+    bounds: metrics::Rect,
 
     /// Font used for the time display.
     pub font_id: font::Id,
@@ -29,8 +28,8 @@ pub struct Layout {
 }
 
 impl layout::Layoutable for Layout {
-    fn min_bounds(&self, parent_ctx: Context) -> Size {
-        let fm = &parent_ctx.font_metrics[self.font_id];
+    fn min_bounds(&self, parent_ctx: layout::Context) -> metrics::Size {
+        let fm = &parent_ctx.font_metrics(self.font_id);
         let raw: i32 = parent_ctx
             .config
             .time
@@ -38,13 +37,13 @@ impl layout::Layoutable for Layout {
             .map(|pos| position_width(fm, *pos) + fm.pad.w)
             .sum();
         // fix off by one from above padding
-        Size {
+        metrics::Size {
             w: raw - fm.pad.w,
             h: fm.span_h(1),
         }
     }
 
-    fn actual_bounds(&self) -> Size {
+    fn actual_bounds(&self) -> metrics::Size {
         self.bounds.size
     }
 
@@ -57,18 +56,18 @@ impl layout::Layoutable for Layout {
 
 impl Layout {
     fn update_positions(&mut self, ctx: layout::Context) {
-        let fm = &ctx.font_metrics[self.font_id];
+        let fm = &ctx.font_metrics(self.font_id);
 
         let mut point = self.bounds.top_left;
 
         self.positions.clear();
 
         for component in ctx.config.time.components() {
-            let size = Size {
+            let size = metrics::Size {
                 w: position_width(fm, *component),
                 h: fm.span_h(1),
             };
-            let rect = point.to_rect(size, Anchor::TOP_LEFT);
+            let rect = point.to_rect(size, metrics::Anchor::TOP_LEFT);
             self.positions.push(Position {
                 component: *component,
                 rect,
@@ -89,8 +88,8 @@ impl Layout {
         r: &mut impl Renderer,
         time: Option<&T>,
         colour: &Colour,
-    ) -> Result<()> {
-        let mut w = Writer::new(r).with_font_id(self.font_id);
+    ) -> ugly::Result<()> {
+        let mut w = ugly::text::Writer::new(r).with_font_id(self.font_id);
 
         try_fill(&mut w, self.bounds, colour.base)?;
 
@@ -119,7 +118,7 @@ impl Layout {
     }
 }
 
-fn try_fill(r: &mut impl Renderer, rect: Rect, colour: colour::Pair) -> Result<()> {
+fn try_fill(r: &mut impl Renderer, rect: metrics::Rect, colour: colour::Pair) -> ugly::Result<()> {
     if let Some(bg) = colour.bg {
         r.fill(rect.grow(1), bg)?;
     }
@@ -127,7 +126,7 @@ fn try_fill(r: &mut impl Renderer, rect: Rect, colour: colour::Pair) -> Result<(
 }
 
 /// Calculates the width of a position in a time widget, excluding any padding.
-fn position_width(metrics: &font::Metrics, c: Component) -> Length {
+fn position_width(metrics: &ugly::font::Metrics, c: Component) -> metrics::Length {
     match c {
         Component::Position { width, .. } => metrics.span_w(width.try_into().unwrap_or_default()),
         Component::Delimiter(c) => metrics.span_w_char(c),
@@ -140,7 +139,7 @@ struct Position {
     /// The component that has been positioned.
     component: time::format::Component,
     /// The bounding box created for the component.
-    rect: Rect,
+    rect: metrics::Rect,
 }
 
 /// Time colouring information.

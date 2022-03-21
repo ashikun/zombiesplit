@@ -1,22 +1,20 @@
-/*! Theme support for the zombiesplit UI.
+//! Theme support for the zombiesplit UI.
+//!
+//! A theme consists of a directory containing a palette and a set of fonts, which override the
+//! default theme.
 
-A theme consists of a directory containing a palette and a set of fonts, which override the default
-theme.
-*/
-use super::super::gfx::{colour, font};
-use crate::model::Loadable;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
+
+use super::super::gfx::{colour, font};
 
 /// Theme configuration.
 #[derive(Clone, Debug)]
 pub struct Theme {
     /// Colour set.
-    pub colours: colour::Set,
+    pub colours: colour::Palette,
     /// Font path configuration.
-    pub font_paths: font::Map<font::map::Path>,
-    /// Font metric configuration.
-    pub font_metrics: font::Map<font::Metrics>,
+    pub font_paths: font::PathMap,
 }
 
 impl Theme {
@@ -29,7 +27,7 @@ impl Theme {
     ///
     /// Fails if the base assets are not reachable from `asset_path`, or are malformed.
     pub fn base(asset_path: &std::path::Path) -> Result<Self> {
-        Self::new(colour::Set::default(), &font::Map::new(asset_path))
+        Self::new(colour::defaults(), &font::pathmap(asset_path))
     }
 
     /// Constructs a theme with `colours`, `font_paths`, and the metrics loadable via `font_paths`.
@@ -37,11 +35,10 @@ impl Theme {
     /// # Errors
     ///
     /// Fails if the font metrics are not available for the fonts at `font_paths`.
-    pub fn new(colours: colour::Set, font_paths: &font::Map<font::map::Path>) -> Result<Self> {
+    pub fn new(colours: colour::Palette, font_paths: &font::PathMap) -> Result<Self> {
         Ok(Theme {
             colours,
             font_paths: font_paths.clone(),
-            font_metrics: font_paths.metrics()?,
         })
     }
 }
@@ -70,22 +67,25 @@ impl<'p> LoadPathset<'p> {
         }
     }
 
-    fn load_colours(&self) -> Result<colour::Set> {
-        let palette_file = theme_file(self.theme, "palette.toml");
-        palette_file
-            .is_file()
-            .then(|| Ok(colour::Set::from_toml_file(palette_file)?))
-            .unwrap_or_else(|| Ok(colour::Set::default()))
+    fn load_colours(&self) -> Result<colour::Palette> {
+        let mut palette = colour::defaults();
+        palette.merge(&self.load_user_colours()?);
+        Ok(palette)
     }
 
-    fn resolve_font_paths(&self) -> font::Map<font::map::Path> {
-        let mut paths = font::Map::new(self.base);
-        let theme_paths = font::Map::new(self.theme);
+    fn load_user_colours(&self) -> Result<colour::Palette> {
+        let palette_file = theme_file(self.theme, "palette.ron");
+        Ok(if palette_file.is_file() {
+            colour::load_ron(palette_file)?
+        } else {
+            colour::Palette::default()
+        })
+    }
 
-        for (i, p) in theme_paths.into_iter().filter(|(_, x)| x.0.is_dir()) {
-            paths[i] = p;
-        }
-
+    fn resolve_font_paths(&self) -> font::PathMap {
+        let mut paths = font::pathmap(self.base);
+        let theme_paths = font::pathmap(self.theme);
+        paths.extend(theme_paths.into_iter().filter(|(_, x)| x.0.is_dir()));
         paths
     }
 }
@@ -104,10 +104,10 @@ pub enum Error {
     NotADir(std::path::PathBuf),
     /// The palette could not be deserialised.
     #[error("Could not load palette")]
-    BadPalette(#[from] crate::model::load::Error),
+    BadPalette(#[from] colour::Error),
     /// One of the fonts could not be loaded.
     #[error("Could not load font")]
-    BadFont(#[from] font::Error),
+    BadFont(#[from] ugly::font::Error),
 }
 
 /// Shorthand for results over [Error].

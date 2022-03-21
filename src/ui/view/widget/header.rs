@@ -1,9 +1,10 @@
 //! Header display.
+use ugly::metrics;
 
 use super::{
     super::{
         super::presenter::State,
-        gfx::{self, colour, font, metrics, Renderer},
+        gfx::{colour, font, Renderer},
         layout,
     },
     label::Label,
@@ -82,7 +83,7 @@ impl layout::Layoutable for Widget {
 impl<R: Renderer> super::Widget<R> for Widget {
     type State = State;
 
-    fn render(&self, r: &mut R, s: &Self::State) -> gfx::Result<()> {
+    fn render(&self, r: &mut R, s: &Self::State) -> ugly::Result<()> {
         self.name.render(r, &s.game_category.game)?;
         self.category.render(r, &s.game_category.category)?;
         self.attempts.render_extended(r, &s.attempt, None)?;

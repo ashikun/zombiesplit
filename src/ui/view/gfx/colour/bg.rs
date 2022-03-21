@@ -1,10 +1,10 @@
 //! Background colour sets and IDs.
 
-use super::definition::{Colour, EGA};
 use serde::{Deserialize, Serialize};
+use ugly::colour;
 
 /// Background colour IDs.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Id {
     /// The main window colour.
     Window,
@@ -16,41 +16,17 @@ pub enum Id {
     Status,
 }
 
-/// A set of background colours.
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
-#[serde(default)]
-pub struct Set {
-    /// Main background colour.
-    pub window: Colour,
-    /// Background for the split editor.
-    pub editor: Colour,
-    /// Background for the field editor.
-    pub editor_field: Colour,
-    /// Background for the status bar.
-    pub status: Colour,
-}
+impl ugly::colour::id::Bg for Id {}
 
 /// Provides default background colours.
-impl Default for Set {
-    fn default() -> Self {
-        Self {
-            window: EGA.dark.black,
-            editor: EGA.dark.blue,
-            editor_field: EGA.dark.cyan,
-            status: EGA.dark.white,
-        }
-    }
-}
-
-impl Set {
-    /// Gets a background colour by its ID.
-    #[must_use]
-    pub fn get(&self, id: Id) -> Colour {
-        match id {
-            Id::Window => self.window,
-            Id::Editor => self.editor,
-            Id::FieldEditor => self.editor_field,
-            Id::Status => self.status,
-        }
-    }
+#[must_use]
+pub fn defaults() -> colour::Map<Id> {
+    [
+        (Id::Window, colour::definition::EGA.dark.black),
+        (Id::Editor, colour::definition::EGA.dark.blue),
+        (Id::FieldEditor, colour::definition::EGA.dark.cyan),
+        (Id::Status, colour::definition::EGA.dark.white),
+    ]
+    .into_iter()
+    .collect()
 }

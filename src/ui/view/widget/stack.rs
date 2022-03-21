@@ -1,7 +1,8 @@
 //! Stacking widgets.
 
+use ugly::metrics;
+
 use super::{
-    super::gfx::metrics,
     layout::{self, Layoutable},
     Widget,
 };
@@ -77,7 +78,7 @@ impl<W: Layoutable> Layoutable for Stack<W> {
 impl<R, S, W: Widget<R, State = S>> Widget<R> for Stack<W> {
     type State = S;
 
-    fn render(&self, r: &mut R, s: &Self::State) -> crate::ui::view::gfx::Result<()> {
+    fn render(&self, r: &mut R, s: &Self::State) -> ugly::Result<()> {
         self.contents.iter().try_for_each(|c| c.render(r, s))
     }
 }
@@ -203,7 +204,7 @@ impl<W: Layoutable> Layoutable for Entry<W> {
 impl<R, S, W: Widget<R, State = S>> Widget<R> for Entry<W> {
     type State = S;
 
-    fn render(&self, r: &mut R, s: &Self::State) -> crate::ui::view::gfx::Result<()> {
+    fn render(&self, r: &mut R, s: &Self::State) -> ugly::Result<()> {
         if self.visible {
             self.widget.render(r, s)?;
         }

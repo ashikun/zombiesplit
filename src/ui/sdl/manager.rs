@@ -1,22 +1,22 @@
 //! The [Manager] struct.
 
-use std::cell::RefCell;
-
 use super::{
     super::{
         error::{Error, Result},
         view,
     },
-    event, font, metrics, Renderer,
+    event,
 };
 
 /// Manages top-level SDL resources.
 pub struct Manager<'c> {
     sdl: sdl2::Sdl,
-    screen: RefCell<sdl2::render::Canvas<sdl2::video::Window>>,
-    textures: sdl2::render::TextureCreator<sdl2::video::WindowContext>,
-    /// The configured theme (fonts and colours), which is borrowing parts of a config file.
-    cfg: &'c view::config::theme::Theme,
+    gfx: ugly::backends::sdl::Manager<
+        'c,
+        view::gfx::font::Id,
+        view::gfx::colour::fg::Id,
+        view::gfx::colour::bg::Id,
+    >,
 }
 
 impl<'c> Manager<'c> {
@@ -29,21 +29,22 @@ impl<'c> Manager<'c> {
     pub fn new(cfg: &'c view::Config) -> Result<Self> {
         let sdl = sdl2::init().map_err(Error::Init)?;
         let video = sdl.video().map_err(Error::Init)?;
-        let window = make_window(&video, cfg.layout.window)?;
+        let window = make_window(&video, cfg.layout.window.size)?;
         let screen = window.into_canvas().build().map_err(Error::SdlInteger)?;
-        let textures = screen.texture_creator();
-        Ok(Self {
-            sdl,
-            screen: RefCell::new(screen),
-            textures,
-            cfg: &cfg.theme,
-        })
+        let gfx =
+            ugly::backends::sdl::Manager::new(screen, &cfg.theme.font_paths, &cfg.theme.colours);
+        Ok(Self { sdl, gfx })
     }
 }
 
 impl<'r, 'c> super::super::Manager<'r> for Manager<'c> {
     type Pump = event::Pump;
-    type Renderer = Renderer<'r>;
+    type Renderer = ugly::backends::sdl::Renderer<
+        'r,
+        view::gfx::font::Id,
+        view::gfx::colour::fg::Id,
+        view::gfx::colour::bg::Id,
+    >;
 
     /// Spawns an event pump using the SDL event pump.
     ///
@@ -62,18 +63,8 @@ impl<'r, 'c> super::super::Manager<'r> for Manager<'c> {
     /// # Errors
     ///
     /// Returns an error if the font metrics are nonsensical.
-    fn renderer(&'r self) -> Result<Renderer<'r>> {
-        let font_manager = font::Manager::new(
-            &self.textures,
-            &self.cfg.font_paths,
-            self.cfg.font_metrics.clone(),
-            &self.cfg.colours.fg,
-        );
-        Ok(Renderer::new(
-            self.screen.borrow_mut(),
-            font_manager,
-            &self.cfg.colours,
-        ))
+    fn renderer(&'r self) -> Result<Self::Renderer> {
+        Ok(self.gfx.renderer()?)
     }
 }
 
@@ -84,14 +75,11 @@ impl<'r, 'c> super::super::Manager<'r> for Manager<'c> {
 /// Returns an error if SDL fails to make the window.
 fn make_window(
     video: &sdl2::VideoSubsystem,
-    wmetrics: view::gfx::metrics::Window,
+    size: ugly::metrics::Size,
 ) -> Result<sdl2::video::Window> {
+    let (w, h) = ugly::backends::sdl::metrics::convert_size(&size);
     let window = video
-        .window(
-            "zombiesplit",
-            metrics::u32_or_zero(wmetrics.win_w),
-            metrics::u32_or_zero(wmetrics.win_h),
-        )
+        .window("zombiesplit", w, h)
         .position_centered()
         .resizable()
         .build()

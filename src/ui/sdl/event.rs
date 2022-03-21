@@ -51,7 +51,7 @@ fn from_sdl(e: &sdl2::event::Event, keymap: &Keymap) -> Option<Event> {
         sdl2::event::Event::Window {
             win_event: sdl2::event::WindowEvent::SizeChanged(w, h),
             ..
-        } => Some(Event::View(view::Event::Resize(view::gfx::metrics::Size {
+        } => Some(Event::View(view::Event::Resize(ugly::metrics::Size {
             w: *w,
             h: *h,
         }))),

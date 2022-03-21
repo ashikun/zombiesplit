@@ -1,13 +1,10 @@
 //! Label widgets.
 
+use ugly::metrics;
+
 use super::{
     super::{
-        gfx::{
-            colour, font,
-            metrics::{anchor, Point, Rect, Size},
-            render::Renderer,
-            Result, Writer,
-        },
+        gfx::{colour, font, Renderer},
         layout::{Context, Layoutable},
     },
     Widget,
@@ -18,7 +15,7 @@ use std::fmt::Write;
 #[derive(Clone)]
 pub struct Label {
     /// The most recently computed bounding box for the label.
-    bounds: Rect,
+    bounds: metrics::Rect,
 
     /// The font spec for the label.
     pub font_spec: font::Spec,
@@ -27,7 +24,7 @@ pub struct Label {
     pub min_chars: u8,
 
     /// The horizontal alignment of the label.
-    pub align: anchor::X,
+    pub align: metrics::anchor::X,
 }
 
 impl Label {
@@ -35,15 +32,15 @@ impl Label {
     #[must_use]
     pub fn new(font_spec: font::Spec) -> Self {
         Self {
-            bounds: Rect::default(),
+            bounds: metrics::Rect::default(),
             font_spec,
             min_chars: 0,
-            align: anchor::X::Left,
+            align: metrics::anchor::X::Left,
         }
     }
 
     /// Sets the alignment of the label.
-    pub fn align(mut self, to: anchor::X) -> Self {
+    pub fn align(mut self, to: metrics::anchor::X) -> Self {
         self.align = to;
         self
     }
@@ -62,18 +59,18 @@ impl Label {
         r: &mut impl Renderer,
         str: impl std::fmt::Display,
         colour: impl Into<Option<colour::fg::Id>>,
-    ) -> Result<()> {
-        let mut w = Writer::new(r)
+    ) -> ugly::Result<()> {
+        let mut w = ugly::text::Writer::new(r)
             .with_pos(self.writer_pos())
             .with_font(self.override_font(colour))
             .align(self.align);
         Ok(write!(w, "{}", str)?)
     }
 
-    fn writer_pos(&self) -> Point {
-        self.bounds.anchor(anchor::Anchor {
+    fn writer_pos(&self) -> metrics::Point {
+        self.bounds.anchor(metrics::anchor::Anchor {
             x: self.align,
-            y: anchor::Y::Top,
+            y: metrics::anchor::Y::Top,
         })
     }
 
@@ -85,11 +82,13 @@ impl Label {
 }
 
 impl Layoutable for Label {
-    fn min_bounds(&self, parent_ctx: Context) -> Size {
-        parent_ctx.font_metrics[self.font_spec.id].text_size(i32::from(self.min_chars), 1)
+    fn min_bounds(&self, parent_ctx: Context) -> metrics::Size {
+        parent_ctx
+            .font_metrics(self.font_spec.id)
+            .text_size(i32::from(self.min_chars), 1)
     }
 
-    fn actual_bounds(&self) -> Size {
+    fn actual_bounds(&self) -> metrics::Size {
         self.bounds.size
     }
 
@@ -101,7 +100,7 @@ impl Layoutable for Label {
 impl<R: Renderer> Widget<R> for Label {
     type State = str;
 
-    fn render(&self, r: &mut R, s: &Self::State) -> Result<()> {
+    fn render(&self, r: &mut R, s: &Self::State) -> ugly::Result<()> {
         self.render_extended(r, s, None)
     }
 }

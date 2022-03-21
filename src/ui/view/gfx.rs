@@ -1,16 +1,13 @@
-/*! Low-ish graphics primitives and traits used by the zombiesplit UI.
-
-This module contains traits used for low-level rendering (implemented by UI
-backends such as SDL), as well as concepts such as colours, fonts, and metrics.
-*/
-
-pub use error::{Error, Result};
-pub use render::Renderer;
-pub use writer::Writer;
+//! Types used for interfacing with `ugly`.
+//!
+//! `ugly` is the backend `zombiesplit` uses to do text rendering and other such UI things.
+//! It maintains fonts and colour palettes, and this module contains the particular identifiers we
+//! use for those (as well as the default colour palettes).
 
 pub mod colour;
-pub mod error;
 pub mod font;
-pub mod metrics; // for now
-pub mod render;
-pub mod writer;
+
+/// Shorthand for the type of renderer that `zombiesplit` uses.
+pub trait Renderer: ugly::render::Renderer<font::Id, colour::fg::Id, colour::bg::Id> {}
+
+impl<R: ugly::render::Renderer<font::Id, colour::fg::Id, colour::bg::Id>> Renderer for R {}

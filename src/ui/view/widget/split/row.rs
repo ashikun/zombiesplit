@@ -1,16 +1,12 @@
 //! Sub-widget for rendering a split row.
 
-use crate::model::timing::aggregate::{Scope, Source};
-use crate::ui::presenter::state::editor;
 use std::fmt::Write;
+use ugly::metrics;
 
 use super::super::{
     super::{
-        gfx::{
-            self, colour, font,
-            metrics::{Anchor, Point, Rect, Size},
-            Renderer, Writer,
-        },
+        super::super::model::timing::aggregate::{Scope, Source},
+        gfx::{colour, font, Renderer},
         layout::{self, Layoutable},
         presenter::state,
     },
@@ -22,13 +18,13 @@ use super::super::{
 #[derive(Clone)]
 pub struct Row {
     /// Outer bounding box used for the widget.
-    bounds: Rect,
+    bounds: metrics::Rect,
     /// Inner, padded, bounding box used for the widget.
-    rect: Rect,
+    rect: metrics::Rect,
     /// The name label.
     name: Label,
     /// Top-left coordinate of the attempt count.
-    attempt_count_top_left: Point,
+    attempt_count_top_left: metrics::Point,
     /// Layout information for the timer.
     time: time::Layout,
 }
@@ -36,10 +32,10 @@ pub struct Row {
 impl Default for Row {
     fn default() -> Self {
         Self {
-            bounds: Rect::default(),
-            rect: Rect::default(),
+            bounds: metrics::Rect::default(),
+            rect: metrics::Rect::default(),
             name: Label::new(NAME_FONT_SPEC).min_chars(NAME_MIN_CHARS),
-            attempt_count_top_left: Point::default(),
+            attempt_count_top_left: metrics::Point::default(),
             time: time::Layout::default(),
         }
     }
@@ -52,10 +48,10 @@ const NAME_FONT_SPEC: font::Spec = font::Spec {
 const NAME_MIN_CHARS: u8 = 10;
 
 impl Layoutable for Row {
-    fn min_bounds(&self, parent_ctx: layout::Context) -> Size {
-        Size::stack_horizontally(
+    fn min_bounds(&self, parent_ctx: layout::Context) -> metrics::Size {
+        metrics::Size::stack_horizontally(
             name_size(parent_ctx),
-            Size::stack_horizontally(
+            metrics::Size::stack_horizontally(
                 attempt_count_size(parent_ctx),
                 self.time.min_bounds(parent_ctx),
             ),
@@ -63,7 +59,7 @@ impl Layoutable for Row {
         .grow(2 * parent_ctx.config.window.padding)
     }
 
-    fn actual_bounds(&self) -> Size {
+    fn actual_bounds(&self) -> metrics::Size {
         self.bounds.size
     }
 
@@ -77,7 +73,9 @@ impl Layoutable for Row {
         let time_rect = self.time_display_rect(ctx);
         self.time.layout(ctx.with_bounds(time_rect));
 
-        let attempt_offset = ctx.font_metrics[font::Id::Small].span_w(-ATTEMPT_COUNT_LENGTH);
+        let attempt_offset = ctx
+            .font_metrics(font::Id::Small)
+            .span_w(-ATTEMPT_COUNT_LENGTH);
         self.attempt_count_top_left = time_rect.top_left.offset(attempt_offset, 0);
     }
 }
@@ -86,7 +84,7 @@ impl Layoutable for Row {
 impl<R: Renderer> Widget<R> for Row {
     type State = state::Split;
 
-    fn render(&self, r: &mut R, s: &Self::State) -> gfx::Result<()> {
+    fn render(&self, r: &mut R, s: &Self::State) -> ugly::Result<()> {
         self.draw_name(r, s)?;
         self.draw_num_times(r, s)?;
         self.draw_time_display(r, s)?;
@@ -95,12 +93,12 @@ impl<R: Renderer> Widget<R> for Row {
 }
 
 impl Row {
-    fn draw_name(&self, r: &mut impl Renderer, state: &state::Split) -> gfx::Result<()> {
+    fn draw_name(&self, r: &mut impl Renderer, state: &state::Split) -> ugly::Result<()> {
         let colour = colour::fg::Id::Name(state.position);
         self.name.render_extended(r, &state.name, colour)
     }
 
-    fn draw_time_display(&self, r: &mut impl Renderer, state: &state::Split) -> gfx::Result<()> {
+    fn draw_time_display(&self, r: &mut impl Renderer, state: &state::Split) -> ugly::Result<()> {
         if let Some(ref e) = state.editor {
             self.draw_editor(r, e)
         } else {
@@ -108,7 +106,7 @@ impl Row {
         }
     }
 
-    fn draw_editor(&self, r: &mut impl Renderer, e: &editor::Editor) -> gfx::Result<()> {
+    fn draw_editor(&self, r: &mut impl Renderer, e: &state::editor::Editor) -> ugly::Result<()> {
         let field = e.field.map(|field| time::FieldColour {
             field,
             colour: colour::Pair {
@@ -126,7 +124,7 @@ impl Row {
         self.time.render(r, Some(e), &col)
     }
 
-    fn draw_time(&self, r: &mut impl Renderer, state: &state::Split) -> gfx::Result<()> {
+    fn draw_time(&self, r: &mut impl Renderer, state: &state::Split) -> ugly::Result<()> {
         self.time.render(
             r,
             Some(time_to_display(state)),
@@ -134,20 +132,20 @@ impl Row {
         )
     }
 
-    fn time_display_rect(&self, ctx: layout::Context) -> Rect {
+    fn time_display_rect(&self, ctx: layout::Context) -> metrics::Rect {
         self.rect
-            .anchor(Anchor::TOP_RIGHT)
-            .to_rect(self.time.min_bounds(ctx), Anchor::TOP_RIGHT)
+            .anchor(metrics::Anchor::TOP_RIGHT)
+            .to_rect(self.time.min_bounds(ctx), metrics::Anchor::TOP_RIGHT)
     }
 
-    fn name_rect(&self, ctx: layout::Context) -> Rect {
+    fn name_rect(&self, ctx: layout::Context) -> metrics::Rect {
         let mut r = self.rect;
         r.size.h = self.name.min_bounds(ctx).h;
         r
     }
 
-    fn draw_num_times(&self, r: &mut dyn Renderer, state: &state::Split) -> gfx::Result<()> {
-        let mut w = Writer::new(r)
+    fn draw_num_times(&self, r: &mut impl Renderer, state: &state::Split) -> ugly::Result<()> {
+        let mut w = ugly::text::Writer::new(r)
             .with_pos(self.attempt_count_top_left)
             .with_font(font::Id::Small.coloured(colour::fg::Id::Normal)); // for now
         write!(w, "{}x", state.times.len())?;
@@ -155,12 +153,14 @@ impl Row {
     }
 }
 
-fn name_size(parent_ctx: layout::Context) -> Size {
-    parent_ctx.font_metrics[font::Id::Medium].text_size(0, 1)
+fn name_size(parent_ctx: layout::Context) -> metrics::Size {
+    parent_ctx.font_metrics(font::Id::Medium).text_size(0, 1)
 }
 
-fn attempt_count_size(parent_ctx: layout::Context) -> Size {
-    parent_ctx.font_metrics[font::Id::Small].text_size(ATTEMPT_COUNT_LENGTH, 1)
+fn attempt_count_size(parent_ctx: layout::Context) -> metrics::Size {
+    parent_ctx
+        .font_metrics(font::Id::Small)
+        .text_size(ATTEMPT_COUNT_LENGTH, 1)
 }
 
 // TODO(@MattWindsor91): de-hardcode this

@@ -1,6 +1,7 @@
 //! Traits and objects relating to layout.
 
-use super::gfx::{font, metrics};
+use super::gfx::font;
+use ugly::metrics;
 
 /// Trait for things that can be laid out into the space defined by a context.
 ///
@@ -36,7 +37,7 @@ pub struct Context<'m> {
     /// A source of font metrics.
     ///
     /// This can be used for working out how large a piece of text might be.
-    pub font_metrics: &'m font::Map<font::Metrics>,
+    pub font_metrics: &'m ugly::font::metrics::Map<font::Id>,
 }
 
 impl<'m> Context<'m> {
@@ -57,5 +58,11 @@ impl<'m> Context<'m> {
     #[must_use]
     pub fn pad_size(&self, size: metrics::Size) -> metrics::Size {
         size.grow(self.config.window.padding * 2)
+    }
+
+    /// Gets a copy of the font metrics for `font`.
+    #[must_use]
+    pub fn font_metrics(&self, font: super::gfx::font::Id) -> ugly::font::Metrics {
+        self.font_metrics.get(&font).cloned().unwrap_or_default()
     }
 }

@@ -1,5 +1,6 @@
 //! The cursor struct and associated functionality.
 
+use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 
 /// A bounded cursor.
@@ -130,7 +131,7 @@ pub enum Motion {
 }
 
 /// Relative positions of splits to cursors.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum SplitPosition {
     /// This split is before the cursor.
     Done,

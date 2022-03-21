@@ -2,12 +2,11 @@
 
 mod row;
 
+use ugly::metrics;
+
 use super::super::{
     super::presenter::state::State,
-    gfx::{
-        metrics::{Anchor, Length, Rect, Size},
-        Renderer, Result,
-    },
+    gfx::Renderer,
     layout::{self, Layoutable},
 };
 
@@ -15,21 +14,21 @@ use super::super::{
 #[derive(Default)]
 pub struct Widget {
     /// The outer bounding box used for the widget.
-    bounds: Rect,
+    bounds: metrics::Rect,
     /// The inner, padded, bounding box used for the widget.
-    rect: Rect,
+    rect: metrics::Rect,
     /// The split drawer set, containing enough drawers for one layout.
     rows: Vec<row::Row>,
 }
 
 impl Layoutable for Widget {
-    fn min_bounds(&self, _parent_ctx: layout::Context) -> Size {
+    fn min_bounds(&self, _parent_ctx: layout::Context) -> metrics::Size {
         // Splitsets fill in any of the space remaining after the header/footer/etc, so there is
         // no minimum bounds.
-        Size::default()
+        metrics::Size::default()
     }
 
-    fn actual_bounds(&self) -> Size {
+    fn actual_bounds(&self) -> metrics::Size {
         self.bounds.size
     }
 
@@ -45,7 +44,7 @@ impl Layoutable for Widget {
 impl<R: Renderer> super::Widget<R> for Widget {
     type State = State;
 
-    fn render(&self, r: &mut R, s: &Self::State) -> Result<()> {
+    fn render(&self, r: &mut R, s: &Self::State) -> ugly::Result<()> {
         let iter = SplitIndexIter::new(self.rows.len(), s.num_splits(), s.cursor_position());
 
         for (i, row) in iter.zip(self.rows.iter()) {
@@ -77,10 +76,14 @@ fn rows(ctx: layout::Context) -> Vec<row::Row> {
         .collect()
 }
 
-fn row_bounds(ctx: layout::Context, split_h: Length, ix: Length) -> Rect {
-    Rect {
-        top_left: ctx.bounds.point(0, ix * split_h, Anchor::TOP_LEFT),
-        size: Size {
+fn row_bounds(
+    ctx: layout::Context,
+    split_h: metrics::Length,
+    ix: metrics::Length,
+) -> metrics::Rect {
+    metrics::Rect {
+        top_left: ctx.bounds.point(0, ix * split_h, metrics::Anchor::TOP_LEFT),
+        size: metrics::Size {
             w: ctx.bounds.size.w,
             h: split_h,
         },

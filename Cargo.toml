@@ -19,15 +19,18 @@ futures = "0.3.21"
 http = "0.2.6"
 itertools = "0.10.3"
 log = { version = "0.4", features = ["serde", "std"] }
+ugly = { git = "https://github.com/ashikun/ugly", features = [ "backend_sdl" ] }
 num-integer = "0.1.44"
 prost = "0.9"
 rusqlite = { version = "0.27.0", features = ["chrono"] }
 r2d2 = "0.8.9"
 r2d2_sqlite = "0.20.0"
+ron = "0.7.0"
 sdl2 = { version = "0.35.2", features = ["gfx", "image"] }
 semver = "1.0.6"
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "1.0.136", features = ["derive"] }
 serde_with = "1.11.0"
+serde_plain = "1.0.0"
 symbol = "0.1.9" # used for short names
 tabwriter = { version = "1", features = [ "ansi_formatting" ] }
 tokio = { version = "1", features = [ "full" ] }

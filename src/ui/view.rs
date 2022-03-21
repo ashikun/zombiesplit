@@ -5,7 +5,7 @@ use widget::{Root, Widget};
 use super::{presenter, Result};
 
 pub use self::config::Config;
-use self::gfx::render::Renderer;
+use self::gfx::Renderer;
 
 pub mod config;
 pub mod event;
@@ -36,7 +36,7 @@ impl<'c, R: Renderer> View<'c, R> {
             root: Root::new(&config.widgets),
             config,
         };
-        result.layout_root(config.window.win_size());
+        result.layout_root(config.window.size);
         result
     }
 
@@ -46,7 +46,7 @@ impl<'c, R: Renderer> View<'c, R> {
     ///
     /// Returns an error if SDL fails to redraw the screen.
     pub fn redraw(&mut self, state: &presenter::State) -> Result<()> {
-        self.renderer.clear();
+        self.renderer.clear(gfx::colour::bg::Id::Window)?;
         self.root.render(&mut self.renderer, state)?;
         self.renderer.present();
 
@@ -60,11 +60,11 @@ impl<'c, R: Renderer> View<'c, R> {
         }
     }
 
-    fn layout_root(&mut self, size: gfx::metrics::Size) {
+    fn layout_root(&mut self, size: ugly::metrics::Size) {
         self.root.layout(layout::Context {
             config: self.config,
-            bounds: gfx::metrics::Rect {
-                top_left: gfx::metrics::Point::default(),
+            bounds: ugly::metrics::Rect {
+                top_left: ugly::metrics::Point::default(),
                 size,
             },
             font_metrics: self.renderer.font_metrics(),

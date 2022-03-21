@@ -1,16 +1,20 @@
-/// Footer rows.
+//! Footer rows.
+
+use std::borrow::Cow;
+use ugly::metrics;
+
 use super::super::{
     super::{
-        super::presenter::state::{self, footer},
+        super::{
+            super::model::timing::comparison,
+            presenter::state::{self, footer},
+        },
         config,
-        gfx::{self, colour, font, metrics, Renderer},
+        gfx::{colour, font, Renderer},
         layout,
     },
     time, Label, Widget,
 };
-use crate::model::timing::comparison;
-use crate::ui::view::gfx::metrics::Size;
-use std::borrow::Cow;
 
 /// Sub-widget for a row in the footer.
 pub struct Row {
@@ -42,7 +46,7 @@ impl Row {
         &self,
         r: &mut impl Renderer,
         time: &Option<Cow<comparison::PacedTime>>,
-    ) -> gfx::Result<()> {
+    ) -> ugly::Result<()> {
         let pace = time
             .as_ref()
             .map_or_else(comparison::Pace::default, |t| t.pace);
@@ -60,7 +64,7 @@ impl layout::Layoutable for Row {
         metrics::Size::stack_horizontally(label_size(parent_ctx), self.time.min_bounds(parent_ctx))
     }
 
-    fn actual_bounds(&self) -> Size {
+    fn actual_bounds(&self) -> metrics::Size {
         self.bounds.size
     }
 
@@ -78,13 +82,16 @@ impl layout::Layoutable for Row {
 }
 
 fn label_size(ctx: layout::Context) -> metrics::Size {
-    ctx.font_metrics[font::Id::Medium].text_size(0, 1)
+    ctx.font_metrics
+        .get(&font::Id::Medium)
+        .map(|m| m.text_size(0, 1))
+        .unwrap_or_default()
 }
 
 impl<R: Renderer> Widget<R> for Row {
     type State = state::Footer;
 
-    fn render(&self, r: &mut R, s: &Self::State) -> gfx::Result<()> {
+    fn render(&self, r: &mut R, s: &Self::State) -> ugly::Result<()> {
         self.label.render(r, self.row_type.label())?;
         self.render_time(r, &s.get(self.row_type))?;
         Ok(())

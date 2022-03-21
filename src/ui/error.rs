@@ -6,7 +6,7 @@ use thiserror::Error;
 pub enum Error {
     /// An error occurred in the graphics library.
     #[error("Graphical subsystem error: {0}")]
-    Gfx(#[from] super::view::gfx::Error),
+    Gfx(#[from] ugly::Error),
 
     /// An error occurred while initialising an SDL subsystem.
     #[error("SDL init error: {0}")]

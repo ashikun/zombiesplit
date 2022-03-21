@@ -1,8 +1,10 @@
 //! The status bar widget and its implementations.
+use ugly::metrics;
+
 use super::{
     super::{
         super::presenter,
-        gfx::{colour, font, metrics, render, Result},
+        gfx::{colour, font, Renderer},
     },
     layout::{self, Layoutable},
     Label, Widget,
@@ -66,10 +68,10 @@ impl Layoutable for Status {
     }
 }
 
-impl<R: render::Renderer> Widget<R> for Status {
+impl<R: Renderer> Widget<R> for Status {
     type State = presenter::State;
 
-    fn render(&self, r: &mut R, s: &Self::State) -> Result<()> {
+    fn render(&self, r: &mut R, s: &Self::State) -> ugly::Result<()> {
         r.fill(self.bounds, colour::bg::Id::Status)?;
 
         self.mode.render_extended(r, &s.mode, None)?;
@@ -79,7 +81,7 @@ impl<R: render::Renderer> Widget<R> for Status {
 }
 
 impl Status {
-    fn render_position(&self, r: &mut impl render::Renderer, s: &presenter::State) -> Result<()> {
+    fn render_position(&self, r: &mut impl Renderer, s: &presenter::State) -> ugly::Result<()> {
         let position = format! {"{}/{}", s.cursor_position() + 1, s.num_splits()};
         self.split_position.render(r, &position)
     }

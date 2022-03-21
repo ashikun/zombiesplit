@@ -1,13 +1,11 @@
 //! The split total widget.
 
-use crate::ui::view::gfx::metrics::Size;
+use ugly::metrics;
+
 use row::Row;
 
 use super::{
-    super::{
-        super::presenter::state,
-        gfx::{self, metrics, Renderer},
-    },
+    super::{super::presenter::state, gfx::Renderer},
     layout,
 };
 
@@ -32,7 +30,7 @@ impl layout::Layoutable for Footer {
             .grow(2 * parent_ctx.config.window.padding)
     }
 
-    fn actual_bounds(&self) -> Size {
+    fn actual_bounds(&self) -> metrics::Size {
         self.bounds.size
     }
 
@@ -49,7 +47,7 @@ impl layout::Layoutable for Footer {
 impl<R: Renderer> super::Widget<R> for Footer {
     type State = state::Footer;
 
-    fn render(&self, r: &mut R, s: &Self::State) -> gfx::Result<()> {
+    fn render(&self, r: &mut R, s: &Self::State) -> ugly::Result<()> {
         self.rows.render(r, s)
     }
 }

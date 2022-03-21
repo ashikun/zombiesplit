@@ -1,10 +1,9 @@
-/*! Widgets.
+//! Widgets.
+//!
+//! The (reference) UI for zombiesplit contains several self-rendering widgets,
+//! each of which has access to the presenter state and a renderer.
 
-The (reference) UI for zombiesplit contains several self-rendering widgets,
-each of which has access to the presenter state and a renderer.
-*/
-
-use super::{gfx, layout};
+use super::layout;
 
 mod footer;
 mod header;
@@ -27,5 +26,5 @@ pub trait Widget<R: ?Sized>: super::layout::Layoutable {
     type State: ?Sized;
 
     /// Renders the widget onto `r`.
-    fn render(&self, r: &mut R, s: &Self::State) -> gfx::Result<()>;
+    fn render(&self, r: &mut R, s: &Self::State) -> ugly::Result<()>;
 }

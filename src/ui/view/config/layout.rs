@@ -1,26 +1,36 @@
-/*! Layout configuration for the view.
+//! Layout configuration for the view.
+//!
+//! This module contains configuration (and default configuration) for laying out the UI and its
+//! various widgets.  It is passed to the widgets when determining their layout.
 
-This module contains configuration (and default configuration) for laying out the UI and its various
-widgets.  It is passed to the widgets when determining their layout.
-*/
+use serde::{Deserialize, Serialize};
+use ugly::metrics;
 
 use super::super::{
-    super::presenter::state::footer,
-    gfx::{font, metrics},
+    super::{super::model::timing::time, presenter::state::footer},
+    gfx::font,
 };
-use crate::model::timing::time;
-use serde::{Deserialize, Serialize};
 
 /// Layout configuration.
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 #[serde(default)]
 pub struct Layout {
     /// Window metrics.
-    pub window: metrics::Window,
+    pub window: Window,
     /// Default format for times.
     pub time: time::Format,
     /// Layout information for widgets.
     pub widgets: WidgetSet,
+}
+
+/// Window metrics.
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[serde(default)]
+pub struct Window {
+    /// Width and height of the window.
+    pub size: metrics::Size,
+    /// Padding used throughout the window.
+    pub padding: i32,
 }
 
 /// Layout configuration for widgets.
