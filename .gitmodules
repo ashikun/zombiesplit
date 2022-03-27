@@ -1,0 +1,3 @@
+[submodule "assets/fonts"]
+	path = assets/fonts
+	url = https://github.com/ashikun/ugly-fonts

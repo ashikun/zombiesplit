@@ -41,19 +41,17 @@ serde_plain::derive_display_from_serialize!(Id);
 /// Shorthand for a `zombiesplit` font spec.
 pub type Spec = ugly::font::Spec<Id, super::colour::fg::Id>;
 
-/// Shorthand for a `zombiesplit` font path map.
-pub type PathMap = ugly::font::path::Map<Id>;
+/// Shorthand for a `zombiesplit` font map.
+pub type Map = ugly::font::Map<Id>;
 
 /// Constructs a path map rooted at `assets_path`.
 #[must_use]
-pub fn pathmap(assets_path: &Path) -> PathMap {
+pub fn pathmap(assets_path: &Path) -> Map {
     Id::ALL
         .iter()
-        .map(|i| {
-            (
-                *i,
-                ugly::font::Path(assets_path.join("fonts").join(i.to_string())),
-            )
+        .filter_map(|i| {
+            let path = assets_path.join("fonts").join(i.to_string());
+            path.is_dir().then(|| (*i, ugly::Font::from_dir(path)))
         })
         .collect()
 }

@@ -14,7 +14,7 @@ pub struct Theme {
     /// Colour set.
     pub colours: colour::Palette,
     /// Font path configuration.
-    pub font_paths: font::PathMap,
+    pub font_paths: font::Map,
 }
 
 impl Theme {
@@ -35,7 +35,7 @@ impl Theme {
     /// # Errors
     ///
     /// Fails if the font metrics are not available for the fonts at `font_paths`.
-    pub fn new(colours: colour::Palette, font_paths: &font::PathMap) -> Result<Self> {
+    pub fn new(colours: colour::Palette, font_paths: &font::Map) -> Result<Self> {
         Ok(Theme {
             colours,
             font_paths: font_paths.clone(),
@@ -82,10 +82,10 @@ impl<'p> LoadPathset<'p> {
         })
     }
 
-    fn resolve_font_paths(&self) -> font::PathMap {
+    fn resolve_font_paths(&self) -> font::Map {
         let mut paths = font::pathmap(self.base);
         let theme_paths = font::pathmap(self.theme);
-        paths.extend(theme_paths.into_iter().filter(|(_, x)| x.0.is_dir()));
+        paths.extend(theme_paths);
         paths
     }
 }

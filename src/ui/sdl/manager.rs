@@ -16,6 +16,7 @@ pub struct Manager<'c> {
         view::gfx::font::Id,
         view::gfx::colour::fg::Id,
         view::gfx::colour::bg::Id,
+        sdl2::video::Window,
     >,
 }
 
@@ -30,9 +31,8 @@ impl<'c> Manager<'c> {
         let sdl = sdl2::init().map_err(Error::Init)?;
         let video = sdl.video().map_err(Error::Init)?;
         let window = make_window(&video, cfg.layout.window.size)?;
-        let screen = window.into_canvas().build().map_err(Error::SdlInteger)?;
         let gfx =
-            ugly::backends::sdl::Manager::new(screen, &cfg.theme.font_paths, &cfg.theme.colours);
+            ugly::backends::sdl::Manager::new(window, &cfg.theme.font_paths, &cfg.theme.colours)?;
         Ok(Self { sdl, gfx })
     }
 }
@@ -44,6 +44,7 @@ impl<'r, 'c> super::super::Manager<'r> for Manager<'c> {
         view::gfx::font::Id,
         view::gfx::colour::fg::Id,
         view::gfx::colour::bg::Id,
+        sdl2::video::Window,
     >;
 
     /// Spawns an event pump using the SDL event pump.
