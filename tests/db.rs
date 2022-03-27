@@ -160,7 +160,7 @@ fn test_sample_observe_run() {
 
     for (i, run) in runs.iter().enumerate() {
         let s_run = insp
-            .run_at_index(i, db::inspect::Summary)
+            .run_at_index(i, &db::inspect::Summary)
             .expect("Unexpected error getting index")
             .expect("Unexpected omission getting index");
         assert_eq!(run, &s_run);
