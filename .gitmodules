@@ -1,3 +1,6 @@
 [submodule "assets/fonts"]
 	path = assets/fonts
 	url = https://github.com/ashikun/ugly-fonts
+[submodule "proto"]
+	path = proto
+	url = https://github.com/ashikun/zombiesplit-grpc
