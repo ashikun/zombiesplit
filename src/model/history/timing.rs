@@ -28,7 +28,7 @@ pub struct Full {
 
 impl Timing for Full {
     fn total(&self) -> Time {
-        self.times.values().cloned().flatten().sum()
+        self.times.values().flatten().copied().sum()
     }
 }
 
