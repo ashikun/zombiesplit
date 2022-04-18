@@ -46,7 +46,7 @@ impl<'c, R: Renderer> View<'c, R> {
     ///
     /// Returns an error if SDL fails to redraw the screen.
     pub fn redraw(&mut self, state: &presenter::State) -> Result<()> {
-        self.renderer.clear(gfx::colour::bg::Id::Window)?;
+        self.renderer.clear(Some(gfx::colour::bg::Id::Window))?;
         self.root.render(&mut self.renderer, state)?;
         self.renderer.present();
 

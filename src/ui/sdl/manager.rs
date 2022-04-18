@@ -13,9 +13,9 @@ pub struct Manager<'c> {
     sdl: sdl2::Sdl,
     gfx: ugly::backends::sdl::Manager<
         'c,
-        view::gfx::font::Id,
-        view::gfx::colour::fg::Id,
-        view::gfx::colour::bg::Id,
+        view::gfx::font::Map<ugly::Font>,
+        view::gfx::colour::fg::Map,
+        view::gfx::colour::bg::Map,
         sdl2::video::Window,
     >,
 }
@@ -41,9 +41,9 @@ impl<'r, 'c> super::super::Manager<'r> for Manager<'c> {
     type Pump = event::Pump;
     type Renderer = ugly::backends::sdl::Renderer<
         'r,
-        view::gfx::font::Id,
-        view::gfx::colour::fg::Id,
-        view::gfx::colour::bg::Id,
+        view::gfx::font::Map<ugly::Font>,
+        view::gfx::colour::fg::Map,
+        view::gfx::colour::bg::Map,
         sdl2::video::Window,
     >;
 

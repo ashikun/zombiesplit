@@ -1,29 +1,28 @@
 (
-	bg: {
-		Window: "#2a2f4e",
-		Editor: "#0c0293",
-		FieldEditor: "#3003d9",
-	},
-	fg: {
-		Normal: "white",
-		Editor: "#0cf1ff",
-		FieldEditor: "#94fdff",
-		Header: "#fdd2ed",
+	bg: (
+		window: "#2a2f4e",
+		editor: "#0c0293",
+		field-editor: "#3003d9",
+	),
+	fg: (
+		normal: "white",
+		editor: "#0cf1ff",
+		field-editor: "#94fdff",
+		header: "#fdd2ed",
 
-		Name(Done): "#657392",
-		Name(Cursor): "#f389f5",
-		Name(Coming): "white",
+		name: (
+			done: "#657392",
+			cursor: "#f389f5",
+			coming: "white",
+		)
 
-		SplitInRunPace(Inconclusive): "white",
-		SplitInRunPace(AheadAndGaining): "#d3fc7e",
-		SplitInRunPace(AheadAndLosing): "#5ac54f",
-		SplitInRunPace(BehindAndGaining): "#f68187",
-		SplitInRunPace(BehindAndLosing): "#ea323c",
-		SplitInRunPace(SplitPersonalBest): "#ffc825",
-
-		Pace(Inconclusive): "white",
-		Pace(Ahead): "#d3fc7e",
-		Pace(Behind): "#ea323c",
-		Pace(PersonalBest): "#ffc825",
-	}
+		pace: (
+			inconclusive: "white",
+			ahead: "#d3fc7e",
+			ahead-but-losing: "#5ac54f",
+			behind-but-gaining: "#f68187",
+			behind: "#ea323c",
+			personal-best: "#ffc825",
+		)
+	)
 )

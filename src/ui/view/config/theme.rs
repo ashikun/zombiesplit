@@ -14,7 +14,7 @@ pub struct Theme {
     /// Colour set.
     pub colours: colour::Palette,
     /// Font path configuration.
-    pub font_paths: font::Map,
+    pub font_paths: font::Map<ugly::Font>,
 }
 
 impl Theme {
@@ -27,7 +27,10 @@ impl Theme {
     ///
     /// Fails if the base assets are not reachable from `asset_path`, or are malformed.
     pub fn base(asset_path: &std::path::Path) -> Result<Self> {
-        Self::new(colour::defaults(), &font::pathmap(asset_path))
+        Self::new(
+            colour::Palette::default(),
+            &font::Map::pathmap(asset_path).require()?,
+        )
     }
 
     /// Constructs a theme with `colours`, `font_paths`, and the metrics loadable via `font_paths`.
@@ -35,7 +38,7 @@ impl Theme {
     /// # Errors
     ///
     /// Fails if the font metrics are not available for the fonts at `font_paths`.
-    pub fn new(colours: colour::Palette, font_paths: &font::Map) -> Result<Self> {
+    pub fn new(colours: colour::Palette, font_paths: &font::Map<ugly::Font>) -> Result<Self> {
         Ok(Theme {
             colours,
             font_paths: font_paths.clone(),
@@ -61,32 +64,32 @@ impl<'p> LoadPathset<'p> {
     /// is unparseable.
     pub fn load(&self) -> Result<Theme> {
         if self.theme.is_dir() {
-            Theme::new(self.load_colours()?, &self.resolve_font_paths())
+            Theme::new(self.load_colours()?, &self.resolve_font_paths()?)
         } else {
             Err(Error::NotADir(self.theme.to_path_buf()))
         }
     }
 
     fn load_colours(&self) -> Result<colour::Palette> {
-        let mut palette = colour::defaults();
-        palette.merge(&self.load_user_colours()?);
+        let mut palette = colour::default::PALETTE;
+        colour::add_user(&mut palette, &self.load_user_colours()?);
         Ok(palette)
     }
 
-    fn load_user_colours(&self) -> Result<colour::Palette> {
-        let palette_file = theme_file(self.theme, "palette.ron");
+    fn load_user_colours(&self) -> Result<colour::UserPalette> {
+        let palette_file = theme_file(self.theme, "palette.toml");
         Ok(if palette_file.is_file() {
-            colour::load_ron(palette_file)?
+            colour::load_toml(palette_file)?
         } else {
-            colour::Palette::default()
+            colour::UserPalette::default()
         })
     }
 
-    fn resolve_font_paths(&self) -> font::Map {
-        let mut paths = font::pathmap(self.base);
-        let theme_paths = font::pathmap(self.theme);
-        paths.extend(theme_paths);
-        paths
+    fn resolve_font_paths(&self) -> Result<font::Map<ugly::Font>> {
+        let mut paths = font::Map::pathmap(self.base);
+        let theme_paths = font::Map::pathmap(self.theme);
+        paths.merge(theme_paths);
+        Ok(paths.require()?)
     }
 }
 
@@ -108,6 +111,9 @@ pub enum Error {
     /// One of the fonts could not be loaded.
     #[error("Could not load font")]
     BadFont(#[from] ugly::font::Error),
+    /// One of the font directories is missing.
+    #[error("Font directory is missing")]
+    MissingFontDir(#[from] super::super::gfx::font::Error),
 }
 
 /// Shorthand for results over [Error].

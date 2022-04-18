@@ -72,7 +72,7 @@ impl<R: Renderer> Widget<R> for Status {
     type State = presenter::State;
 
     fn render(&self, r: &mut R, s: &Self::State) -> ugly::Result<()> {
-        r.fill(self.bounds, colour::bg::Id::Status)?;
+        r.fill(self.bounds, Some(colour::bg::Id::Status))?;
 
         self.mode.render_extended(r, &s.mode, None)?;
 

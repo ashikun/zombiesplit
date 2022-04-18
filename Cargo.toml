@@ -21,7 +21,7 @@ itertools = "0.10.3"
 log = { version = "0.4", features = ["serde", "std"] }
 ugly = { git = "https://github.com/ashikun/ugly", features = [ "backend_sdl" ] }
 num-integer = "0.1.44"
-prost = "0.9"
+prost = "0.10"
 rusqlite = { version = "0.27.0", features = ["chrono"] }
 r2d2 = "0.8.9"
 r2d2_sqlite = "0.20.0"
@@ -38,10 +38,10 @@ tokio-stream = { version = "0.1.8", features = [ "sync" ] }
 tempfile = "3"
 thiserror = "1.0.30"
 toml = "0.5.8"
-tonic = { version = "0.6.2", features = [ "transport" ] }
+tonic = { version = "0.7.1", features = [ "transport" ] }
 
 [build-dependencies]
-tonic-build = "0.6.2"
+tonic-build = "0.7.0"
 
 [dev-dependencies]
 pretty_assertions = "1.0.0"

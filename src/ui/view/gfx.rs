@@ -8,6 +8,12 @@ pub mod colour;
 pub mod font;
 
 /// Shorthand for the type of renderer that `zombiesplit` uses.
-pub trait Renderer: ugly::render::Renderer<font::Id, colour::fg::Id, colour::bg::Id> {}
+pub trait Renderer:
+    ugly::render::Renderer<font::Map<ugly::Font>, colour::fg::Map, colour::bg::Map>
+{
+}
 
-impl<R: ugly::render::Renderer<font::Id, colour::fg::Id, colour::bg::Id>> Renderer for R {}
+impl<R: ugly::render::Renderer<font::Map<ugly::Font>, colour::fg::Map, colour::bg::Map>> Renderer
+    for R
+{
+}

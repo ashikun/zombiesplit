@@ -1,7 +1,7 @@
 //! Footer rows.
 
 use std::borrow::Cow;
-use ugly::metrics;
+use ugly::{metrics, resource::Map};
 
 use super::super::{
     super::{
@@ -82,10 +82,7 @@ impl layout::Layoutable for Row {
 }
 
 fn label_size(ctx: layout::Context) -> metrics::Size {
-    ctx.font_metrics
-        .get(&font::Id::Medium)
-        .map(|m| m.text_size(0, 1))
-        .unwrap_or_default()
+    ctx.font_metrics.get(font::Id::Medium).text_size(0, 1)
 }
 
 impl<R: Renderer> Widget<R> for Row {

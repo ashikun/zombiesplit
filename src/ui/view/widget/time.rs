@@ -119,10 +119,7 @@ impl Layout {
 }
 
 fn try_fill(r: &mut impl Renderer, rect: metrics::Rect, colour: colour::Pair) -> ugly::Result<()> {
-    if let Some(bg) = colour.bg {
-        r.fill(rect.grow(1), bg)?;
-    }
-    Ok(())
+    r.fill(rect.grow(1), colour.bg)
 }
 
 /// Calculates the width of a position in a time widget, excluding any padding.
