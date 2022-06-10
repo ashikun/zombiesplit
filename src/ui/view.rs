@@ -11,9 +11,11 @@ pub mod config;
 pub mod event;
 pub mod gfx;
 mod layout;
+pub mod update;
 mod widget;
 
 pub use event::Event;
+pub use update::Updatable;
 
 /// The top-level view structure.
 ///
@@ -27,7 +29,7 @@ pub struct View<'c, R> {
     config: &'c config::Layout,
 }
 
-impl<'c, R: Renderer> View<'c, R> {
+impl<'c, R: Renderer<'c>> View<'c, R> {
     /// Creates a new graphics core.
     #[must_use]
     pub fn new(renderer: R, config: &'c config::layout::Layout) -> Self {
@@ -47,14 +49,22 @@ impl<'c, R: Renderer> View<'c, R> {
     /// Returns an error if SDL fails to redraw the screen.
     pub fn redraw(&mut self, state: &presenter::State) -> Result<()> {
         self.renderer.clear(Some(gfx::colour::bg::Id::Window))?;
-        self.root.render(&mut self.renderer, state)?;
+
+        let ctx = update::Context {
+            font_metrics: self.renderer.font_metrics(),
+        };
+
+        // TODO(@MattWindsor91): only update after events.
+        self.root.update(&ctx, state);
+        self.root.render(&mut self.renderer)?;
+
         self.renderer.present();
 
         Ok(())
     }
 
     /// Handles the event `event`.
-    pub fn handle_event(&mut self, event: &event::Event) {
+    pub fn handle_event(&mut self, event: &Event) {
         match event {
             Event::Resize(size) => self.layout_root(*size),
         }

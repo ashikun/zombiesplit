@@ -4,9 +4,11 @@ use ugly::metrics;
 
 use row::Row;
 
-use super::{
-    super::{super::presenter::state, gfx::Renderer},
-    layout,
+use super::super::{
+    super::presenter::state,
+    gfx::Renderer,
+    layout::{self, Layoutable},
+    update::{self, Updatable},
 };
 
 mod row;
@@ -23,7 +25,7 @@ pub struct Footer {
     rows: super::stack::Stack<Row>,
 }
 
-impl layout::Layoutable for Footer {
+impl Layoutable for Footer {
     fn min_bounds(&self, parent_ctx: layout::Context) -> metrics::Size {
         self.rows
             .min_bounds(parent_ctx)
@@ -44,11 +46,17 @@ impl layout::Layoutable for Footer {
     }
 }
 
-impl<R: Renderer> super::Widget<R> for Footer {
+impl Updatable for Footer {
     type State = state::Footer;
 
-    fn render(&self, r: &mut R, s: &Self::State) -> ugly::Result<()> {
-        self.rows.render(r, s)
+    fn update(&mut self, ctx: &update::Context, s: &Self::State) {
+        self.rows.update(ctx, s);
+    }
+}
+
+impl<'r, R: Renderer<'r>> super::Widget<R> for Footer {
+    fn render(&self, r: &mut R) -> ugly::Result<()> {
+        self.rows.render(r)
     }
 }
 

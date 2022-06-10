@@ -1,9 +1,10 @@
 //! Stacking widgets.
 
+use crate::ui::view::update::{Context, Updatable};
 use ugly::metrics;
 
 use super::{
-    layout::{self, Layoutable},
+    super::layout::{self, Layoutable},
     Widget,
 };
 
@@ -41,7 +42,7 @@ impl<W: Layoutable> Layoutable for Stack<W> {
 
         self.compute_min_bounds(ctx);
 
-        let length_per_ratio = self.length_per_ratio();
+        let length_per_ratio = self.gap().checked_div(self.ratio_sum()).unwrap_or_default();
 
         // Only proceed with the rest of the layout if there is at least one item.
         // The last item gets handled differently, see below.
@@ -72,14 +73,25 @@ impl<W: Layoutable> Layoutable for Stack<W> {
     }
 }
 
+/// Stacks are updatable, distributing updates to their children.
+///
+/// Each child widget must have the same state.
+impl<S, W: Updatable<State = S>> Updatable for Stack<W> {
+    type State = S;
+
+    fn update(&mut self, ctx: &Context, s: &Self::State) {
+        for c in &mut self.contents {
+            c.update(ctx, s);
+        }
+    }
+}
+
 /// Stacks are widgets, distributing rendering to their children.
 ///
 /// Each child widget must have the same rendering state.
 impl<R, S, W: Widget<R, State = S>> Widget<R> for Stack<W> {
-    type State = S;
-
-    fn render(&self, r: &mut R, s: &Self::State) -> ugly::Result<()> {
-        self.contents.iter().try_for_each(|c| c.render(r, s))
+    fn render(&self, r: &mut R) -> ugly::Result<()> {
+        self.contents.iter().try_for_each(|c| c.render(r))
     }
 }
 
@@ -87,13 +99,8 @@ impl<W: Layoutable> Stack<W> {
     /// Pre-computes the minimum bounds for each component in this stack.
     fn compute_min_bounds(&mut self, ctx: layout::Context) {
         for entry in &mut self.contents {
-            entry.compute_min_bounds(ctx);
+            entry.min_bounds = entry.min_bounds(ctx);
         }
-    }
-
-    /// Calculates the length of each ratio unit in the stack.
-    fn length_per_ratio(&self) -> metrics::Length {
-        self.gap().checked_div(self.ratio_sum()).unwrap_or_default()
     }
 
     fn gap(&self) -> metrics::Length {
@@ -171,10 +178,6 @@ impl<W> Entry<W> {
 }
 
 impl<W: Layoutable> Entry<W> {
-    fn compute_min_bounds(&mut self, ctx: layout::Context) {
-        self.min_bounds = self.min_bounds(ctx);
-    }
-
     fn allocation(&self, gap_per_ratio: i32, axis: metrics::Axis) -> metrics::Length {
         if self.ratio == 0 {
             self.min_bounds[axis]
@@ -200,13 +203,22 @@ impl<W: Layoutable> Layoutable for Entry<W> {
     }
 }
 
-/// Entries are widgets, distributing rendering to their embedded widget.
-impl<R, S, W: Widget<R, State = S>> Widget<R> for Entry<W> {
+/// Entries are updatable, distributing updates to their embedded widget.
+impl<S, W: Updatable<State = S>> Updatable for Entry<W> {
     type State = S;
 
-    fn render(&self, r: &mut R, s: &Self::State) -> ugly::Result<()> {
+    fn update(&mut self, ctx: &Context, s: &Self::State) {
         if self.visible {
-            self.widget.render(r, s)?;
+            self.widget.update(ctx, s);
+        }
+    }
+}
+
+/// Entries are widgets, distributing rendering to their embedded widget.
+impl<R, S, W: Widget<R, State = S>> Widget<R> for Entry<W> {
+    fn render(&self, r: &mut R) -> ugly::Result<()> {
+        if self.visible {
+            self.widget.render(r)?;
         }
         Ok(())
     }

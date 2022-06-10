@@ -8,6 +8,7 @@ use super::super::{
     super::presenter::state::State,
     gfx::Renderer,
     layout::{self, Layoutable},
+    update::{self, Updatable},
 };
 
 /// The split viewer widget.
@@ -41,16 +42,24 @@ impl Layoutable for Widget {
     }
 }
 
-impl<R: Renderer> super::Widget<R> for Widget {
+impl Updatable for Widget {
     type State = State;
 
-    fn render(&self, r: &mut R, s: &Self::State) -> ugly::Result<()> {
+    fn update(&mut self, ctx: &update::Context, s: &Self::State) {
         let iter = SplitIndexIter::new(self.rows.len(), s.num_splits(), s.cursor_position());
 
-        for (i, row) in iter.zip(self.rows.iter()) {
+        for (i, row) in iter.zip(self.rows.iter_mut()) {
             if let Some(split) = s.split_at_index(i) {
-                row.render(r, split)?;
+                row.update(ctx, split);
             }
+        }
+    }
+}
+
+impl<'r, R: Renderer<'r>> super::Widget<R> for Widget {
+    fn render(&self, r: &mut R) -> ugly::Result<()> {
+        for row in &self.rows {
+            row.render(r)?;
         }
         Ok(())
     }
@@ -131,14 +140,13 @@ impl SplitIndexIter {
     }
 
     fn first_windowed_split(&self) -> usize {
-        // Find out where we want to put our cursor.
         // Ideally, we want to have the cursor be halfway through the slots.
         // We floor to avoid the possibility of a 1-slot scroll not showing the cursor.
         let ideal_cursor_slot = self.num_slots / 2;
 
-        // This means that our first approximation of the first split is that many slots
-        // above the cursor.  A saturating subtraction means that, if the cursor is on the
-        // first few slots, it will progressively move up to the top of the splits.
+        // Our first approximation of the first split is that `ideal_cursor_slot` slots above the
+        // cursor.  A saturating subtraction means that, if the cursor is on the first few slots,
+        // it will progressively move up to the top without scrolling.
         let split = self.cursor.saturating_sub(ideal_cursor_slot);
 
         // Nudge the first split down to make sure that we fill all of the available slots.

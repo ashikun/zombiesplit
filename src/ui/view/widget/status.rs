@@ -5,8 +5,9 @@ use super::{
     super::{
         super::presenter,
         gfx::{colour, font, Renderer},
+        layout::{self, Layoutable},
+        update::{self, Updatable},
     },
-    layout::{self, Layoutable},
     Label, Widget,
 };
 
@@ -68,21 +69,22 @@ impl Layoutable for Status {
     }
 }
 
-impl<R: Renderer> Widget<R> for Status {
+impl Updatable for Status {
     type State = presenter::State;
 
-    fn render(&self, r: &mut R, s: &Self::State) -> ugly::Result<()> {
-        r.fill(self.bounds, Some(colour::bg::Id::Status))?;
+    fn update(&mut self, ctx: &update::Context, s: &Self::State) {
+        self.mode.update(ctx, &s.mode);
 
-        self.mode.render_extended(r, &s.mode, None)?;
-
-        self.render_position(r, s)
+        let position = format! {"{}/{}", s.cursor_position() + 1, s.num_splits()};
+        self.split_position.update(ctx, &position);
     }
 }
 
-impl Status {
-    fn render_position(&self, r: &mut impl Renderer, s: &presenter::State) -> ugly::Result<()> {
-        let position = format! {"{}/{}", s.cursor_position() + 1, s.num_splits()};
-        self.split_position.render(r, &position)
+impl<'r, R: Renderer<'r>> Widget<R> for Status {
+    fn render(&self, r: &mut R) -> ugly::Result<()> {
+        r.fill(self.bounds, Some(colour::bg::Id::Status))?;
+
+        self.mode.render(r)?;
+        self.split_position.render(r)
     }
 }

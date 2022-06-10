@@ -1,9 +1,9 @@
 //! Widgets.
 //!
 //! The (reference) UI for zombiesplit contains several self-rendering widgets,
-//! each of which has access to the presenter state and a renderer.
-
-use super::layout;
+//! each of which has access to the presenter state and a renderer.  These widgets are semi-retained
+//! inasmuch as they are redrawn each cycle, but maintain internal state updated potentially less
+//! frequently, and layouts are calculated only if the window resizes.
 
 mod footer;
 mod header;
@@ -21,10 +21,9 @@ pub use stack::Stack;
 pub use status::Status;
 
 /// Trait for things that can render information from a presenter.
-pub trait Widget<R: ?Sized>: super::layout::Layoutable {
-    /// Type of state that this widget accepts.
-    type State: ?Sized;
-
+pub trait Widget<R: ?Sized>: super::layout::Layoutable + super::update::Updatable {
     /// Renders the widget onto `r`.
-    fn render(&self, r: &mut R, s: &Self::State) -> ugly::Result<()>;
+    ///
+    /// This will be called every cycle, and should reflect the results of the last `update` call.
+    fn render(&self, r: &mut R) -> ugly::Result<()>;
 }

@@ -11,7 +11,8 @@ use super::super::{
         },
         config,
         gfx::{colour, font, Renderer},
-        layout,
+        layout::{self, Layoutable},
+        update::{self, Updatable},
     },
     time, Label, Widget,
 };
@@ -42,23 +43,18 @@ impl Row {
         }
     }
 
-    fn render_time(
-        &self,
-        r: &mut impl Renderer,
-        time: &Option<Cow<comparison::PacedTime>>,
-    ) -> ugly::Result<()> {
+    fn update_time(&mut self, ctx: &update::Context, time: &Option<Cow<comparison::PacedTime>>) {
         let pace = time
             .as_ref()
             .map_or_else(comparison::Pace::default, |t| t.pace);
 
         let t = time.as_ref().map(|x| &x.as_ref().time);
-        self.time.render(r, t, &colour::fg::Id::Pace(pace).into())?;
 
-        Ok(())
+        self.time.update(ctx, t, colour::fg::Id::Pace(pace).into());
     }
 }
 
-impl layout::Layoutable for Row {
+impl Layoutable for Row {
     fn min_bounds(&self, parent_ctx: layout::Context) -> metrics::Size {
         // TODO(@MattWindsor91): restructure this as a stack?
         metrics::Size::stack_horizontally(label_size(parent_ctx), self.time.min_bounds(parent_ctx))
@@ -85,12 +81,19 @@ fn label_size(ctx: layout::Context) -> metrics::Size {
     ctx.font_metrics.get(font::Id::Medium).text_size(0, 1)
 }
 
-impl<R: Renderer> Widget<R> for Row {
+impl Updatable for Row {
     type State = state::Footer;
 
-    fn render(&self, r: &mut R, s: &Self::State) -> ugly::Result<()> {
-        self.label.render(r, self.row_type.label())?;
-        self.render_time(r, &s.get(self.row_type))?;
+    fn update(&mut self, ctx: &update::Context, s: &Self::State) {
+        self.label.update(ctx, self.row_type.label());
+        self.update_time(ctx, &s.get(self.row_type));
+    }
+}
+
+impl<'r, R: Renderer<'r>> Widget<R> for Row {
+    fn render(&self, r: &mut R) -> ugly::Result<()> {
+        self.label.render(r)?;
+        self.time.render(r)?;
         Ok(())
     }
 }

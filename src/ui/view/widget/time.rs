@@ -1,35 +1,37 @@
 //! Structures common to time displaying widgets.
 
-use std::{
-    fmt::{Display, Write},
-    ops::Index,
+use std::{fmt::Display, ops::Index};
+use ugly::{
+    font::Metrics,
+    metrics::{self, Point, Rect},
 };
-use ugly::metrics;
 
-use super::{
-    super::{
-        super::super::model::timing::time::{self, format::Component},
-        gfx::{colour, font, Renderer},
-    },
-    layout,
+use super::super::{
+    super::super::model::timing::time::{self, format::Component},
+    gfx::{colour, font, Renderer, Writer},
+    layout::{self, Layoutable},
+    update,
 };
 
 /// Layout information for a general time widget.
 #[derive(Debug, Default, Clone)]
 pub struct Layout {
-    /// Bounding box of the layout.
-    bounds: metrics::Rect,
-
-    /// Font used for the time display.
+    /// Font to use for this time widget.
     pub font_id: font::Id,
+
+    /// Bounding box of the layout.
+    bounds: Rect,
 
     /// Layouts of each position in the time widget.
     positions: Vec<Position>,
+
+    /// Most recently assigned colours for this time.
+    colour: Colour,
 }
 
-impl layout::Layoutable for Layout {
+impl Layoutable for Layout {
     fn min_bounds(&self, parent_ctx: layout::Context) -> metrics::Size {
-        let fm = &parent_ctx.font_metrics(self.font_id);
+        let fm = parent_ctx.font_metrics(self.font_id);
         let raw: i32 = parent_ctx
             .config
             .time
@@ -56,24 +58,77 @@ impl layout::Layoutable for Layout {
 
 impl Layout {
     fn update_positions(&mut self, ctx: layout::Context) {
-        let fm = &ctx.font_metrics(self.font_id);
+        let fm = ctx.font_metrics(self.font_id);
 
         let mut point = self.bounds.top_left;
 
         self.positions.clear();
 
         for component in ctx.config.time.components() {
-            let size = metrics::Size {
-                w: position_width(fm, *component),
-                h: fm.span_h(1),
-            };
-            let rect = point.to_rect(size, metrics::Anchor::TOP_LEFT);
-            self.positions.push(Position {
-                component: *component,
-                rect,
-            });
+            let (rect, position) = self.make_position(fm, point, component);
+            self.positions.push(position);
 
             point.offset_mut(rect.size.w + fm.pad.w, 0);
+        }
+    }
+
+    fn make_position(
+        &mut self,
+        fm: &Metrics,
+        point: Point,
+        component: &Component,
+    ) -> (Rect, Position) {
+        let size = metrics::Size {
+            w: position_width(fm, *component),
+            h: fm.span_h(1),
+        };
+
+        let mut writer = Writer::new();
+        writer.set_font(self.font_id);
+        writer.move_to(point);
+
+        let rect = point.to_rect(size, metrics::Anchor::TOP_LEFT);
+        let position = Position {
+            component: *component,
+            rect,
+            writer,
+        };
+        (rect, position)
+    }
+
+    /// Updates the layout with the time `time`.
+    ///
+    /// This function is very generic in what sort of time `time` can be, in order to allow for
+    /// both times and editors to be rendered using the same codepath.
+    ///
+    /// If `time` is `None`, a placeholder will be rendered instead.
+    pub fn update<T: Index<time::Position, Output = W>, W: Display + ?Sized>(
+        &mut self,
+        ctx: &update::Context,
+        time: Option<&T>,
+        colour: Colour,
+    ) {
+        self.colour = colour;
+
+        for pos in &mut self.positions {
+            match pos.component {
+                Component::Position { position, width } => {
+                    let col = colour[position];
+                    pos.writer.set_fg(col.fg);
+                    pos.writer.set_string(
+                        &(if let Some(x) = time {
+                            format!("{:width$}", &x[position], width = width)
+                        } else {
+                            "-".repeat(width)
+                        }),
+                    );
+                }
+                Component::Delimiter(c) => {
+                    pos.writer.set_fg(colour.base.fg);
+                    pos.writer.set_string(&c);
+                }
+            }
+            pos.writer.layout(ctx.font_metrics);
         }
     }
 
@@ -83,47 +138,24 @@ impl Layout {
     /// both times and editors to be rendered using the same codepath.
     ///
     /// If `time` is `None`, a placeholder will be rendered instead.
-    pub fn render<T: Index<time::Position, Output = W>, W: Display + ?Sized>(
-        &self,
-        r: &mut impl Renderer,
-        time: Option<&T>,
-        colour: &Colour,
-    ) -> ugly::Result<()> {
-        let mut w = ugly::text::Writer::new(r).with_font_id(self.font_id);
+    pub fn render<'r>(&self, r: &mut impl Renderer<'r>) -> ugly::Result<()> {
+        try_fill(r, self.bounds, self.colour.base)?;
 
-        try_fill(&mut w, self.bounds, colour.base)?;
-
-        for pos in &self.positions {
-            w = w.with_pos(pos.rect.top_left);
-            match pos.component {
-                Component::Position { position, width } => {
-                    let col = colour[position];
-                    try_fill(&mut w, pos.rect, col)?;
-                    w = w.with_colour(col.fg);
-
-                    if let Some(x) = time {
-                        write!(w, "{:width$}", &x[position], width = width)?;
-                    } else {
-                        w.write_str(&"-".repeat(width))?;
-                    }
-                }
-                Component::Delimiter(c) => {
-                    w = w.with_colour(colour.base.fg);
-                    w.write_char(c)?;
-                }
+        self.positions.iter().try_for_each(|pos| {
+            if let Component::Position { position, .. } = pos.component {
+                try_fill(r, pos.rect, self.colour[position])?;
             }
-        }
-
-        Ok(())
+            pos.writer.render(r)
+        })
     }
 }
 
-fn try_fill(r: &mut impl Renderer, rect: metrics::Rect, colour: colour::Pair) -> ugly::Result<()> {
+fn try_fill<'r>(r: &mut impl Renderer<'r>, rect: Rect, colour: colour::Pair) -> ugly::Result<()> {
     r.fill(rect.grow(1), colour.bg)
 }
 
 /// Calculates the width of a position in a time widget, excluding any padding.
-fn position_width(metrics: &ugly::font::Metrics, c: Component) -> metrics::Length {
+fn position_width(metrics: &Metrics, c: Component) -> metrics::Length {
     match c {
         Component::Position { width, .. } => metrics.span_w(width.try_into().unwrap_or_default()),
         Component::Delimiter(c) => metrics.span_w_char(c),
@@ -131,15 +163,18 @@ fn position_width(metrics: &ugly::font::Metrics, c: Component) -> metrics::Lengt
 }
 
 /// Calculated positioning information for a time widget.
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 struct Position {
+    /// Writer used for this position.
+    writer: Writer,
     /// The component that has been positioned.
-    component: time::format::Component,
+    component: Component,
     /// The bounding box created for the component.
-    rect: metrics::Rect,
+    rect: Rect,
 }
 
 /// Time colouring information.
+#[derive(Copy, Clone, Debug, Default)]
 pub struct Colour {
     /// The base colour.
     pub base: colour::Pair,
@@ -171,6 +206,7 @@ impl Index<time::Position> for Colour {
 /// Field override colouring information.
 ///
 /// This is generally used for field editors.
+#[derive(Copy, Clone, Debug)]
 pub struct FieldColour {
     /// The field that triggers this override.
     pub field: time::Position,

@@ -97,8 +97,15 @@ impl<T> ugly::resource::Map<T> for Map<T> {
     }
 }
 
+impl<T> ugly::resource::MutableMap<T> for Map<T> {
+    fn set(&mut self, k: Self::Id, v: T) {
+        *self.index_mut(k) = v
+    }
+}
+
 impl ugly::font::Map for Map<ugly::Font> {
     type MetricsMap = Map<ugly::font::Metrics>;
+    type IndexMap = Map<ugly::font::Index>;
 
     fn load_metrics(&self) -> ugly::font::Result<Self::MetricsMap> {
         Ok(Self::MetricsMap {

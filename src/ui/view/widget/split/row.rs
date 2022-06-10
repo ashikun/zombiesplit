@@ -1,6 +1,5 @@
 //! Sub-widget for rendering a split row.
 
-use std::fmt::Write;
 use ugly::metrics;
 
 use super::super::{
@@ -9,6 +8,7 @@ use super::super::{
         gfx::{colour, font, Renderer},
         layout::{self, Layoutable},
         presenter::state,
+        update::{self, Updatable},
     },
     label::Label,
     time, Widget,
@@ -23,8 +23,8 @@ pub struct Row {
     rect: metrics::Rect,
     /// The name label.
     name: Label,
-    /// Top-left coordinate of the attempt count.
-    attempt_count_top_left: metrics::Point,
+    /// The attempt count label.
+    attempt_count: Label,
     /// Layout information for the timer.
     time: time::Layout,
 }
@@ -35,12 +35,17 @@ impl Default for Row {
             bounds: metrics::Rect::default(),
             rect: metrics::Rect::default(),
             name: Label::new(NAME_FONT_SPEC).min_chars(NAME_MIN_CHARS),
-            attempt_count_top_left: metrics::Point::default(),
+            attempt_count: Label::new(ATTEMPT_COUNT_FONT_SPEC).min_chars(ATTEMPT_COUNT_MIN_CHARS),
             time: time::Layout::default(),
         }
     }
 }
 
+const ATTEMPT_COUNT_FONT_SPEC: font::Spec = font::Spec {
+    id: font::Id::Small,
+    colour: colour::fg::Id::Normal,
+};
+const ATTEMPT_COUNT_MIN_CHARS: u8 = 3;
 const NAME_FONT_SPEC: font::Spec = font::Spec {
     id: font::Id::Medium,
     colour: colour::fg::Id::Name(state::cursor::SplitPosition::Coming),
@@ -52,7 +57,7 @@ impl Layoutable for Row {
         metrics::Size::stack_horizontally(
             name_size(parent_ctx),
             metrics::Size::stack_horizontally(
-                attempt_count_size(parent_ctx),
+                self.attempt_count.min_bounds(parent_ctx),
                 self.time.min_bounds(parent_ctx),
             ),
         )
@@ -73,40 +78,51 @@ impl Layoutable for Row {
         let time_rect = self.time_display_rect(ctx);
         self.time.layout(ctx.with_bounds(time_rect));
 
-        let attempt_offset = ctx
+        let attempt_size = ctx
             .font_metrics(font::Id::Small)
-            .span_w(-ATTEMPT_COUNT_LENGTH);
-        self.attempt_count_top_left = time_rect.top_left.offset(attempt_offset, 0);
+            .text_size(ATTEMPT_COUNT_LENGTH, 1);
+        let attempt_rect = time_rect
+            .top_left
+            .to_rect(attempt_size, metrics::Anchor::TOP_RIGHT);
+        self.attempt_count.layout(ctx.with_bounds(attempt_rect));
     }
 }
 
 // Row widgets display split state (with the particular allocated split being worked out upstream).
-impl<R: Renderer> Widget<R> for Row {
+impl Updatable for Row {
     type State = state::Split;
 
-    fn render(&self, r: &mut R, s: &Self::State) -> ugly::Result<()> {
-        self.draw_name(r, s)?;
-        self.draw_num_times(r, s)?;
-        self.draw_time_display(r, s)?;
+    fn update(&mut self, ctx: &update::Context, s: &Self::State) {
+        self.update_name(ctx, s);
+        self.update_num_times(ctx, s);
+        self.update_time_display(ctx, s);
+    }
+}
+
+impl<'r, R: Renderer<'r>> Widget<R> for Row {
+    fn render(&self, r: &mut R) -> ugly::Result<()> {
+        self.name.render(r)?;
+        self.attempt_count.render(r)?;
+        self.time.render(r)?;
         Ok(())
     }
 }
 
 impl Row {
-    fn draw_name(&self, r: &mut impl Renderer, state: &state::Split) -> ugly::Result<()> {
+    fn update_name(&mut self, ctx: &update::Context, state: &state::Split) {
         let colour = colour::fg::Id::Name(state.position);
-        self.name.render_extended(r, &state.name, colour)
+        self.name.update_extended(ctx, &state.name, colour);
     }
 
-    fn draw_time_display(&self, r: &mut impl Renderer, state: &state::Split) -> ugly::Result<()> {
+    fn update_time_display(&mut self, ctx: &update::Context, state: &state::Split) {
         if let Some(ref e) = state.editor {
-            self.draw_editor(r, e)
+            self.update_editor(ctx, e);
         } else {
-            self.draw_time(r, state)
+            self.update_time(ctx, state);
         }
     }
 
-    fn draw_editor(&self, r: &mut impl Renderer, e: &state::editor::Editor) -> ugly::Result<()> {
+    fn update_editor(&mut self, ctx: &update::Context, e: &state::editor::Editor) {
         let field = e.field.map(|field| time::FieldColour {
             field,
             colour: colour::Pair {
@@ -121,15 +137,15 @@ impl Row {
             },
             field,
         };
-        self.time.render(r, Some(e), &col)
+        self.time.update(ctx, Some(e), col);
     }
 
-    fn draw_time(&self, r: &mut impl Renderer, state: &state::Split) -> ugly::Result<()> {
-        self.time.render(
-            r,
+    fn update_time(&mut self, ctx: &update::Context, state: &state::Split) {
+        self.time.update(
+            ctx,
             Some(time_to_display(state)),
-            &colour::fg::Id::SplitInRunPace(state.pace_in_run).into(),
-        )
+            colour::fg::Id::SplitInRunPace(state.pace_in_run).into(),
+        );
     }
 
     fn time_display_rect(&self, ctx: layout::Context) -> metrics::Rect {
@@ -144,23 +160,14 @@ impl Row {
         r
     }
 
-    fn draw_num_times(&self, r: &mut impl Renderer, state: &state::Split) -> ugly::Result<()> {
-        let mut w = ugly::text::Writer::new(r)
-            .with_pos(self.attempt_count_top_left)
-            .with_font(font::Id::Small.coloured(colour::fg::Id::Normal)); // for now
-        write!(w, "{}x", state.times.len())?;
-        Ok(())
+    fn update_num_times(&mut self, ctx: &update::Context, state: &state::Split) {
+        self.attempt_count
+            .update(ctx, &format!("{}x", state.times.len()));
     }
 }
 
 fn name_size(parent_ctx: layout::Context) -> metrics::Size {
     parent_ctx.font_metrics(font::Id::Medium).text_size(0, 1)
-}
-
-fn attempt_count_size(parent_ctx: layout::Context) -> metrics::Size {
-    parent_ctx
-        .font_metrics(font::Id::Small)
-        .text_size(ATTEMPT_COUNT_LENGTH, 1)
 }
 
 // TODO(@MattWindsor91): de-hardcode this

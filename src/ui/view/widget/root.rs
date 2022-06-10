@@ -10,6 +10,7 @@ use super::{
         config::layout::WidgetSet,
         gfx,
         layout::{self, Layoutable},
+        update::{self, Updatable},
     },
     header, split, Footer, Status, Widget,
 };
@@ -17,7 +18,7 @@ use super::{
 /// The root widget.
 pub struct Root(super::Stack<Component>);
 
-impl layout::Layoutable for Root {
+impl Layoutable for Root {
     fn min_bounds(&self, parent_ctx: layout::Context) -> metrics::Size {
         self.0.min_bounds(parent_ctx)
     }
@@ -31,11 +32,17 @@ impl layout::Layoutable for Root {
     }
 }
 
-impl<R: gfx::Renderer> Widget<R> for Root {
+impl Updatable for Root {
     type State = State;
 
-    fn render(&self, r: &mut R, s: &Self::State) -> ugly::Result<()> {
-        self.0.render(r, s)
+    fn update(&mut self, ctx: &update::Context, s: &Self::State) {
+        self.0.update(ctx, s);
+    }
+}
+
+impl<'r, R: gfx::Renderer<'r>> Widget<R> for Root {
+    fn render(&self, r: &mut R) -> ugly::Result<()> {
+        self.0.render(r)
     }
 }
 
@@ -95,15 +102,26 @@ impl Layoutable for Component {
     }
 }
 
-impl<R: gfx::Renderer> Widget<R> for Component {
+impl Updatable for Component {
     type State = State;
 
-    fn render(&self, r: &mut R, state: &Self::State) -> ugly::Result<()> {
+    fn update(&mut self, ctx: &update::Context, state: &Self::State) {
         match self {
-            Self::Header(h) => h.render(r, state),
-            Self::Splitset(s) => s.render(r, state),
-            Self::Footer(f) => f.render(r, &state.footer),
-            Self::Status(t) => t.render(r, state),
+            Self::Header(h) => h.update(ctx, state),
+            Self::Splitset(s) => s.update(ctx, state),
+            Self::Footer(f) => f.update(ctx, &state.footer),
+            Self::Status(t) => t.update(ctx, state),
+        };
+    }
+}
+
+impl<'r, R: gfx::Renderer<'r>> Widget<R> for Component {
+    fn render(&self, r: &mut R) -> ugly::Result<()> {
+        match self {
+            Self::Header(h) => h.render(r),
+            Self::Splitset(s) => s.render(r),
+            Self::Footer(f) => f.render(r),
+            Self::Status(t) => t.render(r),
         }
     }
 }

@@ -48,7 +48,7 @@ pub enum Error {
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// Pair of foreground and optional background identifiers.
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Copy, Clone, Default, Debug, Eq, PartialEq, Hash)]
 pub struct Pair {
     /// The foreground colour.
     pub fg: fg::Id,

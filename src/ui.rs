@@ -41,14 +41,14 @@ pub trait Manager<'r> {
 /// Top-level user interface instance.
 pub struct Instance<'h, E, H, R> {
     events: E,
-    view: view::View<'h, R>,
+    view: View<'h, R>,
     presenter: presenter::Presenter<'h, H>,
     forwarder: presenter::observer::Pump,
     // TODO(@MattWindsor91): decouple the SDL use here
     limiter: sdl::Limiter,
 }
 
-impl<'m, E: event::Pump, H: Handler, R: view::gfx::Renderer> Instance<'m, E, H, R> {
+impl<'m, E: event::Pump, H: Handler, R: view::gfx::Renderer<'m>> Instance<'m, E, H, R> {
     /// Constructs a new UI instance using the configuration in `config`,
     ///
     /// # Errors

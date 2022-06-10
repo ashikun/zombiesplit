@@ -5,7 +5,8 @@ use super::{
     super::{
         super::presenter::State,
         gfx::{colour, font, Renderer},
-        layout,
+        layout::{self, Layoutable},
+        update::{self, Updatable},
     },
     label::Label,
 };
@@ -43,7 +44,7 @@ impl Default for Widget {
     }
 }
 
-impl layout::Layoutable for Widget {
+impl Layoutable for Widget {
     fn min_bounds(&self, parent_ctx: layout::Context) -> metrics::Size {
         // TODO(@MattWindsor91): this is clearly a stack, and there should be a less manual way
         // of dealing with it.
@@ -80,13 +81,21 @@ impl layout::Layoutable for Widget {
     }
 }
 
-impl<R: Renderer> super::Widget<R> for Widget {
+impl Updatable for Widget {
     type State = State;
 
-    fn render(&self, r: &mut R, s: &Self::State) -> ugly::Result<()> {
-        self.name.render(r, &s.game_category.game)?;
-        self.category.render(r, &s.game_category.category)?;
-        self.attempts.render_extended(r, &s.attempt, None)?;
+    fn update(&mut self, ctx: &update::Context, s: &Self::State) {
+        self.name.update(ctx, &s.game_category.game);
+        self.category.update(ctx, &s.game_category.category);
+        self.attempts.update_extended(ctx, &s.attempt, None);
+    }
+}
+
+impl<'r, R: Renderer<'r>> super::Widget<R> for Widget {
+    fn render(&self, r: &mut R) -> ugly::Result<()> {
+        self.name.render(r)?;
+        self.category.render(r)?;
+        self.attempts.render(r)?;
         Ok(())
     }
 }

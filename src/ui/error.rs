@@ -19,6 +19,10 @@ pub enum Error {
     /// An error occurred while building a window.
     #[error("SDL error")]
     SdlInteger(#[from] sdl2::IntegerOrSdlError),
+
+    /// An error occurred while formatting some text.
+    #[error("Text formatting error")]
+    Fmt(#[from] std::fmt::Error),
 }
 
 /// Shorthand for a result using [Error].

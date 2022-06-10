@@ -8,12 +8,17 @@ pub mod colour;
 pub mod font;
 
 /// Shorthand for the type of renderer that `zombiesplit` uses.
-pub trait Renderer:
-    ugly::render::Renderer<font::Map<ugly::Font>, colour::fg::Map, colour::bg::Map>
+pub trait Renderer<'a>:
+    ugly::render::Renderer<'a, font::Map<ugly::Font>, colour::fg::Map, colour::bg::Map>
 {
 }
 
-impl<R: ugly::render::Renderer<font::Map<ugly::Font>, colour::fg::Map, colour::bg::Map>> Renderer
-    for R
+impl<
+        'a,
+        R: ugly::render::Renderer<'a, font::Map<ugly::Font>, colour::fg::Map, colour::bg::Map>,
+    > Renderer<'a> for R
 {
 }
+
+/// Shorthand for the writer type over zombiesplit's resource maps.
+pub type Writer = ugly::text::Writer<font::Map<ugly::Font>, colour::fg::Map, colour::bg::Map>;
