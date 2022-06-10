@@ -74,11 +74,14 @@ impl<'r, 'c> super::super::Manager<'r> for Manager<'c> {
 /// # Errors
 ///
 /// Returns an error if SDL fails to make the window.
+#[allow(clippy::cast_sign_loss)]
 fn make_window(
     video: &sdl2::VideoSubsystem,
     size: ugly::metrics::Size,
 ) -> Result<sdl2::video::Window> {
-    let (w, h) = ugly::backends::sdl::metrics::convert_size(&size);
+    // TODO(@MattWindsor91): move this into ugly.
+    let w = size.w.max(0) as u32;
+    let h = size.h.max(0) as u32;
     let window = video
         .window("zombiesplit", w, h)
         .position_centered()
