@@ -40,7 +40,7 @@ impl Set {
     /// Constructs a split state from an attempt dump.
     #[must_use]
     pub fn from_dump(dump: &session::State) -> Self {
-        let mut result: Self = dump.run.splits.iter().cloned().collect();
+        let mut result: Self = dump.attempt.splits.iter().cloned().collect();
         result.update_with_comparison(&dump.comparison);
         result.update_with_notes(&dump.notes);
         result

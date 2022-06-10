@@ -64,12 +64,12 @@ fn test_sample_session() {
 
     let mut session = init_session(&handle, Sink::new(db));
     let dump = session.dump().expect("session shouldn't fail to dump");
-    assert_eq!(game.name, dump.run.category.game);
+    assert_eq!(game.name, dump.attempt.category.game);
     assert_eq!(
         game.categories
             .get(&short::Name::from(SAMPLE_CATEGORY_NAME))
             .map(|x| x.name.to_owned()),
-        Some(dump.run.category.category)
+        Some(dump.attempt.category.category)
     );
 }
 

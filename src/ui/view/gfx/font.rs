@@ -99,7 +99,7 @@ impl<T> ugly::resource::Map<T> for Map<T> {
 
 impl<T> ugly::resource::MutableMap<T> for Map<T> {
     fn set(&mut self, k: Self::Id, v: T) {
-        *self.index_mut(k) = v
+        *self.index_mut(k) = v;
     }
 }
 

@@ -1625,7 +1625,7 @@ checksum = "59547bce71d9c38b83d9c0e92b6066c4253371f15005def0c30d9657f50c7642"
 [[package]]
 name = "ugly"
 version = "0.1.0"
-source = "git+https://github.com/ashikun/ugly#3fa3e48724146da9a870a6b8b643b690d9126a48"
+source = "git+https://github.com/ashikun/ugly#0a9774d696ef271a46d2a8c7c739f0984b1adcaa"
 dependencies = [
  "css-color-parser",
  "ron",

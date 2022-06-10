@@ -17,7 +17,7 @@ use std::collections::HashMap;
 #[derive(Clone, Debug)]
 pub struct State {
     /// The current attempt.
-    pub run: Attempt,
+    pub attempt: Attempt,
     /// Comparison data for the game/category currently being run.
     pub comparison: timing::Comparison,
     /// Pre-cached extra data for the splits.
@@ -36,19 +36,28 @@ impl State {
     #[must_use]
     pub fn new(run: Attempt, comparison: timing::Comparison) -> Self {
         let mut result = Self {
-            run,
+            attempt: run,
             comparison,
-            notes: std::collections::HashMap::default(),
+            notes: HashMap::default(),
             total: None,
         };
-        result.recalculate_indirect_fields();
+        result.reset_notes();
         result
+    }
+
+    /// Resets the state of the run.
+    ///
+    /// The result of applying this should be equivalent to producing a new state.
+    pub fn reset(&mut self, dest: super::action::OldDestination) {
+        self.attempt.reset(dest);
+        self.reset_notes();
+        self.total = None;
     }
 
     /// Gets a mutable reference to the split at the given location.
     #[must_use]
-    pub fn get_split_mut(&mut self, split: impl split::Locator) -> Option<&mut split::Split> {
-        self.run.splits.get_mut(split)
+    fn get_split_mut(&mut self, split: impl split::Locator) -> Option<&mut split::Split> {
+        self.attempt.splits.get_mut(split)
     }
 
     /// Tries to locate the given split and, if found, pushes the given time to it.
@@ -100,14 +109,19 @@ impl State {
         self.recalculate_total();
     }
 
+    /// Populates the notes table with an empty note for each split.
+    fn reset_notes(&mut self) {
+        for s in self.attempt.splits.iter() {
+            self.notes.insert(s.info.short, SplitNote::default());
+        }
+    }
+
+    /// Populates the notes table with recalculated notes.
     fn recalculate_notes(&mut self) {
         // TODO(@MattWindsor91): only recalculate from the changed split.
-        self.notes = self
-            .run
-            .splits
-            .aggregates()
-            .map(|(s, a)| (s.info.short, self.note(s, a)))
-            .collect();
+        for (s, a) in self.attempt.splits.aggregates() {
+            self.notes.insert(s.info.short, self.note(s, a));
+        }
     }
 
     fn note(&self, split: &split::Split, aggregates: timing::aggregate::Set) -> SplitNote {
@@ -142,7 +156,7 @@ impl State {
 ///
 /// These are things that the client could compute itself, but which we keep in the state to
 /// centralise computation and allow for simpler client logic.
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Default, Clone, Eq, PartialEq)]
 pub struct SplitNote {
     /// Attempt-level aggregates for this split.
     ///

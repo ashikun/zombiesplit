@@ -50,7 +50,7 @@ pub struct Session<'cmp, 'obs, O> {
 
     // TODO(@MattWindsor91): refactor those into a separate struct?
     /// The sink attached to the session, for emitting saved runs.
-    sink: Box<dyn sink::Sink>,
+    sink: Box<dyn Sink>,
     /// The comparison provider.
     comparator: Box<dyn comparison::Provider + 'cmp>,
 }
@@ -63,12 +63,12 @@ impl<'cmp, 'obs, O: Observer> action::Handler for Session<'cmp, 'obs, O> {
         Ok(self.state.clone())
     }
 
-    fn handle(&mut self, action: action::Action) -> Result<(), Self::Error> {
+    fn handle(&mut self, action: Action) -> Result<(), Self::Error> {
         match action {
-            action::Action::NewRun(dest) => self.reset(dest),
-            action::Action::Pop(s, action::Pop::One) => self.pop_from(s),
-            action::Action::Pop(s, action::Pop::All) => self.clear_at(s),
-            action::Action::Push(s, t) => self.push_to(s, t),
+            Action::NewRun(dest) => self.reset(dest),
+            Action::Pop(s, action::Pop::One) => self.pop_from(s),
+            Action::Pop(s, action::Pop::All) => self.clear_at(s),
+            Action::Push(s, t) => self.push_to(s, t),
         };
         Ok(())
     }
@@ -111,7 +111,7 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
     ///
     /// By default, the session doesn't have comparisons set up, so this will
     /// need to be done to get comparisons working.
-    pub fn set_sink(&mut self, s: Box<dyn sink::Sink>) {
+    pub fn set_sink(&mut self, s: Box<dyn Sink>) {
         self.sink = s;
     }
 
@@ -133,8 +133,16 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
         }
     }
 
+    /// Observes a reset.
+    ///
+    /// Instead of sending every single minute detail of the reset as if it were an individual
+    /// action on the splits, we just send a single `reset` event, and the client will respond by
+    /// block-wiping its data.
+    ///
+    /// This does, of course, mean that the client reset logic needs to be kept consistent with the
+    /// server's state changes.  Bugs have happened in the past where this is not true.
     fn observe_reset(&self) {
-        self.observer.observe(Event::Reset(self.state.run.info));
+        self.observer.observe(Event::Reset(self.state.attempt.info));
     }
 
     /// Observes notes for each split, notifying all observers.
@@ -177,7 +185,7 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
 
     /// Observes comparison data for each split in the run.
     fn observe_comparison_splits(&self) {
-        for split in self.state.run.splits.iter() {
+        for split in self.state.attempt.splits.iter() {
             let short = split.info.short;
             if let Some(s) = self.state.comparison.aggregate_for(short) {
                 self.observer
@@ -187,14 +195,14 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
     }
 
     fn reset(&mut self, dest: action::OldDestination) {
-        self.handle_old_run(dest);
-        self.state.run.reset(dest);
-        // Important that this happens AFTER the run is reset, so the new attempt info is sent.
+        self.handle_last_attempt(dest);
+        self.state.reset(dest);
+        // Important that this happens AFTER the session is reset, so the new attempt info is sent.
         self.observe_reset();
         self.refresh_comparison();
     }
 
-    fn handle_old_run(&mut self, dest: action::OldDestination) {
+    fn handle_last_attempt(&mut self, dest: action::OldDestination) {
         match dest {
             action::OldDestination::Save => self.send_run_to_sink(),
             action::OldDestination::Discard => (),
@@ -202,7 +210,7 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
     }
 
     fn send_run_to_sink(&mut self) {
-        if let Some(r) = self.state.run.as_historic((self.timestamper)()) {
+        if let Some(r) = self.state.attempt.as_historic((self.timestamper)()) {
             if let Err(e) = self.sink.accept(r) {
                 log::warn!("couldn't save run: {e}");
             }

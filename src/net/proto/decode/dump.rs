@@ -18,7 +18,7 @@ use std::collections::HashMap;
 pub fn dump(dump: &DumpResponse) -> Result<session::State> {
     // TODO(@MattWindsor91): carry aggregates through protobufs.
     Ok(session::State {
-        run: attempt::decode(Missing::Attempt.require(dump.attempt.as_ref())?)?,
+        attempt: attempt::decode(Missing::Attempt.require(dump.attempt.as_ref())?)?,
         comparison: dump
             .comparison
             .as_ref()

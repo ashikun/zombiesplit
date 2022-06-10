@@ -17,7 +17,7 @@ use std::collections::HashMap;
 /// Fails with `out_of_range` if the attempt counts cannot be stored as 64-bit integers.
 pub fn encode(dump: &session::State) -> Result<DumpResponse> {
     Ok(DumpResponse {
-        attempt: Some(attempt::encode(&dump.run)?),
+        attempt: Some(attempt::encode(&dump.attempt)?),
         comparison: Some(comparison::encode(&dump.comparison)),
         notes: notes(&dump.notes),
         pace: pace(dump),

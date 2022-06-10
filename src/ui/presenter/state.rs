@@ -45,9 +45,9 @@ impl State {
     #[must_use]
     pub fn from_dump(dump: &session::State) -> Self {
         Self {
-            cursor: cursor::Cursor::new(0, dump.run.splits.len() - 1),
-            attempt: dump.run.info,
-            game_category: dump.run.category.clone(),
+            cursor: cursor::Cursor::new(0, dump.attempt.splits.len() - 1),
+            attempt: dump.attempt.info,
+            game_category: dump.attempt.category.clone(),
             mode: "Welcome to zombiesplit!".to_string(),
             splits: split::Set::from_dump(dump),
             footer: footer::Footer::from_dump(dump),
