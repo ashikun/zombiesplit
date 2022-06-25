@@ -151,8 +151,10 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
     fn observe_notes(&self) {
         // TODO(@MattWindsor91): start from a particular split, to avoid redundancy?
         for (short, note) in &self.state.notes {
-            self.observer
-                .observe_split(*short, event::split::Split::Pace(note.pace));
+            if let Some(d) = note.delta {
+                self.observer
+                    .observe_split(*short, event::split::Split::Delta(d));
+            }
             self.observer.observe_aggregate_set(
                 *short,
                 note.aggregates,
@@ -160,10 +162,10 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
             );
         }
 
-        let pace = self.state.total.map(|x| x.pace).unwrap_or_default();
+        let delta = self.state.total.map(|x| x.delta).unwrap_or_default();
         let time = self.state.total.map(|x| x.time);
         self.observer
-            .observe(Event::Total(event::Total::Attempt(pace), time));
+            .observe(Event::Total(event::Total::Attempt(delta), time));
     }
 
     /// Observes the contents of a comparison.

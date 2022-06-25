@@ -139,7 +139,7 @@ impl Set {
         for (sid, note) in notes {
             if let Some(split) = self.at_short_mut(*sid) {
                 split.aggregates[timing::aggregate::Source::Attempt] = note.aggregates;
-                split.pace_in_run = note.pace;
+                split.delta = note.delta;
             }
         }
     }
@@ -154,8 +154,10 @@ pub struct Split {
     pub name: String,
     /// The aggregate times logged for this split.
     pub aggregates: timing::aggregate::Full,
-    /// The pace of this split in the run-so-far.
-    pub pace_in_run: timing::comparison::pace::SplitInRun,
+    /// The delta of this split against its comparison (both splitwise and cumulatively in run).
+    ///
+    /// Generally empty if there is no timing logged for this split.
+    pub delta: Option<timing::comparison::delta::Split>,
     /// The last logged cursor-relative position for this split.
     pub position: SplitPosition,
     /// Any editor active on this split.
@@ -171,7 +173,7 @@ impl Split {
     /// let s = state::Split::new("Palmtree Panic 1");
     /// assert_eq!("Palmtree Panic 1", s.name);
     /// assert!(s.times.is_empty());
-    /// assert_eq!(zombiesplit::model::timing::comparison::pace::SplitInRun::Inconclusive, s.pace_in_run);
+    /// assert_eq!(zombiesplit::model::timing::comparison::pace::Pace::Inconclusive, s.paced_cumulative().pace);
     /// ```
     #[must_use]
     pub fn new<N: Display>(name: N) -> Self {
@@ -194,7 +196,7 @@ impl Split {
             // We can only fill in the run-level aggregates here.
             // Comparison-level aggregates get filled in elsewhere.
             aggregates: aggregate_from_attempt_dump(dump),
-            pace_in_run: timing::comparison::pace::SplitInRun::default(),
+            delta: None,
             position: SplitPosition::new(index, 0),
             editor: None,
         }
@@ -207,15 +209,20 @@ impl Split {
     pub fn reset(&mut self) {
         self.times.clear();
         self.aggregates = timing::aggregate::Full::default();
-        self.pace_in_run = timing::comparison::pace::SplitInRun::default();
+        self.delta = None;
     }
 
     /// Gets the cumulative time at this split along with its pace note.
     #[must_use]
     pub fn paced_cumulative(&self) -> timing::comparison::pace::PacedTime {
+        // TODO: None if delta/time is None?
         let time = self.aggregates[timing::aggregate::Kind::ATTEMPT_CUMULATIVE];
         timing::comparison::pace::PacedTime {
-            pace: self.pace_in_run.overall(),
+            pace: self
+                .delta
+                .map_or(timing::comparison::pace::Pace::default(), |d| {
+                    d.pace.overall()
+                }),
             time,
         }
     }
@@ -239,8 +246,8 @@ impl Split {
                 // Moving the newly popped time to the editor gets handled
                 // elsewhere.
             }
-            split::Split::Pace(pace) => {
-                self.pace_in_run = *pace;
+            split::Split::Delta(delta) => {
+                self.delta = Some(*delta);
             }
         }
     }

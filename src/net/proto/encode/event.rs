@@ -30,7 +30,9 @@ fn total(ty: session::event::Total, time: Option<Time>) -> event::Total {
 
 fn total_type(ty: session::event::Total) -> event::total::Type {
     match ty {
-        session::event::Total::Attempt(p) => event::total::Type::Attempt(super::pace(p) as i32),
+        session::event::Total::Attempt(delta) => {
+            event::total::Type::Attempt(super::timing::run_delta(&delta))
+        }
         session::event::Total::Comparison(ty) => {
             event::total::Type::Comparison(comparison_total_type(ty) as i32)
         }
@@ -56,7 +58,7 @@ fn split_payload(event: &session::event::Split) -> event::split::Payload {
     use {event::split::Payload, session::event::Split};
     match event {
         Split::Time(time, ty) => Payload::Time(split_time(*ty, *time)),
-        Split::Pace(pace) => Payload::Pace(super::split_in_run_pace(*pace) as i32),
+        Split::Delta(delta) => Payload::Delta(super::timing::split_delta(delta)),
         Split::Popped(ty) => Payload::Pop(super::pop(*ty)),
     }
 }

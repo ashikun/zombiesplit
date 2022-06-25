@@ -28,7 +28,7 @@ impl Footer {
     pub fn from_dump(dump: &session::State) -> Self {
         Self {
             at_cursor: comparison::pace::PacedTime::default(),
-            total: dump.total.unwrap_or_default(),
+            total: dump.total.unwrap_or_default().paced_time(),
             comparisons: dump.comparison.run,
         }
     }

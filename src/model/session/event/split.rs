@@ -10,8 +10,8 @@ use crate::model::timing;
 pub enum Split {
     /// Got a new time pushed to, or aggregated for, the split.
     Time(model::Time, super::Time),
-    /// Got a new pace note for the split.
-    Pace(timing::comparison::pace::SplitInRun),
+    /// Got a new delta for the split.
+    Delta(timing::comparison::delta::Split),
     /// One or more times have been popped from the split.
     Popped(super::super::action::Pop),
 }

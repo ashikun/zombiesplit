@@ -50,5 +50,9 @@ fn split(split: &dump_response::attempt::Split) -> Result<session::split::Split>
 }
 
 fn times(split: &dump_response::attempt::Split) -> Result<Vec<timing::Time>> {
-    split.times.iter().map(|x| super::time(*x)).collect()
+    split
+        .times
+        .iter()
+        .map(|x| super::timing::time(*x))
+        .collect()
 }

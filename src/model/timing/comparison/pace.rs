@@ -25,6 +25,19 @@ impl Default for Pace {
 
 impl Pace {
     /// Calculates the pace by comparing `time` to `compared_to`.
+    ///
+    /// ```
+    /// use zombiesplit::model::{Time, timing::comparison::Pace};
+    ///
+    /// let t1 = Time::seconds(16).unwrap();
+    /// let t2 = Time::seconds(80).unwrap();
+    ///
+    /// assert_eq!(Pace::Ahead, Pace::of_comparison(t1, t2));
+    /// assert_eq!(Pace::Behind, Pace::of_comparison(t2, t1));
+    ///
+    /// // When there is no time difference, the result is `Ahead`.
+    /// assert_eq!(Pace::Ahead, Pace::of_comparison(t1, t1));
+    /// ```
     #[must_use]
     pub fn of_comparison(time: Time, compared_to: Time) -> Self {
         if time <= compared_to {

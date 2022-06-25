@@ -78,6 +78,14 @@ impl Set {
     pub fn get_mut(&mut self, loc: impl Locator) -> Option<&mut Split> {
         loc.locate_mut(self)
     }
+
+    /// Gets the last split that has a defined time.
+    ///
+    /// The cumulative time total of this split is effectively the total time of the whole attempt.
+    #[must_use]
+    pub fn last_entered(&self) -> Option<&Split> {
+        self.contents.iter().rfind(|s| !s.times.is_empty())
+    }
 }
 
 fn make_cache(from: &[Split]) -> short::Map<usize> {

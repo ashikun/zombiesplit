@@ -4,7 +4,10 @@ use ugly::metrics;
 
 use super::super::{
     super::{
-        super::super::model::timing::aggregate::{Scope, Source},
+        super::super::model::timing::{
+            aggregate::{Scope, Source},
+            comparison::pace::SplitInRun,
+        },
         gfx::{colour, font, Renderer},
         layout::{self, Layoutable},
         presenter::state,
@@ -144,7 +147,10 @@ impl Row {
         self.time.update(
             ctx,
             Some(time_to_display(state)),
-            colour::fg::Id::SplitInRunPace(state.pace_in_run).into(),
+            colour::fg::Id::SplitInRunPace(
+                state.delta.map_or(SplitInRun::Inconclusive, |d| d.pace),
+            )
+            .into(),
         );
     }
 

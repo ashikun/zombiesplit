@@ -1,9 +1,11 @@
 //! Parts of the model related to comparisons.
 
+pub mod delta;
 pub mod pace;
 pub mod provider;
 pub mod run;
 
+pub use delta::Delta;
 pub use pace::{Pace, PacedTime};
 pub use provider::Provider;
 pub use run::Run;
@@ -24,13 +26,20 @@ pub struct Comparison {
 }
 
 impl Comparison {
-    /// Gets a pace note for the split with short name `split`, which has just
+    /// Gets a delta for the split with short name `split`, which has just
     /// posted an aggregate time pair of `against`.
-    #[must_use]
-    pub fn pace(&self, split: short::Name, against: aggregate::Set) -> pace::SplitInRun {
+    ///
+    /// # Errors
+    ///
+    /// Fails if the delta cannot be represented as a time.
+    pub fn delta(
+        &self,
+        split: short::Name,
+        against: aggregate::Set,
+    ) -> Result<delta::Split, super::time::Error> {
         self.splits
             .get(&split)
-            .map_or(pace::SplitInRun::Inconclusive, |x| x.pace(against))
+            .map_or(Ok(delta::Split::default()), |x| x.delta(against))
     }
 
     /// Gets the aggregate times for the split with short name `split`, if
@@ -72,37 +81,36 @@ pub struct Split {
 }
 
 impl Split {
-    /// Gets a pace note for this split, which has just posted an aggregate time
+    /// Gets delta information for this split, which has just posted an aggregate time
     /// pair of `against`.
-    #[must_use]
-    pub fn pace(&self, against: aggregate::Set) -> pace::SplitInRun {
-        pace::SplitInRun::new(
-            self.split_pace(against.split),
-            self.cumulative_pace(against.cumulative),
-        )
-    }
+    ///
+    /// # Errors
+    ///
+    /// Fails if the delta cannot be represented as a time.
+    pub fn delta(&self, against: aggregate::Set) -> Result<delta::Split, super::time::Error> {
+        let mut split = self.delta_against_aggregate(against, aggregate::Scope::Split)?;
 
-    /// Gets the aggregate time of scope `scope` for this split in the run
-    /// against which we are comparing.
-    #[must_use]
-    fn aggregate_in_run(&self, scope: aggregate::Scope) -> Time {
-        self.in_pb_run[scope]
-    }
-
-    /// Compares `time` against the cumulative time at this split.
-    #[must_use]
-    pub fn cumulative_pace(&self, time: Time) -> Pace {
-        Pace::of_comparison(time, self.aggregate_in_run(aggregate::Scope::Cumulative))
-    }
-
-    /// Compares `split_time` against the split data for this comparison.
-    #[must_use]
-    pub fn split_pace(&self, time: Time) -> Pace {
-        if self.is_personal_best(time) {
-            Pace::PersonalBest
-        } else {
-            Pace::of_comparison(time, self.aggregate_in_run(aggregate::Scope::Split))
+        // TODO: separate PB from this consideration entirely.
+        if self.is_personal_best(against.split) {
+            split.pace = Pace::PersonalBest;
         }
+
+        let run = self.delta_against_aggregate(against, aggregate::Scope::Cumulative)?;
+
+        Ok(delta::Split::new(split, run))
+    }
+
+    /// Gets a delta for the aggregate time of scope `scope` between `against` and this comparison.
+    ///
+    /// # Errors
+    ///
+    /// Fails if the delta cannot be represented as a time.
+    fn delta_against_aggregate(
+        &self,
+        against: aggregate::Set,
+        scope: aggregate::Scope,
+    ) -> Result<delta::Delta, super::time::Error> {
+        delta::Delta::of_comparison(against[scope], self.in_pb_run[scope])
     }
 
     /// Checks whether `split time` is a new personal best.

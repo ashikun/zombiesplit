@@ -7,7 +7,6 @@ use super::{
     },
     attempt, comparison, Result,
 };
-use crate::model::session::State;
 use std::collections::HashMap;
 
 /// Encodes a dump into a protobuf response.
@@ -20,8 +19,7 @@ pub fn encode(dump: &session::State) -> Result<DumpResponse> {
         attempt: Some(attempt::encode(&dump.attempt)?),
         comparison: Some(comparison::encode(&dump.comparison)),
         notes: notes(&dump.notes),
-        pace: pace(dump),
-        total: total(dump),
+        total: dump.total.map(super::timing::total),
     })
 }
 
@@ -36,15 +34,7 @@ fn notes(
 
 fn note(note: &session::state::SplitNote) -> dump_response::SplitNote {
     dump_response::SplitNote {
-        aggregate: Some(super::aggregate(&note.aggregates)),
-        pace: super::split_in_run_pace(note.pace) as i32,
+        aggregate: Some(super::timing::aggregate(&note.aggregates)),
+        delta: note.delta.as_ref().map(super::timing::split_delta),
     }
-}
-
-fn pace(dump: &State) -> i32 {
-    super::pace(dump.total.map(|x| x.pace).unwrap_or_default()) as i32
-}
-
-fn total(dump: &State) -> Option<u32> {
-    dump.total.map(|x| u32::from(x.time))
 }

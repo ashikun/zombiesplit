@@ -19,8 +19,8 @@ pub fn decode(cmp: &dump_response::Comparison) -> Result<timing::comparison::Com
 
 fn run(run: &dump_response::comparison::Run) -> Result<timing::comparison::Run> {
     Ok(timing::comparison::Run {
-        total_in_pb_run: run.total_in_pb_run.map(super::time).transpose()?,
-        sum_of_best: run.sum_of_best.map(super::time).transpose()?,
+        total_in_pb_run: run.total_in_pb_run.map(super::timing::time).transpose()?,
+        sum_of_best: run.sum_of_best.map(super::timing::time).transpose()?,
     })
 }
 
@@ -38,9 +38,9 @@ fn split(split: &dump_response::comparison::Split) -> Result<timing::comparison:
         in_pb_run: split
             .in_pb_run
             .as_ref()
-            .map(super::aggregate)
+            .map(super::timing::aggregate)
             .transpose()?
             .unwrap_or_default(),
-        split_pb: super::time(split.split_pb)?,
+        split_pb: super::timing::time(split.split_pb)?,
     })
 }

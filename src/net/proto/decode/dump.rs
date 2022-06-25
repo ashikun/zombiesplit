@@ -40,25 +40,20 @@ fn notes(
 }
 
 fn note(note: &dump_response::SplitNote) -> Result<session::state::SplitNote> {
-    Ok(session::state::SplitNote {
-        aggregates: note
-            .aggregate
-            .as_ref()
-            .map(super::aggregate)
-            .transpose()?
-            .unwrap_or_default(),
-        pace: super::split_in_run_pace_from_index(note.pace)?,
-    })
+    let aggregates = note
+        .aggregate
+        .as_ref()
+        .map(super::timing::aggregate)
+        .transpose()?
+        .unwrap_or_default();
+    let delta = note
+        .delta
+        .as_ref()
+        .map(super::timing::split_delta)
+        .transpose()?;
+    Ok(session::state::SplitNote { aggregates, delta })
 }
 
-fn total(dump: &DumpResponse) -> Result<Option<timing::comparison::PacedTime>> {
-    dump.total
-        .map(|t| total_given_pace(dump.pace, t))
-        .transpose()
-}
-
-fn total_given_pace(pace_index: i32, time: u32) -> Result<timing::comparison::PacedTime> {
-    let pace = super::pace_from_index(pace_index)?;
-    let time = super::time(time)?;
-    Ok(timing::comparison::PacedTime { pace, time })
+fn total(dump: &DumpResponse) -> Result<Option<timing::comparison::delta::Time>> {
+    dump.total.as_ref().map(super::timing::total).transpose()
 }

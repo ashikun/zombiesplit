@@ -91,10 +91,10 @@ impl State {
     /// Sets a total (eg attempt, comparison, sum-of-best).
     pub fn set_total(&mut self, ty: session::event::Total, time: Option<time::Time>) {
         match ty {
-            session::event::Total::Attempt(pace) => {
+            session::event::Total::Attempt(delta) => {
                 self.footer.total = PacedTime {
                     time: time.unwrap_or_default(),
-                    pace,
+                    pace: delta.pace,
                 };
             }
             session::event::Total::Comparison(ty) => {

@@ -31,8 +31,8 @@ pub enum Event {
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub enum Total {
-    /// The total is the attempt total, and has the given pace note.
-    Attempt(timing::comparison::Pace),
+    /// The total is the attempt total, and has the given delta from the comparison total.
+    Attempt(timing::comparison::Delta),
     /// The total is one of the comparison totals.
     Comparison(timing::comparison::run::TotalType),
 }

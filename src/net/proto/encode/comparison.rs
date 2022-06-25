@@ -32,7 +32,7 @@ fn splits(
 
 fn split(split: &timing::comparison::Split) -> dump_response::comparison::Split {
     dump_response::comparison::Split {
-        in_pb_run: Some(super::aggregate(&split.in_pb_run)),
+        in_pb_run: Some(super::timing::aggregate(&split.in_pb_run)),
         split_pb: u32::from(split.split_pb),
     }
 }

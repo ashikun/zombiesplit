@@ -25,8 +25,8 @@ pub struct State {
     /// This is kept separate from the attempt itself as it is effectively a denormalised
     /// derivative of the attempt data.
     pub notes: HashMap<short::Name, SplitNote>,
-    /// Total for the run.
-    pub total: Option<timing::comparison::PacedTime>,
+    /// Total for the run, including a delta against its comparison.
+    pub total: Option<timing::comparison::delta::Time>,
 }
 
 impl State {
@@ -127,28 +127,35 @@ impl State {
     fn note(&self, split: &split::Split, aggregates: timing::aggregate::Set) -> SplitNote {
         SplitNote {
             aggregates,
-            pace: self.split_pace(split, aggregates),
+            delta: self.split_delta(split, aggregates),
         }
     }
 
-    fn split_pace(
+    fn split_delta(
         &self,
         split: &split::Split,
         aggregates: timing::aggregate::Set,
-    ) -> timing::comparison::pace::SplitInRun {
+    ) -> Option<timing::comparison::delta::Split> {
         if split.num_times() == 0 {
-            timing::comparison::pace::SplitInRun::Inconclusive
+            None
         } else {
-            self.comparison.pace(split.info.short, aggregates)
+            // TODO: maybe propagate the error here?
+            self.comparison.delta(split.info.short, aggregates).ok()
         }
     }
 
     fn recalculate_total(&mut self) {
         self.total = self
-            .notes
-            .iter()
-            .max_by_key(|(_, note)| note.aggregates.cumulative)
-            .map(|(_, n)| n.paced_cumulative());
+            .attempt
+            .splits
+            .last_entered()
+            .and_then(|s| self.notes.get(&s.info.short))
+            .and_then(|note| {
+                note.delta.map(|d| super::comparison::delta::Time {
+                    time: note.aggregates.cumulative,
+                    delta: d.run(),
+                })
+            });
     }
 }
 
@@ -162,17 +169,22 @@ pub struct SplitNote {
     ///
     /// Comparison-level aggregates are in the comparison.
     pub aggregates: timing::aggregate::Set,
-    /// Pace note for this split.
-    pub pace: timing::comparison::pace::SplitInRun,
+    /// Delta between this split and comparison.
+    /// May be missing, if there are no times.
+    pub delta: Option<timing::comparison::delta::Split>,
 }
 
 impl SplitNote {
-    /// Extracts the cumulative of this note, alongside its overall-run pace.
+    /// Extracts the cumulative time of this note, alongside its delta against the comparison.
+    ///
+    /// If there have been no splits yet, this is `None`.
     #[must_use]
-    pub fn paced_cumulative(&self) -> timing::comparison::PacedTime {
-        timing::comparison::PacedTime {
-            pace: self.pace.overall(),
+    pub fn paced_cumulative(&self) -> Option<timing::comparison::PacedTime> {
+        // Assuming that self.delta == None <-> no splits, and we don't need to capture this
+        // separately in the aggregates.
+        self.delta.map(|d| timing::comparison::PacedTime {
+            pace: d.pace.overall(),
             time: self.aggregates.cumulative,
-        }
+        })
     }
 }
