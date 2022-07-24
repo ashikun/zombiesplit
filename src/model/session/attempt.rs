@@ -1,7 +1,10 @@
 //! Models relating to in-progress runs.
 
-use super::split::Set;
-use crate::model::{game::category, history};
+use crate::model::{
+    game::{category, config},
+    history,
+    session::split,
+};
 use chrono::{DateTime, Utc};
 
 /// An in-progress run.
@@ -18,10 +21,40 @@ pub struct Attempt {
     /// Attempt information for this run.
     pub info: category::AttemptInfo,
     /// The split data for this run.
-    pub splits: Set,
+    pub splits: split::Set,
 }
 
 impl Attempt {
+    /// Constructs an initial attempt from game configuration.
+    ///
+    /// Usually, one won't create attempts directly from configuration like this, but will instead
+    /// use the configuration to construct a database representation of the game data and then
+    /// produce attempts from there.  This more direct approach is useful for testing parts of
+    /// `zombiesplit` that depend on attempt or session information.
+    ///
+    /// # Errors
+    ///
+    /// Fails if the `game` is missing references needed to resolve parts of the attempt (for
+    /// instance, segments mentioned by a category, or the category mentioned by the descriptor).
+    pub fn from_config(
+        game: &config::Config,
+        short: category::ShortDescriptor,
+    ) -> config::Result<Self> {
+        let category = game.category(short.category)?;
+        let splits: split::Set = split::Set::from_config(game, category)?;
+
+        Ok(Self {
+            category: category::Info {
+                game: game.name.clone(),
+                category: category.name.clone(),
+                short,
+            },
+            // TODO: indeterminate attempt information
+            info: category::AttemptInfo::default(),
+            splits,
+        })
+    }
+
     /// Resets this run and all splits inside it, incrementing the attempt if necessary.
     pub fn reset(&mut self, dest: super::action::OldDestination) {
         if matches!(dest, super::action::OldDestination::Save) {

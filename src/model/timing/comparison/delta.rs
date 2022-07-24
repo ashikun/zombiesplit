@@ -5,6 +5,8 @@
 //! negative times, which we don't support, and the combination of absolute difference and
 //! pace is unambiguous.)
 
+use std::str::FromStr;
+
 use serde::{Deserialize, Serialize};
 
 use super::{super::time, pace};
@@ -21,13 +23,53 @@ pub struct Delta {
     pub abs_delta: time::Time,
 }
 
+impl FromStr for Delta {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        let mut cs = s.chars();
+        let pace = delta_sign(cs.next().unwrap_or('+'))?;
+        let abs_delta = cs.as_str().parse()?;
+        Ok(Self { pace, abs_delta })
+    }
+}
+
+/// Converts a prefix sign into a pace (`+` means behind, `-` means ahead, etc.)
+///
+/// Note that the sign is from the
+///
+/// # Errors
+///
+/// Fails if `sign` does not represent a pace type.
+fn delta_sign(sign: char) -> Result<pace::Pace> {
+    Ok(match sign {
+        '-' => pace::Pace::Ahead,
+        '+' => pace::Pace::Behind,
+        '*' => pace::Pace::PersonalBest,
+        '?' => pace::Pace::Inconclusive,
+        _ => Err(Error::DeltaSign { sign })?,
+    })
+}
+
+/// An error that occurs when parsing a delta.
+#[derive(thiserror::Error, Debug, Clone, PartialEq, Eq)]
+pub enum Error {
+    #[error("time failed parsing")]
+    TimeParse(#[from] super::super::time::Error),
+    #[error("bad sign '{sign}' for delta")]
+    DeltaSign { sign: char },
+}
+
+/// Shorthand for parse results.
+pub type Result<T> = std::result::Result<T, Error>;
+
 impl Delta {
     /// Calculates the delta by comparing `time` to `compared_to`, if it exists.
     ///
     /// # Errors
     ///
     /// Fails if we can't capture the delta as a [Time].
-    pub fn of_comparison(time: time::Time, compared_to: time::Time) -> Result<Self, time::Error> {
+    pub fn of_comparison(time: time::Time, compared_to: time::Time) -> time::error::Result<Self> {
         Ok(Self {
             pace: pace::Pace::of_comparison(time, compared_to),
             abs_delta: time::Time::try_from(u32::abs_diff(
@@ -86,7 +128,7 @@ impl Time {
     /// # Errors
     ///
     /// Fails if we can't capture the delta as a [Time].
-    pub fn of_comparison(time: time::Time, compared_to: time::Time) -> Result<Self, time::Error> {
+    pub fn of_comparison(time: time::Time, compared_to: time::Time) -> time::error::Result<Self> {
         let delta = Delta::of_comparison(time, compared_to)?;
         Ok(Time { delta, time })
     }
@@ -113,7 +155,7 @@ impl Time {
     /// assert_eq!(t1, t1a);
     /// assert_eq!(t2, t2a);
     /// ```
-    pub fn comparison(&self) -> Result<super::Time, super::super::time::Error> {
+    pub fn comparison(&self) -> time::error::Result<super::Time> {
         let ms = u32::from(self.time);
         let delta = u32::from(self.delta.abs_delta);
         let mod_ms: u32 = match self.delta.pace {

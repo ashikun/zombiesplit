@@ -16,7 +16,7 @@ use super::{super::short, aggregate, Time};
 ///
 /// A comparison struct contains both per-split and aggregated times.  There is no inherent checking
 /// that the former and latter agree, as some comparison providers may have ways of calculating the
-/// latter that don't involve
+/// latter that don't involve calculating the former.
 #[derive(Clone, Debug, Default)]
 pub struct Comparison {
     /// Split comparisons.
@@ -26,8 +26,8 @@ pub struct Comparison {
 }
 
 impl Comparison {
-    /// Gets a delta for the split with short name `split`, which has just
-    /// posted an aggregate time pair of `against`.
+    /// Gets a delta for the split with short name `split`, which has just posted an aggregate time
+    /// pair of `against`.
     ///
     /// # Errors
     ///
@@ -57,6 +57,25 @@ impl IntoIterator for Comparison {
 
     fn into_iter(self) -> Self::IntoIter {
         self.splits.into_iter()
+    }
+}
+
+impl FromIterator<(short::Name, Split)> for Comparison {
+    fn from_iter<T: IntoIterator<Item = (short::Name, Split)>>(iter: T) -> Self {
+        let mut result = Self::default();
+
+        let mut total = Time::default();
+        let mut sob = Time::default();
+
+        for (name, split) in iter {
+            result.splits.insert(name, split);
+
+            total += split.in_pb_run.split;
+            sob += split.split_pb;
+        }
+
+        //        result.run.total_in_pb_run
+        result
     }
 }
 
@@ -109,8 +128,8 @@ impl Split {
         &self,
         against: aggregate::Set,
         scope: aggregate::Scope,
-    ) -> Result<delta::Delta, super::time::Error> {
-        delta::Delta::of_comparison(against[scope], self.in_pb_run[scope])
+    ) -> Result<Delta, super::time::Error> {
+        Delta::of_comparison(against[scope], self.in_pb_run[scope])
     }
 
     /// Checks whether `split time` is a new personal best.

@@ -1,4 +1,6 @@
 //! Split sets.
+use itertools::{Either, Itertools};
+
 use super::{
     super::super::{game, short, timing::aggregate},
     Split,
@@ -55,6 +57,22 @@ impl Set {
         }
     }
 
+    /// Constructs a split set from the information in both `game` and `category` configuration.
+    ///
+    /// # Errors
+    ///
+    /// Fails if any of the references between configuration elements are broken.
+    pub fn from_config(
+        game: &game::Config,
+        category: &game::config::Category,
+    ) -> game::config::Result<Self> {
+        category
+            .full_segments(game)
+            .flat_map(|r| process_segment_result(r, game))
+            .map_ok(|(n, s)| game::Split::new(n, &s.name))
+            .collect()
+    }
+
     /// Gets an iterator of all of the splits in this set, in position order.
     ///
     /// The short name of each split can be found through its metadata.
@@ -85,6 +103,16 @@ impl Set {
     #[must_use]
     pub fn last_entered(&self) -> Option<&Split> {
         self.contents.iter().rfind(|s| !s.times.is_empty())
+    }
+}
+
+fn process_segment_result<'g>(
+    r: game::config::Result<(short::Name, &'g game::config::Segment)>,
+    game: &'g game::Config,
+) -> impl Iterator<Item = game::config::Result<(short::Name, &'g game::config::Split)>> {
+    match r {
+        Ok((_, seg)) => Either::Left(seg.full_splits(game)),
+        Err(e) => Either::Right(std::iter::once(Err(e))),
     }
 }
 

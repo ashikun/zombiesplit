@@ -1,10 +1,10 @@
 //! zombiesplit's notion of times.
-use std::cmp::Ordering;
-use std::ops::{Index, IndexMut};
 use std::{
+    cmp::Ordering,
     convert::TryFrom,
     fmt::{self, Display},
     iter::Sum,
+    ops::{Index, IndexMut},
     str::FromStr,
 };
 
@@ -61,6 +61,32 @@ impl PartialOrd for Time {
 }
 
 impl Time {
+    /// Constructs a time from its hour, minute, second, and millisecond positions.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use zombiesplit::model::timing::time::Time;
+    ///
+    /// let t1 = Time::new(1, 23, 45, 678).expect("shouldn't overflow");
+    /// assert_eq!(1, u16::from(t1.hours));
+    /// assert_eq!(23, u16::from(t1.mins));
+    /// assert_eq!(45, u16::from(t1.secs));
+    /// assert_eq!(678, u16::from(t1.millis));
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Errors if the amount for any field is too high to store
+    pub fn new(hours: u32, mins: u32, secs: u32, millis: u32) -> error::Result<Self> {
+        Ok(Self {
+            hours: Field::new(Position::Hours, hours)?,
+            mins: Field::new(Position::Minutes, mins)?,
+            secs: Field::new(Position::Seconds, secs)?,
+            millis: Field::new(Position::Milliseconds, millis)?,
+        })
+    }
+
     /// Tries to construct a [Time] from a given number of seconds.
     ///
     /// This is generally useful for testing.
@@ -241,7 +267,7 @@ impl rusqlite::ToSql for Time {
 
 /// We can index into a time by position index, returning a field.
 impl Index<Position> for Time {
-    type Output = field::Field;
+    type Output = Field;
 
     fn index(&self, index: Position) -> &Self::Output {
         match index {
@@ -281,7 +307,7 @@ mod tests {
     fn time_sub_sat() {
         let t1: Time = "1h5m10s".parse().expect("should be valid");
         let t2: Time = "6m4s100".parse().expect("should be valid");
-        assert_eq!(super::Time::default(), t2 - t1);
+        assert_eq!(Time::default(), t2 - t1);
     }
 
     #[test]

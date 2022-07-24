@@ -20,6 +20,16 @@ impl Provider for Null {
     }
 }
 
+/// Comparisons, themselves, are comparison providers.
+///
+/// More specifically, anything that can be turned into an optional comparison is a comparison
+/// provider.
+impl<C: Into<Option<Comparison>> + Clone> Provider for C {
+    fn comparison(&mut self) -> Result {
+        Ok(self.clone().into())
+    }
+}
+
 /// Enumeration of errors that can occur when getting a comparison.
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]

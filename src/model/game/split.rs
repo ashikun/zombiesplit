@@ -2,7 +2,7 @@
 
 use crate::model::short;
 
-/// Info about a split.
+/// Information about a split.
 ///
 /// Records here correspond to entries in the `split` table.
 #[derive(Debug, Clone, PartialEq, Eq)]

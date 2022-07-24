@@ -74,7 +74,7 @@ impl<'cmp, 'obs, O: Observer> action::Handler for Session<'cmp, 'obs, O> {
     }
 }
 
-impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
+impl<'cmp, 'obs, O: Observer> Session<'cmp, 'obs, O> {
     /// Starts a new session with a given set of metadata and starting run.
     #[must_use]
     pub fn new(run: Attempt, observer: &'obs O) -> Self {
@@ -227,7 +227,8 @@ impl<'cmp, 'obs, 'snk, O: Observer> Session<'cmp, 'obs, O> {
         }
     }
 
-    fn push_to(&mut self, split: impl split::Locator, time: Time) {
+    /// Pushes a time to a split located by `split`.
+    pub fn push_to(&mut self, split: impl split::Locator, time: Time) {
         if let Some(short) = self.state.push_to(split, time) {
             self.observer
                 .observe_time(short, time, event::time::Time::Pushed);

@@ -104,7 +104,7 @@ impl<'conn> Getter<'conn> {
             })?)
     }
 
-    /// Gets run information for the given locator.
+    /// Constructs an initial attempt for the category located by `locator`.
     ///
     /// # Errors
     ///

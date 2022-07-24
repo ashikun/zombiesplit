@@ -1,6 +1,8 @@
 //! Models relating to the set of categories attached to a game.
-use std::fmt::Formatter;
-use std::{fmt::Display, str::FromStr};
+use std::{
+    fmt::{Display, Formatter},
+    str::FromStr,
+};
 
 use super::super::short;
 use serde::{Deserialize, Serialize};
@@ -35,7 +37,7 @@ impl Display for ShortDescriptor {
     ///
     /// assert_eq!("scd11/btg-sonic", format!("{}", ShortDescriptor::new("scd11", "btg-sonic")));
     /// ```
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}/{}", self.game, self.category)
     }
 }
