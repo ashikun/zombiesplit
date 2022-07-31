@@ -4,17 +4,19 @@ use config::ConfigBuilder;
 use std::path::PathBuf;
 
 /// Gets the base config from folding in the user's custom file and the standard file (if any).
-pub(super) fn base_config(
+///
+/// This is exposed publicly so it can be used in `zsclient`, but this may change in future.
+pub fn base_config(
     name: &str,
-    custom_path: Option<std::path::PathBuf>,
+    custom_path: Option<PathBuf>,
 ) -> ConfigBuilder<config::builder::DefaultState> {
-    let s = config::ConfigBuilder::default();
+    let s = ConfigBuilder::default();
     let s = merge_file(s, "global", name, global_config_path(name), false);
     merge_file(s, "user", name, custom_path, true)
 }
 
 /// Gets the path for the configuration file with name `name`.
-fn global_config_path(name: &str) -> Option<std::path::PathBuf> {
+fn global_config_path(name: &str) -> Option<PathBuf> {
     dir().map(|d| {
         let mut pb = std::path::PathBuf::from(d.config_dir());
 
