@@ -5,8 +5,11 @@ thread in a synchronous context). */
 
 mod error;
 
-use super::{super::model::session, proto};
-use crate::net::proto::decode;
+use super::{
+    super::model::session::{self, action::Handler},
+    client::error::Error,
+    proto,
+};
 use error::Result;
 use std::sync::Arc;
 use tokio::runtime;
@@ -20,7 +23,7 @@ pub struct Sync<O> {
     rt: Arc<runtime::Runtime>,
 }
 
-impl<O: session::Observer> session::action::Handler for Sync<O> {
+impl<O: session::Observer> Handler for Sync<O> {
     type Error = error::Error;
 
     fn dump(&mut self) -> Result<session::State> {
@@ -67,7 +70,52 @@ impl<O: session::Observer> Sync<O> {
     }
 }
 
-/// A zombiesplit network client.
+impl<O: session::Observer + Clone + Send + 'static> Sync<O> {
+    /// Runs `client_code` with this client and an initial dump.
+    ///
+    /// This also forks a version of this client to pump observations while `client_code` is
+    /// running; we assume that the client code is already using the attached `Observer`.
+    ///
+    /// # Errors
+    ///
+    /// Fails if the client fails to process an action or an event, or there is an underlying I/O
+    /// error, or the client code fails.
+    ///
+    /// # Panics
+    ///
+    /// Can panic if the underlying asynchronous client code panics.
+    pub fn run<E: From<Error>>(
+        &mut self,
+        client_code: impl FnOnce(session::State, &mut Self) -> std::result::Result<(), E>,
+    ) -> std::result::Result<(), E> {
+        let state = self.dump()?;
+
+        let (csend, crecv) = tokio::sync::oneshot::channel();
+
+        // Spawn off a separate cancellable thread to perform the observations.
+        let mut observing_client = self.clone();
+        let _handle = std::thread::spawn(move || -> Result<()> {
+            observing_client.observe(crecv)?;
+            Ok(())
+        });
+
+        (client_code)(state, self)?;
+
+        csend.send(()).map_err(|_| Error::ObserverCancelFail)?;
+
+        // TODO(@MattWindsor91): make this work
+
+        /*
+        handle
+            .join()
+            .map_err(|e| anyhow::anyhow!("couldn't join client thread"))??;
+         */
+
+        Ok(())
+    }
+}
+
+/// An asynchronous zombiesplit network client.
 #[derive(Clone)]
 pub struct Client<O> {
     /// The gRPC channel connecting to the server.
@@ -137,7 +185,7 @@ impl<O: session::Observer> Client<O> {
     ///
     /// Fails if any part of the dumping process fails (primarily network or transcoding errors).
     pub async fn dump(&mut self) -> Result<session::State> {
-        Ok(decode::dump::dump(&self.dump_raw().await?)?)
+        Ok(proto::decode::dump::dump(&self.dump_raw().await?)?)
     }
 
     async fn dump_raw(&mut self) -> Result<proto::DumpResponse> {

@@ -19,6 +19,9 @@ pub enum Error {
     /// A client-side decoding error.
     #[error("error decoding response from server")]
     Decode(#[from] super::proto::decode::Error),
+    /// Couldn't cancel the server's observation loop.
+    #[error("couldn't cancel the observer")]
+    ObserverCancelFail,
 }
 
 /// Shorthand for results over [Error].
