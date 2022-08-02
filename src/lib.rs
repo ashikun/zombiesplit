@@ -6,7 +6,6 @@ pub mod config;
 pub mod db;
 pub mod model;
 pub mod net;
-pub mod ui;
 pub mod zombie;
 
 pub use db::Db;
