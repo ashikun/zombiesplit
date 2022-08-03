@@ -40,7 +40,7 @@ fn split(split: &session::Split) -> dump_response::attempt::Split {
         sid: split.info.short.to_string(),
         name: split.info.name.clone(),
         times: times(split),
-        nickname: None, // for now
+        nickname: split.info.nickname.clone(),
     }
 }
 

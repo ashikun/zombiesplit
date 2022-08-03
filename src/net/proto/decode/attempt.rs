@@ -44,6 +44,7 @@ fn split(split: &dump_response::attempt::Split) -> Result<session::split::Split>
         info: game::Split {
             short: short::Name::from(&split.sid),
             name: split.name.clone(),
+            nickname: split.nickname.clone(),
         },
         times: times(split)?,
     })
