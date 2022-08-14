@@ -6,7 +6,7 @@ the protobuf representation of the model.
 */
 
 // Required because prost does not generate pedantic-clean code.
-#![allow(clippy::pedantic)]
+#![allow(clippy::derive_partial_eq_without_eq, clippy::pedantic)]
 
 pub mod decode;
 pub mod encode;

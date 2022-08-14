@@ -6,6 +6,7 @@ use std::path::PathBuf;
 /// Gets the base config from folding in the user's custom file and the standard file (if any).
 ///
 /// This is exposed publicly so it can be used in `zsclient`, but this may change in future.
+#[must_use]
 pub fn base_config(
     name: &str,
     custom_path: Option<PathBuf>,
@@ -27,6 +28,7 @@ fn global_config_path(name: &str) -> Option<PathBuf> {
 }
 
 /// Gets the base project directory configuration for zombiesplit.
+#[must_use]
 pub fn dir() -> Option<directories::ProjectDirs> {
     // TODO(@MattWindsor91): maybe eventually there will be a better organisation here.
     directories::ProjectDirs::from("xyz", "ashikun", "zombiesplit")
