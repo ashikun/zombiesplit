@@ -12,24 +12,21 @@ chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "3.1.6", features = ["cargo", "derive"] }
 config = { version = "0.13.1", default-features = false, features = ["toml"] }
 colored = "2"
-css-color-parser = "0.1.2"
 directories = "4.0.1"
 env_logger = "0.9.0"
 futures = "0.3.21"
 http = "0.2.6"
 itertools = "0.10.3"
 log = { version = "0.4", features = ["serde", "std"] }
-ugly = { git = "https://github.com/ashikun/ugly", features = [ "backend_sdl" ] }
 num-integer = "0.1.44"
-prost = "0.10"
-rusqlite = { version = "0.27.0", features = ["chrono"] }
+prost = "0.11"
+rusqlite = { version = "0.28.0", features = ["chrono"] }
 r2d2 = "0.8.9"
-r2d2_sqlite = "0.20.0"
-ron = "0.7.0"
-sdl2 = { version = "0.35.2", features = ["gfx", "image"] }
+r2d2_sqlite = "0.21.0"
+ron = "0.8.0"
 semver = "1.0.6"
 serde = { version = "1.0.136", features = ["derive"] }
-serde_with = "1.11.0"
+serde_with = "2.0.0"
 serde_plain = "1.0.0"
 symbol = "0.1.9" # used for short names
 tabwriter = { version = "1", features = [ "ansi_formatting" ] }
@@ -38,10 +35,10 @@ tokio-stream = { version = "0.1.8", features = [ "sync" ] }
 tempfile = "3"
 thiserror = "1.0.30"
 toml = "0.5.8"
-tonic = { version = "0.7.1", features = [ "transport" ] }
+tonic = { version = "0.8.0", features = [ "transport" ] }
 
 [build-dependencies]
-tonic-build = "0.7.0"
+tonic-build = "0.8.0"
 
 [dev-dependencies]
 pretty_assertions = "1.0.0"
