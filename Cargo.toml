@@ -7,35 +7,34 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.56"
-chrono = { version = "0.4", features = ["serde"] }
-clap = { version = "3.1.6", features = ["cargo", "derive"] }
-config = { version = "0.13.1", default-features = false, features = ["toml"] }
-colored = "2"
+anyhow = "1.0.65"
+chrono = { version = "0.4.22", features = ["serde"] }
+clap = { version = "3.2.22", features = ["cargo", "derive"] }
+config = { version = "0.13.2", default-features = false, features = ["toml"] }
+colored = "2.0.0"
 directories = "4.0.1"
-env_logger = "0.9.0"
-futures = "0.3.21"
-http = "0.2.6"
-itertools = "0.10.3"
-log = { version = "0.4", features = ["serde", "std"] }
-num-integer = "0.1.44"
-prost = "0.11"
+env_logger = "0.9.1"
+futures = "0.3.24"
+http = "0.2.8"
+itertools = "0.10.5"
+log = { version = "0.4.17", features = ["serde", "std"] }
+num-integer = "0.1.45"
+prost = "0.11.0"
 rusqlite = { version = "0.28.0", features = ["chrono"] }
-r2d2 = "0.8.9"
+r2d2 = "0.8.10"
 r2d2_sqlite = "0.21.0"
-ron = "0.8.0"
-semver = "1.0.6"
-serde = { version = "1.0.136", features = ["derive"] }
-serde_with = "2.0.0"
+semver = "1.0.14"
+serde = { version = "1.0.145", features = ["derive"] }
+serde_with = "2.0.1"
 serde_plain = "1.0.0"
 symbol = "0.1.9" # used for short names
-tabwriter = { version = "1", features = [ "ansi_formatting" ] }
-tokio = { version = "1", features = [ "full" ] }
-tokio-stream = { version = "0.1.8", features = [ "sync" ] }
-tempfile = "3"
-thiserror = "1.0.30"
-toml = "0.5.8"
-tonic = { version = "0.8.0", features = [ "transport" ] }
+tabwriter = { version = "1.2.1", features = [ "ansi_formatting" ] }
+tokio = { version = "1.21.1", features = [ "full" ] }
+tokio-stream = { version = "0.1.10", features = [ "sync" ] }
+tempfile = "3.3.0"
+thiserror = "1.0.35"
+toml = "0.5.9"
+tonic = { version = "0.8.1", features = [ "transport" ] }
 
 [build-dependencies]
 tonic-build = "0.8.0"
