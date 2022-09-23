@@ -9,7 +9,10 @@ use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
 
-use super::{super::time, pace};
+use super::{
+    super::time::{error, human},
+    pace,
+};
 
 /// A single-time time difference.
 ///
@@ -20,7 +23,7 @@ pub struct Delta {
     /// The pace.
     pub pace: pace::Pace,
     /// The absolute amount by which the times differ.
-    pub abs_delta: time::Time,
+    pub abs_delta: human::Time,
 }
 
 impl FromStr for Delta {
@@ -69,10 +72,10 @@ impl Delta {
     /// # Errors
     ///
     /// Fails if we can't capture the delta as a [Time].
-    pub fn of_comparison(time: time::Time, compared_to: time::Time) -> time::error::Result<Self> {
+    pub fn of_comparison(time: human::Time, compared_to: human::Time) -> error::Result<Self> {
         Ok(Self {
             pace: pace::Pace::of_comparison(time, compared_to),
-            abs_delta: time::Time::try_from(u32::abs_diff(
+            abs_delta: human::Time::try_from(u32::abs_diff(
                 u32::from(time),
                 u32::from(compared_to),
             ))?,
@@ -86,9 +89,9 @@ pub struct Split {
     /// The pace.
     pub pace: pace::SplitInRun,
     /// The absolute amount by which the split-level times differ.
-    pub split_abs_delta: time::Time,
+    pub split_abs_delta: human::Time,
     /// The absolute amount by which the run-level times differ.
-    pub run_abs_delta: time::Time,
+    pub run_abs_delta: human::Time,
 }
 
 impl Split {
@@ -119,7 +122,7 @@ pub struct Time {
     /// The delta.
     pub delta: Delta,
     /// The time to which `delta` applies.
-    pub time: super::Time,
+    pub time: human::Time,
 }
 
 impl Time {
@@ -128,7 +131,7 @@ impl Time {
     /// # Errors
     ///
     /// Fails if we can't capture the delta as a [Time].
-    pub fn of_comparison(time: time::Time, compared_to: time::Time) -> time::error::Result<Self> {
+    pub fn of_comparison(time: human::Time, compared_to: human::Time) -> error::Result<Self> {
         let delta = Delta::of_comparison(time, compared_to)?;
         Ok(Time { delta, time })
     }
@@ -142,8 +145,8 @@ impl Time {
     /// ```
     /// use zombiesplit::model::timing;
     ///
-    /// let t1 = timing::Time::seconds(123).unwrap();
-    /// let t2 = timing::Time::seconds(456).unwrap();
+    /// let t1 = timing::time::human::Time::seconds(123).unwrap();
+    /// let t2 = timing::time::human::Time::seconds(456).unwrap();
     ///
     /// let d1 = timing::comparison::delta::Time::of_comparison(t1, t2).unwrap();
     /// let d2 = timing::comparison::delta::Time::of_comparison(t2, t1).unwrap();
@@ -155,7 +158,7 @@ impl Time {
     /// assert_eq!(t1, t1a);
     /// assert_eq!(t2, t2a);
     /// ```
-    pub fn comparison(&self) -> time::error::Result<super::Time> {
+    pub fn comparison(&self) -> error::Result<human::Time> {
         let ms = u32::from(self.time);
         let delta = u32::from(self.delta.abs_delta);
         let mod_ms: u32 = match self.delta.pace {
@@ -164,7 +167,7 @@ impl Time {
             super::Pace::Behind => ms - delta,
             super::Pace::Inconclusive => ms,
         };
-        super::super::Time::try_from(mod_ms)
+        human::Time::try_from(mod_ms)
     }
 
     /// Extracts the pace and time from this [Time] and puts them together.
@@ -172,8 +175,8 @@ impl Time {
     /// ```
     /// use zombiesplit::model::timing;
     ///
-    /// let t1 = timing::Time::seconds(123).unwrap();
-    /// let t2 = timing::Time::seconds(456).unwrap();
+    /// let t1 = timing::time::human::Time::seconds(123).unwrap();
+    /// let t2 = timing::time::human::Time::seconds(456).unwrap();
     ///
     /// let d = timing::comparison::delta::Time::of_comparison(t1, t2).unwrap();
     /// let p = d.paced_time();

@@ -2,7 +2,7 @@
 
 pub use set::{Locator, Set};
 
-use crate::model::timing::time::Time;
+use crate::model::timing::time::human;
 
 use super::super::game;
 
@@ -17,7 +17,7 @@ pub struct Split {
     /// such information.
     pub info: game::Split,
     /// The entered times.
-    pub times: Vec<Time>,
+    pub times: Vec<human::Time>,
 }
 
 impl Split {
@@ -41,21 +41,21 @@ impl Split {
     /// # Example
     ///
     /// ```
-    /// use zombiesplit::model::{session::split::Split, game, Time};
+    /// use zombiesplit::model::{session::split::Split, game, timing::time::human};
     ///
     /// let mut s = Split::new(game::Split::new("pp1", "Palmtree Panic 1"));
-    /// s.push(Time::seconds(9).unwrap());
-    /// s.push(Time::seconds(10).unwrap());
-    /// assert_eq!(Time::seconds(19).unwrap(), s.total_time());
+    /// s.push(human::Time::seconds(9).unwrap());
+    /// s.push(human::Time::seconds(10).unwrap());
+    /// assert_eq!(human::Time::seconds(19).unwrap(), s.total_time());
     /// ```
     #[must_use]
-    pub fn total_time(&self) -> Time {
+    pub fn total_time(&self) -> human::Time {
         self.times.iter().copied().sum()
     }
 
     /// Clones a copy of the times for this split.
     #[must_use]
-    pub fn all_times(&self) -> Vec<Time> {
+    pub fn all_times(&self) -> Vec<human::Time> {
         self.times.clone()
     }
 
@@ -66,13 +66,13 @@ impl Split {
     }
 
     /// Pushes a time onto this split.
-    pub fn push(&mut self, time: Time) {
+    pub fn push(&mut self, time: human::Time) {
         self.times.push(time);
     }
 
     /// Tries to pop the most recently added time off this split.
     #[must_use]
-    pub fn pop(&mut self) -> Option<Time> {
+    pub fn pop(&mut self) -> Option<human::Time> {
         self.times.pop()
     }
 

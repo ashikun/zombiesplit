@@ -9,13 +9,11 @@ use std::fmt::Formatter;
 
 use serde::{Deserialize, Serialize};
 
-use crate::model::timing::time::Time;
-
-use super::super::short;
+use super::super::{short, timing::time::human};
 
 pub trait Timing {
     /// Gets the total across all splits.
-    fn total(&self) -> Time;
+    fn total(&self) -> human::Time;
 }
 
 /// Full timing information for a run.
@@ -23,11 +21,11 @@ pub trait Timing {
 /// This includes every logged time for every split in the run.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Full {
-    pub times: short::Map<Vec<Time>>,
+    pub times: short::Map<Vec<human::Time>>,
 }
 
 impl Timing for Full {
-    fn total(&self) -> Time {
+    fn total(&self) -> human::Time {
         self.times.values().flatten().copied().sum()
     }
 }
@@ -35,11 +33,11 @@ impl Timing for Full {
 /// Split-total timing information for a run.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Totals {
-    pub totals: short::Map<Time>,
+    pub totals: short::Map<human::Time>,
 }
 
 impl Timing for Totals {
-    fn total(&self) -> Time {
+    fn total(&self) -> human::Time {
         self.totals.values().copied().sum()
     }
 }
@@ -48,13 +46,13 @@ impl Timing for Totals {
 #[derive(Copy, Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Summary {
     /// The total time across all splits.
-    pub total: Time,
+    pub total: human::Time,
     /// The rank of this run across all runs, if known.
     pub rank: Option<usize>,
 }
 
 impl Timing for Summary {
-    fn total(&self) -> Time {
+    fn total(&self) -> human::Time {
         self.total
     }
 }
@@ -138,7 +136,7 @@ impl From<Full> for ForLevel {
 }
 
 impl Timing for ForLevel {
-    fn total(&self) -> Time {
+    fn total(&self) -> human::Time {
         match self {
             Self::Summary(f) => f.total(),
             Self::Totals(f) => f.total(),

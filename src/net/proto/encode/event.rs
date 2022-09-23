@@ -1,7 +1,7 @@
 //! Encoding logic for events.
 
 use super::super::{
-    super::super::model::{session, short, timing, Time},
+    super::super::model::{session, short, timing, timing::time::human},
     event, Event,
 };
 
@@ -21,7 +21,7 @@ pub fn encode(event: &session::Event) -> super::Result<Event> {
 }
 
 /// Encodes a total event into its protobuf form.
-fn total(ty: session::event::Total, time: Option<Time>) -> event::Total {
+fn total(ty: session::event::Total, time: Option<human::Time>) -> event::Total {
     event::Total {
         r#type: Some(total_type(ty)),
         value: time.map(u32::from),
@@ -63,7 +63,7 @@ fn split_payload(event: &session::event::Split) -> event::split::Payload {
     }
 }
 
-fn split_time(ty: session::event::Time, time: Time) -> event::split::Time {
+fn split_time(ty: session::event::Time, time: human::Time) -> event::split::Time {
     event::split::Time {
         r#type: split_time_type(ty) as i32,
         time: u32::from(time),

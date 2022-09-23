@@ -2,7 +2,7 @@
 
 use super::{
     super::{
-        super::super::model::{game, session, short, timing},
+        super::super::model::{game, session, short, timing::time::human},
         dump_response,
     },
     error::{Missing, Result},
@@ -50,7 +50,7 @@ fn split(split: &dump_response::attempt::Split) -> Result<session::split::Split>
     })
 }
 
-fn times(split: &dump_response::attempt::Split) -> Result<Vec<timing::Time>> {
+fn times(split: &dump_response::attempt::Split) -> Result<Vec<human::Time>> {
     split
         .times
         .iter()

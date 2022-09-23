@@ -121,7 +121,7 @@ pub struct Split {
 #[derive(SerializeDisplay, DeserializeFromStr, Debug)]
 pub struct Record {
     /// The time.
-    pub time: time::Time,
+    pub time: time::human::Time,
 }
 
 impl Display for Record {

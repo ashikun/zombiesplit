@@ -20,7 +20,7 @@ pub use time::Time;
 #[non_exhaustive]
 pub enum Event {
     /// Observes a change in one of the run total times.
-    Total(Total, Option<timing::Time>),
+    Total(Total, Option<timing::time::human::Time>),
     /// Observes information about a reset, with the new attempt information attached.
     Reset(category::AttemptInfo),
     /// Observes an event on a split.

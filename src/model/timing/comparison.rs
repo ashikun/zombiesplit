@@ -10,7 +10,7 @@ pub use pace::{Pace, PacedTime};
 pub use provider::Provider;
 pub use run::Run;
 
-use super::{super::short, aggregate, Time};
+use super::{super::short, aggregate, time::human};
 
 /// Comparison data, containing information about split and run personal bests (PBs).
 ///
@@ -64,8 +64,8 @@ impl FromIterator<(short::Name, Split)> for Comparison {
     fn from_iter<T: IntoIterator<Item = (short::Name, Split)>>(iter: T) -> Self {
         let mut result = Self::default();
 
-        let mut total = Time::default();
-        let mut sob = Time::default();
+        let mut total = human::Time::default();
+        let mut sob = human::Time::default();
 
         for (name, split) in iter {
             result.splits.insert(name, split);
@@ -94,7 +94,7 @@ pub struct Split {
     ///
     /// Any splits that compare quicker than this time get the `PersonalBest`
     /// pace.
-    pub split_pb: Time,
+    pub split_pb: human::Time,
     /// Timing information for this split in the comparison run.
     pub in_pb_run: aggregate::Set,
 }
@@ -133,7 +133,7 @@ impl Split {
     }
 
     /// Checks whether `split time` is a new personal best.
-    fn is_personal_best(&self, split_time: Time) -> bool {
+    fn is_personal_best(&self, split_time: human::Time) -> bool {
         split_time < self.split_pb
     }
 }

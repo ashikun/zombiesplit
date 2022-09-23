@@ -90,6 +90,6 @@ pub(super) fn aggregate(agg: &Aggregate) -> Result<timing::aggregate::Set> {
 ///
 /// Fails with `out_of_range` if the timestamp is too large to represent a valid time, and
 /// `invalid_argument` if there is any other error in decoding the time.
-pub(super) fn time(stamp: u32) -> Result<timing::Time> {
-    Ok(timing::Time::try_from(stamp)?)
+pub(super) fn time(stamp: u32) -> Result<timing::time::human::Time> {
+    Ok(timing::time::human::Time::try_from(stamp)?)
 }

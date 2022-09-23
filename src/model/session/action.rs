@@ -2,7 +2,7 @@
 An event interface for manipulating a current attempt.
 */
 
-use crate::model::Time;
+use crate::model::timing::time::human;
 use serde::{Deserialize, Serialize};
 
 /// An event that manipulates the current session.
@@ -12,7 +12,7 @@ pub enum Action {
     /// Start a new run.
     NewRun(OldDestination),
     /// Pushes a time to the split at the given position.
-    Push(usize, Time),
+    Push(usize, human::Time),
     /// Pops one or more times from the split at the given position.
     Pop(usize, Pop),
 }

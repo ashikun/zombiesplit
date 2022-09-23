@@ -12,7 +12,9 @@ use zombiesplit::{
             action::{Action, Handler, OldDestination},
             event,
         },
-        short, Loadable, Time,
+        short,
+        timing::time::human::Time,
+        Loadable,
     },
 };
 

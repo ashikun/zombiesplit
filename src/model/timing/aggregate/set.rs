@@ -2,10 +2,8 @@
 
 use std::ops::{Index, IndexMut};
 
-use crate::model::session::split;
-
 use super::{
-    super::Time,
+    super::{super::session::split, time::human},
     index::{Kind, Scope, Source},
 };
 
@@ -43,7 +41,7 @@ impl IndexMut<Source> for Full {
 
 /// [Full] sets can be indexed by [Kind], yielding the time.
 impl Index<Kind> for Full {
-    type Output = Time;
+    type Output = human::Time;
 
     fn index(&self, index: Kind) -> &Self::Output {
         &self[index.source][index.scope]
@@ -61,9 +59,9 @@ impl IndexMut<Kind> for Full {
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq)]
 pub struct Set {
     /// Single time for this split only.
-    pub split: Time,
+    pub split: human::Time,
     /// Cumulative time for all splits up to and including this split.
-    pub cumulative: Time,
+    pub cumulative: human::Time,
 }
 
 impl Set {
@@ -84,11 +82,11 @@ impl Set {
     /// Although aggregates are yielded in order, we provide the short
     /// name of each split for convenience.
     pub fn accumulate_pairs<T>(
-        pairs: impl IntoIterator<Item = (T, Time)>,
+        pairs: impl IntoIterator<Item = (T, human::Time)>,
     ) -> impl Iterator<Item = (T, Set)> {
         pairs
             .into_iter()
-            .scan(Time::default(), |cumulative, (short, split)| {
+            .scan(human::Time::default(), |cumulative, (short, split)| {
                 *cumulative += split;
                 Some((
                     short,
@@ -104,17 +102,17 @@ impl Set {
 /// We can index a [Set] by scope, yielding a time.
 ///
 /// ```
-/// use zombiesplit::model::timing::{aggregate::{Set, Scope}, Time};
+/// use zombiesplit::model::timing::{aggregate::{Set, Scope}, time::human};
 ///
 /// let x = Set {
-///   split: Time::seconds(20).unwrap(),
-///   cumulative: Time::seconds(40).unwrap()
+///   split: human::Time::seconds(20).unwrap(),
+///   cumulative: human::Time::seconds(40).unwrap()
 /// };
 /// assert_eq!("20s000", x[Scope::Split].to_string());
 /// assert_eq!("40s000", x[Scope::Cumulative].to_string());
 /// ```
 impl Index<Scope> for Set {
-    type Output = Time;
+    type Output = human::Time;
 
     fn index(&self, index: Scope) -> &Self::Output {
         match index {
@@ -127,11 +125,11 @@ impl Index<Scope> for Set {
 /// We can mutably index a [Set] by scope, yielding access to the time.
 ///
 /// ```
-/// use zombiesplit::model::timing::{aggregate::{Set, Scope}, Time};
+/// use zombiesplit::model::timing::{aggregate::{Set, Scope}, time::human};
 ///
 /// let mut x = Set::default();
-/// x[Scope::Split] = Time::seconds(20).unwrap();
-/// x[Scope::Cumulative] = Time::seconds(40).unwrap();
+/// x[Scope::Split] = human::Time::seconds(20).unwrap();
+/// x[Scope::Cumulative] = human::Time::seconds(40).unwrap();
 ///
 /// assert_eq!("20s000", x[Scope::Split].to_string());
 /// assert_eq!("40s000", x[Scope::Cumulative].to_string());
@@ -148,19 +146,28 @@ impl IndexMut<Scope> for Set {
 #[cfg(test)]
 mod test {
     use super::{Scope, Set};
-    use crate::model::{short, Time};
+    use crate::model::{short, timing::time::human};
 
     #[test]
     fn accumulate_pairs_nonempty() {
         let pairs = [
-            (short::Name::from("split1"), Time::seconds(63).unwrap()),
-            (short::Name::from("split2"), Time::seconds(42).unwrap()),
-            (short::Name::from("split3"), Time::seconds(101).unwrap()),
+            (
+                short::Name::from("split1"),
+                human::Time::seconds(63).unwrap(),
+            ),
+            (
+                short::Name::from("split2"),
+                human::Time::seconds(42).unwrap(),
+            ),
+            (
+                short::Name::from("split3"),
+                human::Time::seconds(101).unwrap(),
+            ),
         ];
         let results: Vec<_> = Set::accumulate_pairs(pairs).collect();
         assert_eq!(3, results.len(), "expected as many aggregates as splits");
 
-        let mut cumulative = Time::default();
+        let mut cumulative = human::Time::default();
         for ((orig_name, orig_time), (agg_name, agg)) in pairs.iter().zip(&results) {
             assert_eq!(
                 orig_name, agg_name,

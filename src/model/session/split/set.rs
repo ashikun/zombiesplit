@@ -158,7 +158,7 @@ impl Locator for short::Name {
 #[cfg(test)]
 mod test {
     use super::Set;
-    use crate::model::{game::Split, short, Time};
+    use crate::model::{game::Split, short, timing::time::human};
 
     #[test]
     fn aggregates_sample_run() {
@@ -168,11 +168,11 @@ mod test {
         let s3: short::Name = "s3".into();
 
         let s1s = set.get_mut(s1).expect("split 1 should exist");
-        s1s.push(Time::seconds(10).unwrap());
-        s1s.push(Time::seconds(25).unwrap());
+        s1s.push(human::Time::seconds(10).unwrap());
+        s1s.push(human::Time::seconds(25).unwrap());
 
         let s3s = set.get_mut(s3).expect("split 3 should exist");
-        s3s.push(Time::seconds(110).unwrap());
+        s3s.push(human::Time::seconds(110).unwrap());
 
         assert_eq!(
             3,

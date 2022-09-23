@@ -1,8 +1,8 @@
 /*! Session state.
- *
- * This is mainly exported outside of the session for the purposes of dumping the state to clients
- * as they connect to the server.
- */
+
+This is mainly exported outside of the session for the purposes of dumping the state to clients
+as they connect to the server.
+*/
 
 use super::{
     super::super::model::{short, timing},
@@ -66,7 +66,7 @@ impl State {
     pub fn push_to(
         &mut self,
         split: impl split::Locator,
-        time: timing::Time,
+        time: timing::time::human::Time,
     ) -> Option<short::Name> {
         self.act_on_split(split, |s| s.push(time))
     }

@@ -7,4 +7,3 @@ pub mod comparison;
 pub mod time;
 
 pub use comparison::Comparison;
-pub use time::Time;

@@ -7,8 +7,9 @@ use zombiesplit::model::{
     timing::{
         aggregate,
         comparison::{self, delta, Comparison},
+        time::human,
     },
-    Loadable, Time,
+    Loadable,
 };
 
 const SAMPLE_GAME_PATH: &str = "scd11.toml";
@@ -30,13 +31,13 @@ fn make_attempt() -> Attempt {
 
 fn split(name: &str, h: u32, m: u32, s: u32, ms: u32) -> (short::Name, comparison::Split) {
     let in_pb_run = aggregate::Set {
-        split: Time::new(h, m, s, ms).expect("time overflowed"),
+        split: human::Time::new(h, m, s, ms).expect("time overflowed"),
         cumulative: Default::default(),
     };
     (
         name.into(),
         comparison::Split {
-            split_pb: Time::default(),
+            split_pb: human::Time::default(),
             in_pb_run,
         },
     )
@@ -69,7 +70,7 @@ fn comparison() -> Comparison {
     ];
 
     // Fix up the cumulatives
-    let mut accum = Time::default();
+    let mut accum = human::Time::default();
     for (_, split) in &mut splits {
         accum += split.in_pb_run.split;
         split.in_pb_run.cumulative = accum;
@@ -126,7 +127,7 @@ fn test_session_deltas() {
 }
 
 fn push(session: &mut Session<DeltaLogger>, name: &str, h: u32, m: u32, s: u32, ms: u32) {
-    let time = Time::new(h, m, s, ms).expect("time construction error");
+    let time = human::Time::new(h, m, s, ms).expect("time construction error");
     session.push_to(short::Name::from(name), time);
 }
 
