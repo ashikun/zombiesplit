@@ -101,10 +101,8 @@ impl Field {
     /// ```
     /// use zombiesplit::model::timing::time::{Field, Position};
     ///
-    /// let f1 = Field::new(Position::Seconds, 4);
-    /// assert!(f1.is_ok(), "shouldn't have overflowed");
-    /// let f2 = Field::new(Position::Seconds, 64);
-    /// assert!(!f2.is_ok(), "should have overflowed");
+    /// let f1 = Field::parse(Position::Seconds, "4");
+    /// assert_eq!(Field::new(Position::Seconds, 4), f1);
     /// ```
     ///
     /// # Errors

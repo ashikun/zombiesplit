@@ -2,8 +2,7 @@
 
 These structures and related support let users tell zombiesplit how to lay out times on the UI. */
 
-use crate::model::timing::time;
-use crate::model::timing::time::Position;
+use super::Position;
 use itertools::Itertools;
 use num_integer::Integer;
 use serde_with::{DeserializeFromStr, SerializeDisplay};
@@ -112,12 +111,12 @@ impl Parser {
     }
 }
 
-fn parse_position_char(c: char) -> Option<time::Position> {
+fn parse_position_char(c: char) -> Option<Position> {
     match c {
-        CHAR_HOUR => Some(time::Position::Hours),
-        CHAR_MIN => Some(time::Position::Minutes),
-        CHAR_SEC => Some(time::Position::Seconds),
-        CHAR_MSEC => Some(time::Position::Milliseconds),
+        CHAR_HOUR => Some(Position::Hours),
+        CHAR_MIN => Some(Position::Minutes),
+        CHAR_SEC => Some(Position::Seconds),
+        CHAR_MSEC => Some(Position::Milliseconds),
         _ => None,
     }
 }
@@ -132,12 +131,12 @@ impl Display for Format {
     }
 }
 
-fn char_of_position(i: time::Position) -> char {
+fn char_of_position(i: Position) -> char {
     match i {
-        time::Position::Hours => CHAR_HOUR,
-        time::Position::Minutes => CHAR_MIN,
-        time::Position::Seconds => CHAR_SEC,
-        time::Position::Milliseconds => CHAR_MSEC,
+        Position::Hours => CHAR_HOUR,
+        Position::Minutes => CHAR_MIN,
+        Position::Seconds => CHAR_SEC,
+        Position::Milliseconds => CHAR_MSEC,
     }
 }
 
@@ -156,7 +155,7 @@ pub enum Component {
     /// A position component.
     Position {
         /// The position being displayed.
-        position: time::Position,
+        position: Position,
         /// The number of digits to display for this index.
         width: usize,
     },
@@ -231,24 +230,24 @@ mod tests {
     fn test_time_parse_mmssuu_slashes() {
         let expected = vec![
             Component::Position {
-                position: time::Position::Minutes,
+                position: Position::Minutes,
                 width: 2,
             },
             Component::Delimiter('\\'),
             Component::Position {
-                position: time::Position::Seconds,
+                position: Position::Seconds,
                 width: 2,
             },
             Component::Delimiter('\\'),
             Component::Delimiter('\\'),
             Component::Position {
-                position: time::Position::Milliseconds,
+                position: Position::Milliseconds,
                 width: 2,
             },
         ];
 
         let actual: Format = r"mm\\ss\\\\uu".parse().expect("parse failure");
-        let apos: Vec<Component> = actual.components().cloned().collect();
+        let apos: Vec<Component> = actual.components().copied().collect();
         assert_eq!(expected, apos);
     }
 
@@ -257,23 +256,23 @@ mod tests {
     fn test_time_parse_mmssuuu() {
         let expected = vec![
             Component::Position {
-                position: time::Position::Minutes,
+                position: Position::Minutes,
                 width: 2,
             },
             Component::Delimiter('"'),
             Component::Position {
-                position: time::Position::Seconds,
+                position: Position::Seconds,
                 width: 2,
             },
             Component::Delimiter('\''),
             Component::Position {
-                position: time::Position::Milliseconds,
+                position: Position::Milliseconds,
                 width: 3,
             },
         ];
 
         let actual: Format = "mm\"ss\'uuu".parse().expect("parse failure");
-        let apos: Vec<Component> = actual.components().cloned().collect();
+        let apos: Vec<Component> = actual.components().copied().collect();
         assert_eq!(expected, apos);
     }
 
@@ -282,24 +281,24 @@ mod tests {
     fn test_time_parse_hms_with_letters() {
         let expected = vec![
             Component::Position {
-                position: time::Position::Hours,
+                position: Position::Hours,
                 width: 2,
             },
             Component::Delimiter('h'),
             Component::Position {
-                position: time::Position::Minutes,
+                position: Position::Minutes,
                 width: 2,
             },
             Component::Delimiter('m'),
             Component::Position {
-                position: time::Position::Seconds,
+                position: Position::Seconds,
                 width: 2,
             },
             Component::Delimiter('s'),
         ];
 
         let actual: Format = r"hh\hmm\mss\s".parse().expect("parse failure");
-        let apos: Vec<Component> = actual.components().cloned().collect();
+        let apos: Vec<Component> = actual.components().copied().collect();
         assert_eq!(expected, apos);
     }
 
