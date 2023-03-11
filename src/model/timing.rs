@@ -6,4 +6,4 @@ pub mod aggregate;
 pub mod comparison;
 pub mod time;
 
-pub use comparison::Comparison;
+pub use {comparison::Comparison, time::Time};

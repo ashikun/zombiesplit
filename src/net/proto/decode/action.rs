@@ -10,7 +10,11 @@ use super::{super::super::super::model::session, Result};
 pub fn push(request: &super::super::PushRequest) -> Result<session::Action> {
     Ok(session::Action::Push(
         super::split_index(request.index)?,
-        super::timing::time(request.time)?,
+        request
+            .time
+            .as_ref()
+            .map(super::timing::time)
+            .unwrap_or_default(),
     ))
 }
 

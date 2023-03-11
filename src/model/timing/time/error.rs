@@ -14,7 +14,9 @@ pub enum Error {
     #[error("field {pos} too big: was {val}")]
     FieldTooBig { pos: super::Position, val: u32 },
     #[error("millisecond value {0} too large")]
-    MsecOverflow(u32),
+    SecOverflow(i32),
+    #[error("couldn't convert {0} to millisecond value; too large to fit")]
+    MsecOverflow(super::human::Time),
 }
 
 /// Shorthand for parse results.

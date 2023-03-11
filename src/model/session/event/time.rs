@@ -1,7 +1,7 @@
 //! Observations for split times.
 use super::super::super::{
     short,
-    timing::{self, time::human},
+    timing::{self, time},
 };
 use serde::{Deserialize, Serialize};
 
@@ -18,7 +18,7 @@ pub enum Time {
 /// Trait for things that can observe split time events.
 pub trait Observer {
     /// Observes a split time event `event` for split `split`, with time `time`.
-    fn observe_time(&self, split: short::Name, time: human::Time, event: Time);
+    fn observe_time(&self, split: short::Name, time: time::Time, event: Time);
 
     /// Observes a set of aggregates `set` for split `split`, from source `source`.
     fn observe_aggregate_set(
@@ -43,7 +43,7 @@ pub trait Observer {
     fn observe_aggregate(
         &self,
         split: short::Name,
-        time: human::Time,
+        time: time::Time,
         kind: timing::aggregate::Kind,
     ) {
         self.observe_time(split, time, Time::Aggregate(kind));

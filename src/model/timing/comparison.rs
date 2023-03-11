@@ -10,7 +10,7 @@ pub use pace::{Pace, PacedTime};
 pub use provider::Provider;
 pub use run::Run;
 
-use super::{super::short, aggregate, time::human};
+use super::{super::short, aggregate, time};
 
 /// Comparison data, containing information about split and run personal bests (PBs).
 ///
@@ -20,7 +20,7 @@ use super::{super::short, aggregate, time::human};
 #[derive(Clone, Debug, Default)]
 pub struct Comparison {
     /// Split comparisons.
-    pub splits: short::Map<Split>,
+    pub splits: short::Map<Segment>,
     /// Precomputed run data.
     pub run: Run,
 }
@@ -28,18 +28,10 @@ pub struct Comparison {
 impl Comparison {
     /// Gets a delta for the split with short name `split`, which has just posted an aggregate time
     /// pair of `against`.
-    ///
-    /// # Errors
-    ///
-    /// Fails if the delta cannot be represented as a time.
-    pub fn delta(
-        &self,
-        split: short::Name,
-        against: aggregate::Set,
-    ) -> Result<delta::Split, super::time::Error> {
+    pub fn delta(&self, split: short::Name, against: aggregate::Set) -> delta::Split {
         self.splits
             .get(&split)
-            .map_or(Ok(delta::Split::default()), |x| x.delta(against))
+            .map_or(delta::Split::default(), |x| x.delta(against))
     }
 
     /// Gets the aggregate times for the split with short name `split`, if
@@ -52,20 +44,20 @@ impl Comparison {
 
 /// A [Comparison] can be turned back into an iterator over split name-comparison pairs.
 impl IntoIterator for Comparison {
-    type Item = (short::Name, Split);
-    type IntoIter = <short::Map<Split> as IntoIterator>::IntoIter;
+    type Item = (short::Name, Segment);
+    type IntoIter = <short::Map<Segment> as IntoIterator>::IntoIter;
 
     fn into_iter(self) -> Self::IntoIter {
         self.splits.into_iter()
     }
 }
 
-impl FromIterator<(short::Name, Split)> for Comparison {
-    fn from_iter<T: IntoIterator<Item = (short::Name, Split)>>(iter: T) -> Self {
+impl FromIterator<(short::Name, Segment)> for Comparison {
+    fn from_iter<T: IntoIterator<Item = (short::Name, Segment)>>(iter: T) -> Self {
         let mut result = Self::default();
 
-        let mut total = human::Time::default();
-        let mut sob = human::Time::default();
+        let mut total = time::Time::default();
+        let mut sob = time::Time::default();
 
         for (name, split) in iter {
             result.splits.insert(name, split);
@@ -79,9 +71,9 @@ impl FromIterator<(short::Name, Split)> for Comparison {
     }
 }
 
-/// Split comparisons.
+/// Segment comparisons.
 ///
-/// A split comparison contains (for now) up to two pieces:
+/// A segment comparison contains (for now) up to two pieces:
 ///
 /// - a 'personal best' for the split across all runs stored in the database
 ///   (used for calculating so-called 'gold splits');
@@ -89,34 +81,27 @@ impl FromIterator<(short::Name, Split)> for Comparison {
 ///   split on the comparison run (right now, there is only one comparison run,
 ///   the PB).
 #[derive(Clone, Copy, Debug, Default)]
-pub struct Split {
-    /// The personal best for this split.
+pub struct Segment {
+    /// The personal best for this segment.
     ///
     /// Any splits that compare quicker than this time get the `PersonalBest`
     /// pace.
-    pub split_pb: human::Time,
+    pub split_pb: time::Time,
     /// Timing information for this split in the comparison run.
     pub in_pb_run: aggregate::Set,
 }
 
-impl Split {
-    /// Gets delta information for this split, which has just posted an aggregate time
+impl Segment {
+    /// Gets delta information for this segment, which has just posted an aggregate time
     /// pair of `against`.
     ///
     /// # Errors
     ///
     /// Fails if the delta cannot be represented as a time.
-    pub fn delta(&self, against: aggregate::Set) -> Result<delta::Split, super::time::Error> {
-        let mut split = self.delta_against_aggregate(against, aggregate::Scope::Split)?;
-
-        // TODO: separate PB from this consideration entirely.
-        if self.is_personal_best(against.split) {
-            split.pace = Pace::PersonalBest;
-        }
-
-        let run = self.delta_against_aggregate(against, aggregate::Scope::Cumulative)?;
-
-        Ok(delta::Split::new(split, run))
+    pub fn delta(&self, against: aggregate::Set) -> delta::Split {
+        let split = self.delta_against_aggregate(against, aggregate::Scope::Split);
+        let run = self.delta_against_aggregate(against, aggregate::Scope::Cumulative);
+        delta::Split::new(split, run)
     }
 
     /// Gets a delta for the aggregate time of scope `scope` between `against` and this comparison.
@@ -124,16 +109,14 @@ impl Split {
     /// # Errors
     ///
     /// Fails if the delta cannot be represented as a time.
-    fn delta_against_aggregate(
-        &self,
-        against: aggregate::Set,
-        scope: aggregate::Scope,
-    ) -> Result<Delta, super::time::Error> {
+    fn delta_against_aggregate(&self, against: aggregate::Set, scope: aggregate::Scope) -> Delta {
         Delta::of_comparison(against[scope], self.in_pb_run[scope])
     }
 
+    // TODO(@Ashi): use is_personal_best again
+
     /// Checks whether `split time` is a new personal best.
-    fn is_personal_best(&self, split_time: human::Time) -> bool {
+    fn is_personal_best(&self, split_time: time::Time) -> bool {
         split_time < self.split_pb
     }
 }

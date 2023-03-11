@@ -44,7 +44,6 @@ fn note(note: &dump_response::SplitNote) -> Result<session::state::SplitNote> {
         .aggregate
         .as_ref()
         .map(super::timing::aggregate)
-        .transpose()?
         .unwrap_or_default();
     let delta = note
         .delta

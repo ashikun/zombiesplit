@@ -2,23 +2,22 @@
 An event interface for manipulating a current attempt.
 */
 
-use crate::model::timing::time::human;
-use serde::{Deserialize, Serialize};
+use super::super::timing::time;
 
 /// An event that manipulates the current session.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum Action {
     /// Start a new run.
     NewRun(OldDestination),
     /// Pushes a time to the split at the given position.
-    Push(usize, human::Time),
+    Push(usize, time::Time),
     /// Pops one or more times from the split at the given position.
     Pop(usize, Pop),
 }
 
 /// What should we do with an old attempt when we start a new one?
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum OldDestination {
     /// Save the old attempt.
@@ -28,7 +27,7 @@ pub enum OldDestination {
 }
 
 /// Type of pop used in pop actions.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum Pop {
     /// Pop one time.

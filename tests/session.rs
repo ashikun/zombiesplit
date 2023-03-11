@@ -29,14 +29,14 @@ fn make_attempt() -> Attempt {
     .expect("couldn't load game/category")
 }
 
-fn split(name: &str, h: u32, m: u32, s: u32, ms: u32) -> (short::Name, comparison::Split) {
+fn split(name: &str, h: u32, m: u32, s: u32, ms: u32) -> (short::Name, comparison::Segment) {
     let in_pb_run = aggregate::Set {
         split: human::Time::new(h, m, s, ms).expect("time overflowed"),
         cumulative: Default::default(),
     };
     (
         name.into(),
-        comparison::Split {
+        comparison::Segment {
             split_pb: human::Time::default(),
             in_pb_run,
         },

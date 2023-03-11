@@ -16,14 +16,14 @@ use itertools::Itertools;
 /// Fails if any of the indices in the attempt information are too large to store as `u64`.
 pub fn encode(run: &session::Attempt) -> Result<dump_response::Attempt> {
     Ok(dump_response::Attempt {
-        game_category: Some(game_category(&run.category)),
+        target: Some(target(&run.category)),
         attempt_info: Some(super::attempt_info(&run.info)?),
         splits: splits(&run.splits),
     })
 }
 
-fn game_category(info: &category::Info) -> dump_response::attempt::GameCategory {
-    dump_response::attempt::GameCategory {
+fn target(info: &category::Target) -> dump_response::attempt::Target {
+    dump_response::attempt::Target {
         category_name: info.category.clone(),
         game_name: info.game.clone(),
         category_sid: info.short.category.to_string(),

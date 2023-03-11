@@ -3,7 +3,7 @@
 use chrono::TimeZone;
 use rusqlite::{named_params, Connection, Statement};
 
-use crate::model::{history, short, timing::time::human};
+use crate::model::{history, short, timing::time};
 
 use super::super::{
     category::GcID,
@@ -76,10 +76,10 @@ impl<'conn> Getter<'conn> {
             .query_splits_for_run
             .query_and_then(named_params![":run": id], |r| {
                 let short: short::Name = r.get("short")?;
-                let total: human::Time = r.get("total")?;
+                let total: time::Time = r.get("total")?;
                 Ok((short, total))
             })?
-            .collect::<Result<short::Map<human::Time>>>()?;
+            .collect::<Result<short::Map<time::Time>>>()?;
         Ok(history::timing::Totals { totals })
     }
 

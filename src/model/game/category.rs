@@ -74,9 +74,9 @@ pub enum ShortDescriptorError {
     WrongSlashCount,
 }
 
-/// Full, displayable metadata about a category of a game.
+/// Full, displayable metadata about a target (game/category pair).
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Info {
+pub struct Target {
     /// The name of the game.
     pub game: String,
     /// The name of the category.

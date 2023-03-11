@@ -9,7 +9,7 @@ use rusqlite::named_params;
 
 use crate::model::{
     game::{
-        category::{AttemptInfo, Info, ShortDescriptor},
+        category::{AttemptInfo, ShortDescriptor, Target},
         Split,
     },
     session, short,
@@ -46,12 +46,12 @@ impl<'conn> Getter<'conn> {
     /// # Errors
     ///
     /// Propagates any errors from the database.
-    pub fn all_game_category_info(&mut self) -> Result<Vec<Info>> {
+    pub fn all_game_category_info(&mut self) -> Result<Vec<Target>> {
         self.query_info_all
             .query_and_then([], |row| {
                 let g_short: short::Name = row.get("gshort")?;
                 let c_short: short::Name = row.get("cshort")?;
-                Ok(Info {
+                Ok(Target {
                     game: row.get("gname")?,
                     category: row.get("cname")?,
                     short: ShortDescriptor::new(g_short, c_short),
@@ -71,7 +71,7 @@ impl<'conn> Getter<'conn> {
             |row| {
                 Ok(InfoWithID {
                     id: row.get("gcid")?,
-                    info: Info {
+                    info: Target {
                         game: row.get("gname")?,
                         category: row.get("cname")?,
                         short: *short,
@@ -92,7 +92,7 @@ impl<'conn> Getter<'conn> {
             .query_row(named_params![":game_category": gcid], |row| {
                 Ok(InfoWithID {
                     id: gcid,
-                    info: Info {
+                    info: Target {
                         game: row.get("gname")?,
                         category: row.get("cname")?,
                         short: ShortDescriptor {

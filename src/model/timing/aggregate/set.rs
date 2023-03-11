@@ -3,7 +3,7 @@
 use std::ops::{Index, IndexMut};
 
 use super::{
-    super::{super::session::split, time::human},
+    super::{super::session::split, time},
     index::{Kind, Scope, Source},
 };
 
@@ -41,7 +41,7 @@ impl IndexMut<Source> for Full {
 
 /// [Full] sets can be indexed by [Kind], yielding the time.
 impl Index<Kind> for Full {
-    type Output = human::Time;
+    type Output = time::Time;
 
     fn index(&self, index: Kind) -> &Self::Output {
         &self[index.source][index.scope]
@@ -59,9 +59,9 @@ impl IndexMut<Kind> for Full {
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq)]
 pub struct Set {
     /// Single time for this split only.
-    pub split: human::Time,
+    pub split: time::Time,
     /// Cumulative time for all splits up to and including this split.
-    pub cumulative: human::Time,
+    pub cumulative: time::Time,
 }
 
 impl Set {
@@ -82,11 +82,11 @@ impl Set {
     /// Although aggregates are yielded in order, we provide the short
     /// name of each split for convenience.
     pub fn accumulate_pairs<T>(
-        pairs: impl IntoIterator<Item = (T, human::Time)>,
+        pairs: impl IntoIterator<Item = (T, time::Time)>,
     ) -> impl Iterator<Item = (T, Set)> {
         pairs
             .into_iter()
-            .scan(human::Time::default(), |cumulative, (short, split)| {
+            .scan(time::Time::default(), |cumulative, (short, split)| {
                 *cumulative += split;
                 Some((
                     short,
@@ -102,17 +102,17 @@ impl Set {
 /// We can index a [Set] by scope, yielding a time.
 ///
 /// ```
-/// use zombiesplit::model::timing::{aggregate::{Set, Scope}, time::human};
+/// use zombiesplit::model::timing::{aggregate::{Set, Scope}, time};
 ///
 /// let x = Set {
-///   split: human::Time::seconds(20).unwrap(),
-///   cumulative: human::Time::seconds(40).unwrap()
+///   split: time::Time::from_millis(20),
+///   cumulative: time::Time::from_millis(40)
 /// };
-/// assert_eq!("20s000", x[Scope::Split].to_string());
-/// assert_eq!("40s000", x[Scope::Cumulative].to_string());
+/// assert_eq!(20, x[Scope::Split].to_millis());
+/// assert_eq!(40, x[Scope::Cumulative].to_millis());
 /// ```
 impl Index<Scope> for Set {
-    type Output = human::Time;
+    type Output = time::Time;
 
     fn index(&self, index: Scope) -> &Self::Output {
         match index {
@@ -125,14 +125,14 @@ impl Index<Scope> for Set {
 /// We can mutably index a [Set] by scope, yielding access to the time.
 ///
 /// ```
-/// use zombiesplit::model::timing::{aggregate::{Set, Scope}, time::human};
+/// use zombiesplit::model::timing::{aggregate::{Set, Scope}, time};
 ///
 /// let mut x = Set::default();
-/// x[Scope::Split] = human::Time::seconds(20).unwrap();
-/// x[Scope::Cumulative] = human::Time::seconds(40).unwrap();
+/// x[Scope::Split] = time::Time::from_millis(20);
+/// x[Scope::Cumulative] = time::Time::from_millis(40);
 ///
-/// assert_eq!("20s000", x[Scope::Split].to_string());
-/// assert_eq!("40s000", x[Scope::Cumulative].to_string());
+/// assert_eq!(20, x[Scope::Split]);
+/// assert_eq!(40, x[Scope::Cumulative]);
 /// ```
 impl IndexMut<Scope> for Set {
     fn index_mut(&mut self, index: Scope) -> &mut Self::Output {
@@ -146,28 +146,19 @@ impl IndexMut<Scope> for Set {
 #[cfg(test)]
 mod test {
     use super::{Scope, Set};
-    use crate::model::{short, timing::time::human};
+    use crate::model::{short, timing::time};
 
     #[test]
     fn accumulate_pairs_nonempty() {
         let pairs = [
-            (
-                short::Name::from("split1"),
-                human::Time::seconds(63).unwrap(),
-            ),
-            (
-                short::Name::from("split2"),
-                human::Time::seconds(42).unwrap(),
-            ),
-            (
-                short::Name::from("split3"),
-                human::Time::seconds(101).unwrap(),
-            ),
+            (short::Name::from("split1"), time::Time::from_millis(63)),
+            (short::Name::from("split2"), time::Time::from_millis(42)),
+            (short::Name::from("split3"), time::Time::from_millis(101)),
         ];
         let results: Vec<_> = Set::accumulate_pairs(pairs).collect();
         assert_eq!(3, results.len(), "expected as many aggregates as splits");
 
-        let mut cumulative = human::Time::default();
+        let mut cumulative = time::Time::default();
         for ((orig_name, orig_time), (agg_name, agg)) in pairs.iter().zip(&results) {
             assert_eq!(
                 orig_name, agg_name,

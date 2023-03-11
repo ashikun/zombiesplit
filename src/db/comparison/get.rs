@@ -6,7 +6,7 @@ use super::{
 };
 use crate::model::{
     history, session, short,
-    timing::{aggregate, comparison, time::human, Comparison},
+    timing::{aggregate, comparison, time, Comparison},
 };
 use rusqlite::{named_params, Connection, Statement};
 
@@ -87,7 +87,7 @@ impl<'conn> Getter<'conn> {
     /// # Errors
     ///
     /// Errors if the database query fails.
-    pub fn split_pbs(&mut self, id: GcID) -> Result<short::Map<human::Time>> {
+    pub fn split_pbs(&mut self, id: GcID) -> Result<short::Map<time::Time>> {
         self.split_pbs_query
             .query_and_then(named_params![":game_category": id], |row| {
                 Ok((row.get("short")?, row.get("total")?))
@@ -100,7 +100,7 @@ impl<'conn> Getter<'conn> {
     /// # Errors
     ///
     /// Errors if the database query fails.
-    pub fn sum_of_best(&mut self, id: GcID) -> Result<Option<human::Time>> {
+    pub fn sum_of_best(&mut self, id: GcID) -> Result<Option<time::Time>> {
         Ok(self
             .sum_of_best_query
             .query_row(named_params![":game_category": id], |r| r.get("total"))?)
@@ -111,7 +111,7 @@ impl<'conn> Getter<'conn> {
         gcid: GcID,
         splits: &session::split::Set,
         pb_run: Option<WithID<history::run::WithTotals<GcID>>>,
-    ) -> Result<short::Map<comparison::Split>> {
+    ) -> Result<short::Map<comparison::Segment>> {
         let split_pbs = self.split_pbs(gcid)?;
         let run_pb_splits = pb_run.map_or_else(Default::default, |x| {
             aggregate(splits, x.item.timing.totals)
@@ -124,7 +124,7 @@ impl<'conn> Getter<'conn> {
 /// Lifts a split time map to one over aggregates by summing across the splits in `split`.
 fn aggregate(
     splits: &session::split::Set,
-    totals: short::Map<human::Time>,
+    totals: short::Map<time::Time>,
 ) -> short::Map<aggregate::Set> {
     // TODO(@MattWindsor91): decouple this for testing.
     aggregate::Set::accumulate_pairs(splits.iter().map(move |s| {
@@ -138,9 +138,9 @@ fn aggregate(
 
 fn merge_split_data(
     splits: &session::split::Set,
-    split_pbs: &short::Map<human::Time>,
+    split_pbs: &short::Map<time::Time>,
     run_pb_splits: &short::Map<aggregate::Set>,
-) -> short::Map<comparison::Split> {
+) -> short::Map<comparison::Segment> {
     splits
         .iter()
         .filter_map(|x| {
@@ -148,7 +148,7 @@ fn merge_split_data(
                 (
                     x.info.short,
                     // The split PB should _really_ exist if there is an in-run PB.
-                    comparison::Split {
+                    comparison::Segment {
                         split_pb: split_pbs.get(&x.info.short).copied().unwrap_or_default(),
                         in_pb_run: in_run,
                     },

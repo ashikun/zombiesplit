@@ -94,7 +94,7 @@ impl Db {
     /// # Errors
     ///
     /// Raises an error if the underlying SQL query fails.
-    pub fn game_categories(&self) -> Result<Vec<model::game::category::Info>> {
+    pub fn game_categories(&self) -> Result<Vec<model::game::category::Target>> {
         let conn = self.manager.connect()?;
         let mut getter = category::Getter::new(&conn)?;
         getter.all_game_category_info()

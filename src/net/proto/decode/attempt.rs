@@ -16,7 +16,7 @@ use super::{
 /// the times supplied for the splits are ill-formed.
 pub fn decode(run: &dump_response::Attempt) -> Result<session::Attempt> {
     Ok(session::Attempt {
-        category: game_category(Missing::AttemptInfo.require(run.game_category.as_ref())?),
+        category: target(Missing::AttemptInfo.require(run.game_category.as_ref())?),
         info: run
             .attempt_info
             .as_ref()
@@ -27,8 +27,8 @@ pub fn decode(run: &dump_response::Attempt) -> Result<session::Attempt> {
     })
 }
 
-fn game_category(info: &dump_response::attempt::GameCategory) -> game::category::Info {
-    game::category::Info {
+fn target(info: &dump_response::attempt::Target) -> game::category::Target {
+    game::category::Target {
         game: info.game_name.clone(),
         category: info.category_name.clone(),
         short: game::category::ShortDescriptor::new(&info.game_sid, &info.category_sid),
@@ -54,6 +54,7 @@ fn times(split: &dump_response::attempt::Split) -> Result<Vec<human::Time>> {
     split
         .times
         .iter()
-        .map(|x| super::timing::time(*x))
+        .copied()
+        .map(crate::model::timing::time::Time::from_millis)
         .collect()
 }

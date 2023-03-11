@@ -21,8 +21,11 @@ pub(super) fn total(t: &Total) -> Result<timing::comparison::delta::Time> {
         .map(run_delta)
         .transpose()?
         .unwrap_or_default();
-    let time = time(t.time)?;
-    Ok(timing::comparison::delta::Time { delta, time })
+    let time = time(t.time);
+    timing::comparison::delta::Time {
+        delta,
+        time: t.time,
+    }
 }
 
 /// Decodes a split-level time delta.
@@ -34,8 +37,8 @@ pub(super) fn total(t: &Total) -> Result<timing::comparison::delta::Time> {
 pub(super) fn split_delta(d: &SplitDelta) -> Result<timing::comparison::delta::Split> {
     Ok(timing::comparison::delta::Split {
         pace: split_in_run_pace(d.pace()),
-        split_abs_delta: time(d.split_abs_delta)?,
-        run_abs_delta: time(d.run_abs_delta)?,
+        split_abs_delta: timing::time::Time::from_millis(d.split_abs_delta)?,
+        run_abs_delta: timing::time::Time::from_millis(d.run_abs_delta)?,
     })
 }
 
@@ -58,7 +61,7 @@ fn split_in_run_pace(pace: Pace) -> timing::comparison::pace::SplitInRun {
 /// and `invalid_argument` if there is any other error in decoding the amount or the pace.
 pub(super) fn run_delta(d: &RunDelta) -> Result<timing::comparison::Delta> {
     let pace = pace(d.pace());
-    let abs_delta = time(d.abs_delta)?;
+    let abs_delta = timing::time::Time::from_millis(d.abs_delta)?;
     Ok(timing::comparison::Delta { pace, abs_delta })
 }
 
@@ -72,24 +75,14 @@ fn pace(pace: Pace) -> timing::comparison::Pace {
 }
 
 /// Decodes an aggregate set.
-///
-/// # Errors
-///
-/// Fails with `out_of_range` if any of the timestamps are too large to represent a valid time, and
-/// `invalid_argument` if there are any other errors in decoding the time.
-pub(super) fn aggregate(agg: &Aggregate) -> Result<timing::aggregate::Set> {
-    Ok(timing::aggregate::Set {
-        split: time(agg.split)?,
-        cumulative: time(agg.cumulative)?,
-    })
+pub(super) fn aggregate(agg: &Aggregate) -> timing::aggregate::Set {
+    timing::aggregate::Set {
+        split: agg.split.as_ref().map(time).unwrap_or_default(),
+        cumulative: agg.cumulative.as_ref().map(time).unwrap_or_default(),
+    }
 }
 
-/// Decodes a timestamp into a time.
-///
-/// # Errors
-///
-/// Fails with `out_of_range` if the timestamp is too large to represent a valid time, and
-/// `invalid_argument` if there is any other error in decoding the time.
-pub(super) fn time(stamp: u32) -> Result<timing::time::human::Time> {
-    Ok(timing::time::human::Time::try_from(stamp)?)
+/// Decodes a time.
+pub(super) fn time(t: &super::super::Time) -> timing::Time {
+    timing::Time::from_millis(t.millis)
 }

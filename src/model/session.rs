@@ -17,7 +17,7 @@ pub mod state;
 
 use event::{split::Observer as SO, time::Observer as TO};
 
-use super::timing::{aggregate, comparison, comparison::provider, time::human, Comparison};
+use super::timing::{aggregate, comparison, comparison::provider, time, Comparison};
 
 pub use action::Action;
 pub use attempt::Attempt;
@@ -225,10 +225,9 @@ impl<'cmp, 'obs, O: Observer> Session<'cmp, 'obs, O> {
     }
 
     /// Pushes a time to a split located by `split`.
-    pub fn push_to(&mut self, split: impl split::Locator, time: human::Time) {
+    pub fn push_to(&mut self, split: impl split::Locator, time: time::Time) {
         if let Some(short) = self.state.push_to(split, time) {
-            self.observer
-                .observe_time(short, time, event::time::Time::Pushed);
+            self.observer.observe_time(short, time, event::Time::Pushed);
             self.observe_notes();
         }
     }

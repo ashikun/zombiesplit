@@ -15,7 +15,7 @@ use chrono::{DateTime, Utc};
 #[derive(Debug, Clone)]
 pub struct Attempt {
     /// Metadata for the game/category currently being run.
-    pub category: category::Info,
+    pub category: category::Target,
     // TODO(@MattWindsor91): make this an ADT to prevent resetting of splits
     // without incrementing of attempt information.
     /// Attempt information for this run.
@@ -44,7 +44,7 @@ impl Attempt {
         let splits: split::Set = split::Set::from_config(game, category)?;
 
         Ok(Self {
-            category: category::Info {
+            category: category::Target {
                 game: game.name.clone(),
                 category: category.name.clone(),
                 short,

@@ -7,52 +7,50 @@ different historic time models used.
 */
 use std::fmt::Formatter;
 
-use serde::{Deserialize, Serialize};
-
-use super::super::{short, timing::time::human};
+use super::super::{short, timing::time};
 
 pub trait Timing {
     /// Gets the total across all splits.
-    fn total(&self) -> human::Time;
+    fn total(&self) -> time::Time;
 }
 
 /// Full timing information for a run.
 ///
 /// This includes every logged time for every split in the run.
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Full {
-    pub times: short::Map<Vec<human::Time>>,
+    pub times: short::Map<Vec<time::Time>>,
 }
 
 impl Timing for Full {
-    fn total(&self) -> human::Time {
+    fn total(&self) -> time::Time {
         self.times.values().flatten().copied().sum()
     }
 }
 
 /// Split-total timing information for a run.
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Totals {
-    pub totals: short::Map<human::Time>,
+    pub totals: short::Map<time::Time>,
 }
 
 impl Timing for Totals {
-    fn total(&self) -> human::Time {
+    fn total(&self) -> time::Time {
         self.totals.values().copied().sum()
     }
 }
 
 /// Abbreviated timing information, usually returned from summary queries.
-#[derive(Copy, Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct Summary {
     /// The total time across all splits.
-    pub total: human::Time,
+    pub total: time::Time,
     /// The rank of this run across all runs, if known.
     pub rank: Option<usize>,
 }
 
 impl Timing for Summary {
-    fn total(&self) -> human::Time {
+    fn total(&self) -> time::Time {
         self.total
     }
 }
@@ -136,7 +134,7 @@ impl From<Full> for ForLevel {
 }
 
 impl Timing for ForLevel {
-    fn total(&self) -> human::Time {
+    fn total(&self) -> time::Time {
         match self {
             Self::Summary(f) => f.total(),
             Self::Totals(f) => f.total(),

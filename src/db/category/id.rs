@@ -6,7 +6,7 @@ use rusqlite::{
 };
 
 use super::{super::error::Result, Getter};
-use crate::model::game::category::{Info, ShortDescriptor};
+use crate::model::game::category::{ShortDescriptor, Target};
 
 /// A game-category ID.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -71,7 +71,7 @@ impl Locator for GcID {
 #[derive(Debug, Clone)]
 pub struct InfoWithID {
     pub id: GcID,
-    pub info: Info,
+    pub info: Target,
 }
 
 /// Category info implicitly contains a game-category ID.

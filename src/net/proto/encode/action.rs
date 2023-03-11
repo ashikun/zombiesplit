@@ -10,10 +10,10 @@ use super::{
 /// # Errors
 ///
 /// Fails if we can't fit the split index into a 64-bit integer.
-pub fn push(index: usize, time: time::human::Time) -> Result<super::super::PushRequest> {
+pub fn push(index: usize, time: time::Time) -> Result<super::super::PushRequest> {
     Ok(super::super::PushRequest {
         index: super::try_from_range(index)?,
-        time: u32::from(time),
+        time: time.into_millis(),
     })
 }
 

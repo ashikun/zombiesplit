@@ -8,7 +8,7 @@ use rusqlite::{named_params, Connection, Statement};
 use super::super::error::{Error, Result};
 use crate::{
     db::category::GcID,
-    model::{history, short, timing::time::human},
+    model::{history, short, timing::time},
 };
 
 /// Object for inserting historic runs into to the database.
@@ -98,10 +98,10 @@ impl<'conn> Inserter<'conn> {
         Ok(())
     }
 
-    fn add_split_times(&mut self, run_split_id: i64, times: &[human::Time]) -> Result<()> {
+    fn add_split_times(&mut self, run_split_id: i64, times: &[time::Time]) -> Result<()> {
         for (position, time) in times.iter().enumerate() {
             self.query_add_split_time.execute(
-                named_params![":run_split_id": run_split_id, ":position": position, ":time_ms": u32::from(*time)]
+                named_params![":run_split_id": run_split_id, ":position": position, ":time_ms": time.into_millis()]
             )?;
         }
         Ok(())

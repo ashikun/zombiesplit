@@ -41,8 +41,8 @@ impl From<Error> for tonic::Status {
 
 fn adapt_time_error(err: time::Error) -> tonic::Status {
     match err {
-        time::Error::MsecOverflow(k) => {
-            tonic::Status::out_of_range(format!("millisecond value {k} too large"))
+        time::Error::SecOverflow(k) => {
+            tonic::Status::out_of_range(format!("second value {k} too large"))
         }
         _ => tonic::Status::invalid_argument(format!("invalid time: {err}")),
     }

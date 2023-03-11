@@ -1,83 +1,125 @@
 //! Human-centred presentations of times.
 
-use crate::model::timing::time::{error, field, Field, Position};
+use super::{
+    error::{Error, Result},
+    Position,
+};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
-use std::cmp::Ordering;
-use std::fmt;
-use std::fmt::Display;
-use std::iter::Sum;
-use std::ops::{Index, IndexMut};
-use std::str::FromStr;
+use std::{
+    fmt,
+    ops::{Index, IndexMut},
+    str::FromStr,
+};
 
-/// A timestamp split into hours, minutes, seconds, and milliseconds for human consumption.
+/// A time split into hours, minutes, seconds, and milliseconds for human consumption.
 ///
 /// Internally, zombiesplit represents times in milliseconds where possible, but this is cumbersome
 /// for both displaying to users and storing on disk.  This representation provides a way to
 /// access the individual fields of a timestamp easily.
-#[derive(Copy, Clone, SerializeDisplay, DeserializeFromStr, Debug, PartialEq, Eq, Hash)]
+///
+/// Note that not all human-times are valid times: some are too large to represent, and negative
+/// zero is subnormal.
+#[derive(
+    Copy,
+    Clone,
+    Default,
+    PartialOrd,
+    Ord,
+    SerializeDisplay,
+    DeserializeFromStr,
+    Debug,
+    PartialEq,
+    Eq,
+    Hash,
+)]
 pub struct Time {
-    /// Number of hours.
-    pub hours: Field,
-    /// Number of minutes.
-    pub mins: Field,
-    /// Number of seconds.
-    pub secs: Field,
-    /// Number of milliseconds.
-    pub millis: Field,
-}
-
-/// This cannot be autoderived as fields don't have a default (what would the default position be?);
-/// however, an invariant of times is that the fields' positions line up with their parts of the
-/// struct, and so we can fill in accordingly.
-impl Default for Time {
-    fn default() -> Self {
-        Time {
-            hours: Field::zero(Position::Hours),
-            mins: Field::zero(Position::Minutes),
-            secs: Field::zero(Position::Seconds),
-            millis: Field::zero(Position::Milliseconds),
-        }
-    }
-}
-
-/// This cannot be autoderived because fields carry their position.
-impl Ord for Time {
-    fn cmp(&self, other: &Self) -> Ordering {
-        u32::from(*self).cmp(&u32::from(*other))
-    }
-}
-
-impl PartialOrd for Time {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
+    /// Whether the time is negative.
+    pub is_negative: bool,
+    /// Number of hours (0-596).
+    pub hours: u16,
+    /// Number of minutes (0-59).
+    pub mins: u16,
+    /// Number of seconds (0-59).
+    pub secs: u16,
+    /// Number of milliseconds (0-999).
+    pub millis: u16,
 }
 
 impl Time {
-    /// Constructs a time from its hour, minute, second, and millisecond positions.
+    /// Constructs a non-negative time from its hour, minute, second, and millisecond positions.
     ///
     /// # Examples
     ///
     /// ```
     /// use zombiesplit::model::timing::time::human;
     ///
-    /// let t1 = human::Time::new(1, 23, 45, 678).expect("shouldn't overflow");
-    /// assert_eq!(1, u16::from(t1.hours));
-    /// assert_eq!(23, u16::from(t1.mins));
-    /// assert_eq!(45, u16::from(t1.secs));
-    /// assert_eq!(678, u16::from(t1.millis));
+    /// let t1 = human::Time::new(1, 23, 45, 678);
+    /// assert!(!t1.is_negative);
+    /// assert_eq!(1, t1.hours);
+    /// assert_eq!(23, t1.mins);
+    /// assert_eq!(45, t1.secs);
+    /// assert_eq!(678, t1.millis);
     /// ```
     ///
     /// # Errors
     ///
-    /// Errors if the amount for any field is too high to store
-    pub fn new(hours: u32, mins: u32, secs: u32, millis: u32) -> error::Result<Self> {
-        Ok(Self {
-            hours: Field::new(Position::Hours, hours)?,
-            mins: Field::new(Position::Minutes, mins)?,
-            secs: Field::new(Position::Seconds, secs)?,
-            millis: Field::new(Position::Milliseconds, millis)?,
-        })
+    /// Errors if the amount for any field is too high to store.
+    pub fn new(hours: u16, mins: u16, secs: u16, millis: u16) -> Self {
+        Self {
+            is_negative: false,
+            hours,
+            mins,
+            secs,
+            millis,
+        }
+    }
+
+    /// Converts a time given as a 32-bit millisecond timestamp to a human time.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use zombiesplit::model::timing::time::human;
+    /// use std::convert::From;
+    /// let time = human::Time::from_millis(
+    ///     789 + (56 * 1000) + (34 * 1000 * 60) + (12 * 1000 * 60 * 60)
+    /// );
+    /// assert_eq!(u16::from(time.hours), 12);
+    /// assert_eq!(u16::from(time.mins), 34);
+    /// assert_eq!(u16::from(time.secs), 56);
+    /// assert_eq!(u16::from(time.millis), 789);
+    /// ```
+    pub fn from_millis(millis: i32) -> Self {
+        let mut result = Self::default();
+        // What we put here is not important, as it'll get overwritten immediately.
+        // The exception is the overflow, which needs to start off as the whole timestamp.
+        let mut fit = super::position::Fit {
+            overflow: millis.unsigned_abs(),
+            input: 0,
+            result: super::position::Value {
+                value: 0,
+                field: Position::Milliseconds,
+            },
+        };
+
+        // Reverse iterator gives us millis, secs, mins, hours.
+        for p in Position::ALL.iter().rev() {
+            fit = p.fit(fit.overflow);
+            assert_eq!(fit.result.field, *p, "fit should return the same field");
+            result[*p] = fit.result.value;
+        }
+
+        result.is_negative = millis.is_negative();
+        result
+    }
+
+    /// Converts a [Time] into a 32-bit millisecond timestamp.
+    ///
+    /// # Errors
+    ///
+    /// Fails if the time doesn't fit into a signed 32-bit integer.
+    pub fn try_into_millis(self) -> Result<i32> {
+        Position::ALL.iter().map(|f| self.field_ms(*f)).sum()
     }
 
     /// Tries to construct a [Time] from a given number of seconds.
@@ -104,9 +146,10 @@ impl Time {
     /// # Errors
     ///
     /// Errors if the number of seconds is too high to store in this time.
-    pub fn seconds(amount: u32) -> error::Result<Self> {
-        // TODO(@MattWindsor91): error if overflowing multiplication
-        Self::try_from(amount * 1000)
+    pub fn seconds(amount: i32) -> Result<Self> {
+        Ok(Self::from_millis(
+            amount.checked_mul(1000).ok_or(Error::SecOverflow(amount))?,
+        ))
     }
 
     /// Gets whether this time is zero.
@@ -116,49 +159,37 @@ impl Time {
     /// ```
     /// use zombiesplit::model::timing::time::human;
     /// use std::convert::TryFrom;
-    /// assert!(human::Time::try_from(0).expect("shouldn't overflow").is_zero());
-    /// assert!(!human::Time::try_from(1).expect("shouldn't overflow").is_zero());
+    /// assert!(human::Time::try_from(0).unwrap().is_zero());
+    /// assert!(!human::Time::try_from(1).unwrap().is_zero());
     /// ```
     #[must_use]
-    pub fn is_zero(self) -> bool {
-        u32::from(self) == 0
+    pub const fn is_zero(&self) -> bool {
+        self.hours == 0 && self.mins == 0 && self.secs == 0 && self.millis == 0
+    }
+
+    fn field_ms(&self, field: Position) -> Result<i32> {
+        let offset = i32::from(field.ms_offset());
+        let base = i32::from(self[field]);
+        offset.checked_mul(base).ok_or(Error::MsecOverflow(*self))
     }
 }
 
-impl TryFrom<u32> for Time {
-    type Error = error::Error;
+//
+// Conversion to and from internal times
+//
 
-    /// Tries to convert a 32-bit timestamp to a time.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use zombiesplit::model::timing::time::human;
-    /// use std::convert::TryFrom;
-    /// let time = human::Time::try_from(
-    ///     789 + (56 * 1000) + (34 * 1000 * 60) + (12 * 1000 * 60 * 60)
-    /// ).expect("should not overflow");
-    /// assert_eq!(u16::from(time.hours), 12);
-    /// assert_eq!(u16::from(time.mins), 34);
-    /// assert_eq!(u16::from(time.secs), 56);
-    /// assert_eq!(u16::from(time.millis), 789);
-    /// ```
-    fn try_from(stamp: u32) -> Result<Self, Self::Error> {
-        let millis = field::Carry::new(Position::Milliseconds, stamp);
-        let secs = field::Carry::new(Position::Seconds, millis.carry);
-        let mins = field::Carry::new(Position::Minutes, secs.carry);
-        let hours = Field::new(Position::Hours, mins.carry)?;
-        Ok(Self {
-            hours,
-            mins: mins.field,
-            secs: secs.field,
-            millis: millis.field,
-        })
+/// Conversion from internal times to human times.
+impl From<super::Time> for Time {
+    fn from(time: super::Time) -> Self {
+        Self::from_millis(time.into_millis())
     }
 }
 
-impl From<Time> for u32 {
-    /// Converts a time to a 32-bit timestamp.
+/// Partial conversion from human times to internal times.
+impl TryFrom<Time> for super::Time {
+    type Error = super::Error;
+
+    /// Converts a time to an internal timestamp.
     ///
     /// # Example
     ///
@@ -169,98 +200,42 @@ impl From<Time> for u32 {
     /// let time = human::Time::try_from(msec).expect("should not overflow");
     /// assert_eq!(u32::from(time), msec);
     /// ```
-    fn from(time: Time) -> u32 {
-        time.millis.as_msecs() + time.secs.as_msecs() + time.mins.as_msecs() + time.hours.as_msecs()
+    ///
+    /// # Errors
+    ///
+    /// Fails if the time is too large to fit into a timestamps.
+    fn try_from(time: Time) -> Result<super::Time> {
+        let millis: Result<i32> = time.try_into_millis();
+        millis.map(super::Time::from_millis)
     }
 }
 
-impl Sum for Time {
-    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-        let raw: u32 = iter.map(u32::from).sum();
-        Self::try_from(raw).unwrap_or_default()
-    }
-}
-
-impl std::ops::Add for Time {
-    type Output = Time;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        // TODO(@MattWindsor91): make this more efficient?
-        let raw: u32 = u32::from(self) + u32::from(rhs);
-        Self::try_from(raw).unwrap_or_default()
-    }
-}
-
-impl std::ops::Sub for Time {
-    type Output = Time;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        // TODO(@MattWindsor91): make this more efficient?
-        let raw: u32 = u32::from(self).saturating_sub(u32::from(rhs));
-        Self::try_from(raw).unwrap_or_default()
-    }
-}
-
-impl std::ops::AddAssign for Time {
-    fn add_assign(&mut self, rhs: Self) {
-        // TODO(@MattWindsor91): make this more efficient?
-        *self = *self + rhs;
-    }
-}
-
-impl std::ops::SubAssign for Time {
-    fn sub_assign(&mut self, rhs: Self) {
-        // TODO(@MattWindsor91): make this more efficient?
-        *self = *self - rhs;
-    }
-}
-
-impl Display for Time {
+impl fmt::Display for Time {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.hours.fmt_value_delimited(f)?;
-        self.mins.fmt_value_delimited(f)?;
-        self.secs.fmt_value_delimited(f)?;
-        self.millis.fmt_value_delimited(f)?;
-        Ok(())
+        Position::ALL
+            .iter()
+            .try_for_each(|p| p.fmt_value(f, self[*p]))
     }
 }
 
 impl FromStr for Time {
-    type Err = error::Error;
+    type Err = Error;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (hours, s) = Field::parse_delimited(Position::Hours, s)?;
-        let (mins, s) = Field::parse_delimited(Position::Minutes, s)?;
-        let (secs, s) = Field::parse_delimited(Position::Seconds, s)?;
-        let millis = Field::parse(Position::Milliseconds, s)?;
-        Ok(Self {
-            hours,
-            mins,
-            secs,
-            millis,
-        })
-    }
-}
-
-impl rusqlite::types::FromSql for Time {
-    fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
-        u32::column_result(value).and_then(|x| {
-            Self::try_from(x).map_err(|e| rusqlite::types::FromSqlError::Other(Box::new(e)))
-        })
-    }
-}
-
-impl rusqlite::ToSql for Time {
-    fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
-        Ok(rusqlite::types::ToSqlOutput::Owned(
-            rusqlite::types::Value::Integer(i64::from(u32::from(*self))),
-        ))
+    fn from_str(s: &str) -> Result<Self> {
+        let mut result = Self::default();
+        let mut rest = s;
+        for p in Position::ALL {
+            let (val, r) = p.split_and_parse(s)?;
+            result[*p] = val;
+            rest = r;
+        }
+        Ok(result)
     }
 }
 
 /// We can index into a time by position index, returning a field.
 impl Index<Position> for Time {
-    type Output = Field;
+    type Output = u16;
 
     fn index(&self, index: Position) -> &Self::Output {
         match index {
@@ -286,22 +261,6 @@ impl IndexMut<Position> for Time {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    /// Tests that adding and subtracting a time appears to be the identity.
-    #[test]
-    fn time_add_sub() {
-        let t1: Time = "1h5m10s".parse().expect("should be valid");
-        let t2: Time = "6m4s100".parse().expect("should be valid");
-        assert_eq!(t1, (t1 + t2) - t2);
-    }
-
-    /// Tests that subtracting a large time from a short time results in zero.
-    #[test]
-    fn time_sub_sat() {
-        let t1: Time = "1h5m10s".parse().expect("should be valid");
-        let t2: Time = "6m4s100".parse().expect("should be valid");
-        assert_eq!(Time::default(), t2 - t1);
-    }
 
     #[test]
     fn time_from_str_empty() {

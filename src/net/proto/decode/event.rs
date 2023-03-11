@@ -29,7 +29,7 @@ fn payload(e: event::Payload) -> Result<session::Event> {
 
 fn total(t: &event::Total) -> Result<session::Event> {
     let ty = total_type(Unknown::TotalType.require(t.r#type.as_ref())?)?;
-    let value = t.value.map(super::timing::time).transpose()?;
+    let value = t.value.map(timing::time::Time::from_millis).transpose()?;
     Ok(session::Event::Total(ty, value))
 }
 
@@ -74,7 +74,7 @@ fn split(s: &event::Split) -> Result<session::Event> {
 }
 
 fn split_time(t: &event::split::Time) -> Result<session::event::Split> {
-    let time = super::timing::time(t.time)?;
+    let time = timing::time::Time::from_millis(t.time)?;
     Ok(session::event::split::Split::Time(
         time,
         split_time_type(t.r#type()),

@@ -1,17 +1,15 @@
 //! Split events in attempt observations.
-use serde::{Deserialize, Serialize};
-
 use crate::model::{
     short,
-    timing::{comparison::delta, time::human},
+    timing::{comparison::delta, time},
 };
 
 /// Enumeration of split-level events.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Split {
     /// Got a new time pushed to, or aggregated for, the split.
-    Time(human::Time, super::Time),
+    Time(time::Time, super::Time),
     /// Got a new delta for the split.
     Delta(delta::Split),
     /// One or more times have been popped from the split.
@@ -26,7 +24,7 @@ pub trait Observer {
 
 /// Blanket implementation of time observers for split event observers.
 impl<T: Observer> super::time::Observer for T {
-    fn observe_time(&self, split: short::Name, time: human::Time, event: super::time::Time) {
+    fn observe_time(&self, split: short::Name, time: time::Time, event: super::Time) {
         self.observe_split(split, Split::Time(time, event));
     }
 }

@@ -1,6 +1,6 @@
 //! Structs and functions for pace computation.
 
-use crate::model::timing::time::human;
+use crate::model::timing::time;
 use serde::{Deserialize, Serialize};
 
 /// Possible paces for a split or run.
@@ -27,10 +27,10 @@ impl Pace {
     /// Calculates the pace by comparing `time` to `compared_to`.
     ///
     /// ```
-    /// use zombiesplit::model::timing::{comparison::Pace, time::human};
+    /// use zombiesplit::model::timing::{comparison::Pace, time};
     ///
-    /// let t1 = human::Time::seconds(16).unwrap();
-    /// let t2 = human::Time::seconds(80).unwrap();
+    /// let t1 = time::Time::from_millis(16).unwrap();
+    /// let t2 = time::Time::from_millis(80).unwrap();
     ///
     /// assert_eq!(Pace::Ahead, Pace::of_comparison(t1, t2));
     /// assert_eq!(Pace::Behind, Pace::of_comparison(t2, t1));
@@ -39,7 +39,7 @@ impl Pace {
     /// assert_eq!(Pace::Ahead, Pace::of_comparison(t1, t1));
     /// ```
     #[must_use]
-    pub fn of_comparison(time: human::Time, compared_to: human::Time) -> Self {
+    pub fn of_comparison(time: time::Time, compared_to: time::Time) -> Self {
         if time <= compared_to {
             Self::Ahead
         } else {
@@ -49,18 +49,18 @@ impl Pace {
 }
 
 /// A pair of a time and its pace against comparison.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct PacedTime {
     /// The pace.
     pub pace: Pace,
     /// The time to which `pace` applies.
-    pub time: human::Time,
+    pub time: time::Time,
 }
 
 impl PacedTime {
     /// Shorthand for wrapping a time in a `Pace::Inconclusive` paced time.
     #[must_use]
-    pub fn inconclusive(time: human::Time) -> Self {
+    pub fn inconclusive(time: time::Time) -> Self {
         Self {
             pace: Pace::Inconclusive,
             time,
@@ -69,7 +69,7 @@ impl PacedTime {
 
     /// Shorthand for wrapping a time in a `Pace::PersonalBest` paced time.
     #[must_use]
-    pub fn personal_best(time: human::Time) -> Self {
+    pub fn personal_best(time: time::Time) -> Self {
         Self {
             pace: Pace::PersonalBest,
             time,
@@ -78,7 +78,7 @@ impl PacedTime {
 
     /// Calculates the pace by comparing `time` to `compared_to`, if it exists.
     #[must_use]
-    pub fn of_comparison(time: human::Time, compared_to: human::Time) -> Self {
+    pub fn of_comparison(time: time::Time, compared_to: time::Time) -> Self {
         Self {
             pace: Pace::of_comparison(time, compared_to),
             time,

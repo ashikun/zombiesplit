@@ -66,7 +66,7 @@ impl State {
     pub fn push_to(
         &mut self,
         split: impl split::Locator,
-        time: timing::time::human::Time,
+        time: timing::time::Time,
     ) -> Option<short::Name> {
         self.act_on_split(split, |s| s.push(time))
     }
@@ -139,8 +139,7 @@ impl State {
         if split.num_times() == 0 {
             None
         } else {
-            // TODO: maybe propagate the error here?
-            self.comparison.delta(split.info.short, aggregates).ok()
+            Some(self.comparison.delta(split.info.short, aggregates))
         }
     }
 
@@ -153,7 +152,7 @@ impl State {
             .and_then(|note| {
                 note.delta.map(|d| super::comparison::delta::Time {
                     time: note.aggregates.cumulative,
-                    delta: d.run(),
+                    delta: d.run,
                 })
             });
     }
@@ -183,7 +182,7 @@ impl SplitNote {
         // Assuming that self.delta == None <-> no splits, and we don't need to capture this
         // separately in the aggregates.
         self.delta.map(|d| timing::comparison::PacedTime {
-            pace: d.pace.overall(),
+            pace: d.run.pace(),
             time: self.aggregates.cumulative,
         })
     }
